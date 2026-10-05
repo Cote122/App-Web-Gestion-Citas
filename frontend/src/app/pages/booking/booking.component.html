@@ -22,10 +22,14 @@
 
   <section class="card" *ngIf="specialty">
     <h3>2. Profesional</h3>
-    <div class="choices two">
+    <p class="muted" *ngIf="loadingProfessionals">Cargando profesionales...</p>
+    <div class="choices two" *ngIf="!loadingProfessionals && professionals.length">
       <button *ngFor="let item of professionals" (click)="chooseProfessional(item)" [class.selected]="professional?.id === item.id">
         <b>{{ item.fullName }}</b><small>{{ item.office }}</small>
       </button>
+    </div>
+    <div class="empty" *ngIf="!loadingProfessionals && !professionals.length && !error">
+      <p>No hay profesionales disponibles para <b>{{ specialty.name }}</b> en este momento.</p>
     </div>
   </section>
 

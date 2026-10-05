@@ -20,6 +20,7 @@ export class BookingComponent implements OnInit {
   professional?: Professional;
   slot?: AvailabilitySlot;
   loading = false;
+  loadingProfessionals = false;
   message = '';
   error = '';
   readonly appointmentId = this.route.snapshot.queryParamMap.get('appointmentId');
@@ -39,8 +40,12 @@ export class BookingComponent implements OnInit {
     this.professional = undefined;
     this.slot = undefined;
     this.slots = [];
-    this.api.professionals(item.id).subscribe({
-      next: data => this.professionals = data,
+    this.professionals = [];
+    this.error = '';
+    this.loadingProfessionals = true;
+    this.api.professionals(item.id).pipe(finalize(() => this.loadingProfessionals = false)).subscribe({
+      // Si el paciente cambió de especialidad mientras cargaba, se ignora la respuesta anterior.
+      next: data => { if (this.specialty?.id === item.id) this.professionals = data; },
       error: () => this.error = 'No se pudieron cargar los profesionales.'
     });
   }
