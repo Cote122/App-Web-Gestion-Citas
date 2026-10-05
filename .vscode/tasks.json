@@ -1,0 +1,21 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Backend: dotnet run",
+      "type": "process",
+      "command": "dotnet",
+      "args": ["run"],
+      "options": { "cwd": "${workspaceFolder}/backend/GestionCitas.Api" },
+      "problemMatcher": "$msCompile"
+    },
+    {
+      "label": "Frontend: npm start",
+      "type": "process",
+      "command": "npm",
+      "args": ["start"],
+      "options": { "cwd": "${workspaceFolder}/frontend" },
+      "problemMatcher": []
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+<div class="shell">
+  <aside>
+    <div class="brand"><span>+</span><div><strong>GESTIÓN SALUD</strong><small>Proyecto Tecnológico</small></div></div>
+    <nav>
+      <a routerLink="/app/home" routerLinkActive="active">Inicio</a>
+      <a *ngIf="isPatient()" routerLink="/app/book" routerLinkActive="active">Nueva cita</a>
+      <a *ngIf="isPatient()" routerLink="/app/appointments" routerLinkActive="active">Mis citas</a>
+    </nav>
+    <button class="logout" (click)="logout()">Cerrar sesión</button>
+  </aside>
+
+  <main>
+    <header>
+      <div>
+        <h1>Plataforma Web de Gestión de Citas</h1>
+        <p>Incremento inicial conectado a API y SQL Server</p>
+      </div>
+      <div class="identity" *ngIf="user() as current">
+        <div class="avatar">{{ current.fullName.charAt(0) }}</div>
+        <div><b>{{ current.fullName }}</b><small>{{ current.role }}</small></div>
+      </div>
+    </header>
+    <section class="content"><router-outlet /></section>
+  </main>
+</div>

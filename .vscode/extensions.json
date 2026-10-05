@@ -1,0 +1,9 @@
+{
+  "recommendations": [
+    "ms-dotnettools.csdevkit",
+    "angular.ng-template",
+    "ms-mssql.mssql",
+    "esbenp.prettier-vscode",
+    "eamodio.gitlens"
+  ]
+}

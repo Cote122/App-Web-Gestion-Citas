@@ -1,0 +1,53 @@
+:root {
+  --primary: #0b5cab;
+  --primary-dark: #0d355d;
+  --success: #2ea75b;
+  --bg: #f4f7fb;
+  --line: #dfe7ef;
+  --muted: #708195;
+  --text: #17324d;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; min-height: 100%; font-family: "Segoe UI", Arial, sans-serif; background: var(--bg); color: var(--text); }
+button, input, select, textarea { font: inherit; }
+button { cursor: pointer; }
+a { color: inherit; }
+
+.btn {
+  min-height: 42px;
+  border-radius: 10px;
+  padding: 10px 16px;
+  border: 1px solid var(--line);
+  font-weight: 800;
+}
+.btn-primary { background: var(--primary); border-color: var(--primary); color: white; }
+.btn-secondary { background: white; color: var(--primary); border-color: #bfcddd; }
+.btn-danger { background: white; color: #c73939; border-color: #edb6b6; }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+
+.card {
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 18px;
+  box-shadow: 0 7px 22px rgba(18, 56, 90, .04);
+}
+
+.form-field { display: grid; gap: 7px; }
+.form-field label { font-size: 12px; font-weight: 800; color: #526a80; }
+.form-field input, .form-field select {
+  min-height: 44px;
+  border: 1px solid #cad7e4;
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: white;
+}
+
+.error { color: #b62f2f; font-size: 12px; }
+.success { color: #187647; font-size: 12px; }
+.muted { color: var(--muted); }
+.badge { display: inline-block; border-radius: 999px; padding: 5px 9px; font-size: 11px; font-weight: 800; }
+.badge-green { background: #e3f6eb; color: #177348; }
+.badge-blue { background: #e4f0ff; color: #155ba6; }
+.badge-gray { background: #eef1f4; color: #68788a; }

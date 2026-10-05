@@ -1,0 +1,33 @@
+<section class="login-page">
+  <div class="login-card">
+    <div class="brand"><span>+</span><div><strong>GESTIÓN SALUD</strong><small>Plataforma de citas y atención médica</small></div></div>
+    <h1>App Web Gestión de Citas</h1>
+    <p>Primer incremento conectado a una API y SQL Server.</p>
+
+    <form [formGroup]="form" (ngSubmit)="submit()">
+      <div class="form-field">
+        <label>DNI o correo</label>
+        <input formControlName="identifier" autocomplete="username">
+      </div>
+      <div class="form-field">
+        <label>Contraseña</label>
+        <input formControlName="password" type="password" autocomplete="current-password">
+      </div>
+      <p class="error" *ngIf="error">{{ error }}</p>
+      <button class="btn btn-primary" type="submit" [disabled]="loading">{{ loading ? 'Ingresando...' : 'Iniciar sesión' }}</button>
+    </form>
+
+    <div class="demo">
+      <b>Acceso rápido demo</b>
+      <div class="demo-grid">
+        <button type="button" (click)="useDemo('70000011')">Paciente</button>
+        <button type="button" (click)="useDemo('70000003')">Profesional</button>
+        <button type="button" (click)="useDemo('70000002')">Caja</button>
+        <button type="button" (click)="useDemo('70000001')">Administrador</button>
+      </div>
+      <small>Contraseña demo: Demo#2026</small>
+    </div>
+
+    <a routerLink="/register">Crear cuenta de paciente</a>
+  </div>
+</section>

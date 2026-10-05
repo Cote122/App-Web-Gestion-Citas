@@ -1,0 +1,29 @@
+{
+  "version": "0.2.0",
+
+  "configurations": [
+    {
+      "name": "Backend (.NET)",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "dotnet run --project \"${workspaceFolder}\\backend\\GestionCitas.Api\\GestionCitas.Api.csproj\""
+    },
+    {
+      "name": "Frontend (Angular)",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "npm --prefix \"${workspaceFolder}\\frontend\" start -- --open"
+    }
+  ],
+
+  "compounds": [
+    {
+      "name": "🚀 Gestion Citas - Full Stack",
+      "configurations": [
+        "Backend (.NET)",
+        "Frontend (Angular)"
+      ],
+      "stopAll": true
+    }
+  ]
+}

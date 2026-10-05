@@ -1,0 +1,21 @@
+<div *ngIf="user() as current" class="home">
+  <section class="hero">
+    <div>
+      <small>BIENVENIDO</small>
+      <h2>{{ current.fullName }}</h2>
+      <p *ngIf="current.role === 'Paciente'">Consulta disponibilidad, reserva, reprograma o cancela tus citas desde un solo lugar.</p>
+      <p *ngIf="current.role !== 'Paciente'">La autenticación por rol ya está habilitada. Los módulos internos se implementarán por Sprint.</p>
+    </div>
+    <a *ngIf="current.role === 'Paciente'" class="btn" routerLink="/app/book">Agendar nueva cita</a>
+  </section>
+
+  <section class="quick" *ngIf="current.role === 'Paciente'">
+    <a class="card" routerLink="/app/book"><b>Nueva cita</b><span>Selecciona especialidad, profesional y horario.</span></a>
+    <a class="card" routerLink="/app/appointments"><b>Mis citas</b><span>Consulta, cancela o reprograma tus reservas.</span></a>
+  </section>
+
+  <section class="card" *ngIf="current.role !== 'Paciente'">
+    <h3>Base técnica lista</h3>
+    <p class="muted">El starter ya identifica tu rol como <b>{{ current.role }}</b>. El siguiente Sprint puede incorporar el menú y las funciones específicas para este perfil.</p>
+  </section>
+</div>

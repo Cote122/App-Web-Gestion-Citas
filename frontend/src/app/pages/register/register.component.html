@@ -1,0 +1,15 @@
+<section class="register-page">
+  <div class="register-card">
+    <a routerLink="/login">← Volver al inicio de sesión</a>
+    <h1>Registro de paciente</h1>
+    <p class="muted">Los datos de esta versión son de prueba. No utilices información clínica real.</p>
+    <form [formGroup]="form" (ngSubmit)="submit()">
+      <div class="form-field"><label>Nombre completo</label><input formControlName="fullName"></div>
+      <div class="form-field"><label>DNI</label><input formControlName="dni"></div>
+      <div class="form-field"><label>Correo</label><input formControlName="email" type="email"></div>
+      <div class="form-field"><label>Contraseña</label><input formControlName="password" type="password"></div>
+      <p class="error" *ngIf="error">{{ error }}</p>
+      <button class="btn btn-primary" type="submit" [disabled]="form.invalid || loading">{{ loading ? 'Creando...' : 'Crear cuenta' }}</button>
+    </form>
+  </div>
+</section>

@@ -1,0 +1,50 @@
+<div class="booking">
+  <section class="card booking-head">
+    <div><small>{{ appointmentId ? 'REPROGRAMACIÓN' : 'NUEVA CITA' }}</small><h2>{{ appointmentId ? 'Selecciona un nuevo horario' : 'Agenda tu cita médica' }}</h2><p>La API vuelve a verificar el cupo al confirmar.</p></div>
+    <div class="summary">
+      <span>{{ specialty?.name || 'Especialidad' }}</span>
+      <span>{{ professional?.fullName || 'Profesional' }}</span>
+      <span>{{ slot ? (slot.startAt | date:'dd/MM/yyyy HH:mm') : 'Fecha y hora' }}</span>
+    </div>
+  </section>
+
+  <p class="error" *ngIf="error">{{ error }}</p>
+  <p class="success" *ngIf="message">{{ message }}</p>
+
+  <section class="card">
+    <h3>1. Especialidad</h3>
+    <div class="choices">
+      <button *ngFor="let item of specialties" (click)="chooseSpecialty(item)" [class.selected]="specialty?.id === item.id">
+        <b>{{ item.name }}</b><small>{{ item.description }}</small><span>S/ {{ item.price | number:'1.2-2' }}</span>
+      </button>
+    </div>
+  </section>
+
+  <section class="card" *ngIf="specialty">
+    <h3>2. Profesional</h3>
+    <div class="choices two">
+      <button *ngFor="let item of professionals" (click)="chooseProfessional(item)" [class.selected]="professional?.id === item.id">
+        <b>{{ item.fullName }}</b><small>{{ item.office }}</small>
+      </button>
+    </div>
+  </section>
+
+  <section class="card" *ngIf="professional">
+    <h3>3. Fecha y hora disponible</h3>
+    <div class="slots" *ngIf="slots.length; else noSlots">
+      <button *ngFor="let item of slots" (click)="chooseSlot(item)" [class.selected]="slot?.id === item.id">
+        <b>{{ item.startAt | date:'EEE dd/MM' }}</b><span>{{ item.startAt | date:'HH:mm' }}</span>
+      </button>
+    </div>
+    <ng-template #noSlots>
+      <div class="empty" *ngIf="!loading">
+        <p>No hay horarios disponibles en el rango consultado.</p>
+        <button class="btn btn-secondary" (click)="joinWaitlist()">Ingresar a lista de espera</button>
+      </div>
+    </ng-template>
+  </section>
+
+  <section class="actions" *ngIf="slot">
+    <button class="btn btn-primary" [disabled]="loading" (click)="confirm()">{{ loading ? 'Guardando...' : (appointmentId ? 'Confirmar reprogramación' : 'Confirmar cita') }}</button>
+  </section>
+</div>

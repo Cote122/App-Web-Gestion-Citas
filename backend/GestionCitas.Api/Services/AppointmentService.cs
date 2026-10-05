@@ -1,0 +1,148 @@
+using System.Data;
+using GestionCitas.Api.Data;
+using GestionCitas.Api.Dtos;
+using GestionCitas.Api.Models;
+using Microsoft.EntityFrameworkCore;
+
+namespace GestionCitas.Api.Services;
+
+public class AppointmentService(AppDbContext db)
+{
+    public async Task<(AppointmentDto? Appointment, string? Error)> CreateAsync(Guid patientId, Guid slotId)
+    {
+        await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+
+        var slot = await db.AvailabilitySlots
+            .Include(x => x.Professional)
+            .ThenInclude(x => x.Specialty)
+            .FirstOrDefaultAsync(x => x.Id == slotId);
+
+        if (slot is null) return (null, "El horario seleccionado no existe.");
+        if (!slot.IsAvailable || slot.StartAt <= DateTimeOffset.UtcNow)
+            return (null, "El horario ya no está disponible.");
+
+        slot.IsAvailable = false;
+        var appointment = new Appointment
+        {
+            Code = GenerateCode(),
+            PatientId = patientId,
+            SlotId = slot.Id,
+            Status = AppointmentStatus.Confirmada
+        };
+        db.Appointments.Add(appointment);
+
+        try
+        {
+            await db.SaveChangesAsync();
+            await tx.CommitAsync();
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            await tx.RollbackAsync();
+            return (null, "Otro usuario tomó el horario. Selecciona otro cupo.");
+        }
+
+        return (ToDto(appointment, slot), null);
+    }
+
+    public async Task<List<AppointmentDto>> MineAsync(Guid patientId)
+    {
+        var rows = await db.Appointments
+            .AsNoTracking()
+            .Where(x => x.PatientId == patientId)
+            .Include(x => x.Slot)
+                .ThenInclude(x => x.Professional)
+                .ThenInclude(x => x.Specialty)
+            .OrderByDescending(x => x.Slot.StartAt)
+            .ToListAsync();
+
+        return rows.Select(x => ToDto(x, x.Slot)).ToList();
+    }
+
+    public async Task<(bool Ok, string? Error)> CancelAsync(Guid patientId, Guid appointmentId)
+    {
+        await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+        var appointment = await db.Appointments
+            .Include(x => x.Slot)
+            .FirstOrDefaultAsync(x => x.Id == appointmentId && x.PatientId == patientId);
+
+        if (appointment is null) return (false, "Cita no encontrada.");
+        if (appointment.Status != AppointmentStatus.Confirmada)
+            return (false, "La cita ya no puede cancelarse.");
+        if (appointment.Slot.StartAt <= DateTimeOffset.UtcNow)
+            return (false, "No se puede cancelar una cita cuyo horario ya inició.");
+
+        appointment.Status = AppointmentStatus.Cancelada;
+        appointment.UpdatedAt = DateTimeOffset.UtcNow;
+        appointment.Slot.IsAvailable = true;
+
+        await db.SaveChangesAsync();
+        await tx.CommitAsync();
+        return (true, null);
+    }
+
+    public async Task<(AppointmentDto? Appointment, string? Error)> RescheduleAsync(Guid patientId, Guid appointmentId, Guid newSlotId)
+    {
+        await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+
+        var current = await db.Appointments
+            .Include(x => x.Slot)
+            .FirstOrDefaultAsync(x => x.Id == appointmentId && x.PatientId == patientId);
+
+        if (current is null) return (null, "Cita no encontrada.");
+        if (current.Status != AppointmentStatus.Confirmada)
+            return (null, "La cita ya no puede reprogramarse.");
+
+        var newSlot = await db.AvailabilitySlots
+            .Include(x => x.Professional)
+            .ThenInclude(x => x.Specialty)
+            .FirstOrDefaultAsync(x => x.Id == newSlotId);
+
+        if (newSlot is null || !newSlot.IsAvailable || newSlot.StartAt <= DateTimeOffset.UtcNow)
+            return (null, "El nuevo horario ya no está disponible.");
+
+        current.Status = AppointmentStatus.Reprogramada;
+        current.UpdatedAt = DateTimeOffset.UtcNow;
+        current.Slot.IsAvailable = true;
+        newSlot.IsAvailable = false;
+
+        var replacement = new Appointment
+        {
+            Code = GenerateCode(),
+            PatientId = patientId,
+            SlotId = newSlot.Id,
+            Status = AppointmentStatus.Confirmada,
+            PreviousAppointmentId = current.Id
+        };
+
+        db.Appointments.Add(replacement);
+
+        try
+        {
+            await db.SaveChangesAsync();
+            await tx.CommitAsync();
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            await tx.RollbackAsync();
+            return (null, "Otro usuario tomó el nuevo horario. Selecciona otro cupo.");
+        }
+
+        return (ToDto(replacement, newSlot), null);
+    }
+
+    private static string GenerateCode() =>
+        $"CIT-{DateTime.UtcNow:yyyy}-{Guid.NewGuid().ToString("N")[..6].ToUpperInvariant()}";
+
+    private static AppointmentDto ToDto(Appointment appointment, AvailabilitySlot slot) =>
+        new(
+            appointment.Id,
+            appointment.Code,
+            slot.Professional.Specialty.Name,
+            slot.Professional.FullName,
+            slot.Professional.Office,
+            slot.StartAt,
+            slot.EndAt,
+            appointment.Status.ToString(),
+            slot.Professional.Specialty.Price);
+}

@@ -1,0 +1,7 @@
+.register-page { min-height: 100vh; display: grid; place-items: center; padding: 30px; background: var(--bg); }
+.register-card { width: min(620px, 100%); background: white; border: 1px solid var(--line); border-radius: 20px; padding: 28px; }
+.register-card > a { color: var(--primary); text-decoration: none; font-weight: 800; }
+h1 { color: var(--primary-dark); }
+form { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px; }
+form button, form .error { grid-column: 1 / -1; }
+@media (max-width: 650px) { form { grid-template-columns: 1fr; } form button, form .error { grid-column: auto; } }

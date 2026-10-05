@@ -1,0 +1,32 @@
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.angular/
+frontend/.cache/
+
+# .NET
+**/bin/
+**/obj/
+*.user
+*.suo
+.vs/
+
+# Secrets / local settings
+.env
+.env.*
+!.env.example
+backend/GestionCitas.Api/appsettings.Development.json
+backend/GestionCitas.Api/appsettings.Local.json
+credenciales.local.bat
+*.secrets
+
+# VS Code
+.vscode/settings.json
+
+# IDE / OS
+.DS_Store
+Thumbs.db
+*.swp
+
+# Logs
+*.log

@@ -1,0 +1,181 @@
+{
+  "info": {
+    "name": "Gestion Citas - API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5099"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "specialtyId",
+      "value": ""
+    },
+    {
+      "key": "professionalId",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/health",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "health"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Login paciente",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const r = pm.response.json();",
+              "pm.collectionVariables.set('token', r.token);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"identifier\": \"70000011\", \"password\": \"Demo#2026\"}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/login",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "auth",
+            "login"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Especialidades",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/specialties",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "specialties"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Profesionales por especialidad",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/professionals?specialtyId={{specialtyId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "professionals"
+          ],
+          "query": [
+            {
+              "key": "specialtyId",
+              "value": "{{specialtyId}}"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Disponibilidad",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/availability?professionalId={{professionalId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "availability"
+          ],
+          "query": [
+            {
+              "key": "professionalId",
+              "value": "{{professionalId}}"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Mis citas",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/appointments/mine",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "appointments",
+            "mine"
+          ]
+        }
+      }
+    }
+  ]
+}

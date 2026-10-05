@@ -1,0 +1,21 @@
+.booking { display: grid; gap: 14px; }
+.booking-head { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: center; }
+.booking-head small { color: var(--success); font-weight: 900; letter-spacing: .08em; }
+.booking-head h2 { color: var(--primary-dark); margin: 5px 0; }
+.booking-head p { margin: 0; color: var(--muted); }
+.summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.summary span { border: 1px solid var(--line); background: #f8fbfe; border-radius: 10px; padding: 10px; font-size: 11px; color: #375a78; }
+h3 { margin-top: 0; color: var(--primary-dark); }
+.choices { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.choices.two { grid-template-columns: repeat(2, 1fr); }
+.choices button { min-height: 100px; border: 1px solid var(--line); background: white; border-radius: 12px; padding: 14px; text-align: left; display: grid; gap: 5px; color: var(--text); }
+.choices button.selected, .slots button.selected { border: 2px solid var(--primary); background: #f2f8ff; }
+.choices small { color: var(--muted); }
+.choices span { color: var(--success); font-weight: 900; }
+.slots { display: grid; grid-template-columns: repeat(5, 1fr); gap: 9px; }
+.slots button { border: 1px solid var(--line); background: white; border-radius: 10px; padding: 11px; display: grid; gap: 4px; color: var(--primary-dark); }
+.slots span { color: var(--primary); font-weight: 900; }
+.empty { text-align: center; color: var(--muted); padding: 18px; }
+.actions { display: flex; justify-content: flex-end; }
+@media (max-width: 1000px) { .booking-head, .summary { grid-template-columns: 1fr; } .choices, .choices.two { grid-template-columns: repeat(2, 1fr); } .slots { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 650px) { .choices, .choices.two, .slots { grid-template-columns: 1fr; } }

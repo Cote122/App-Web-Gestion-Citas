@@ -1,0 +1,16 @@
+<section class="card">
+  <div class="head"><div><h2>Mis citas</h2><p>Consulta tus reservas futuras y pasadas.</p></div><button class="btn btn-primary" (click)="newAppointment()">Nueva cita</button></div>
+  <p class="error" *ngIf="error">{{ error }}</p>
+  <p class="muted" *ngIf="loading">Cargando citas...</p>
+
+  <div class="list" *ngIf="!loading">
+    <article *ngFor="let item of items" class="appointment">
+      <div class="main"><b>{{ item.specialty }}</b><span>{{ item.professional }} · {{ item.office }}</span><small>{{ item.code }}</small></div>
+      <div><small>Fecha</small><b>{{ item.startAt | date:'dd/MM/yyyy' }}</b></div>
+      <div><small>Hora</small><b>{{ item.startAt | date:'HH:mm' }}</b></div>
+      <div><span class="badge" [ngClass]="item.status === 'Confirmada' ? 'badge-green' : 'badge-gray'">{{ item.status }}</span></div>
+      <div class="row-actions" *ngIf="isActive(item)"><button class="btn btn-secondary" (click)="reschedule(item)">Reprogramar</button><button class="btn btn-danger" (click)="cancel(item)">Cancelar</button></div>
+    </article>
+    <div class="empty" *ngIf="!items.length">Aún no tienes citas registradas.</div>
+  </div>
+</section>

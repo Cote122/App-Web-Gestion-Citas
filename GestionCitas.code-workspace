@@ -1,0 +1,16 @@
+{
+  "folders": [
+    { "name": "Raíz", "path": "." },
+    { "name": "Frontend Angular", "path": "frontend" },
+    { "name": "Backend API", "path": "backend/GestionCitas.Api" }
+  ],
+  "settings": {
+    "editor.formatOnSave": true,
+    "files.exclude": {
+      "**/bin": true,
+      "**/obj": true,
+      "**/node_modules": true
+    },
+    "liveServer.settings.multiRootWorkspaceName": "Frontend Angular"
+  }
+}
