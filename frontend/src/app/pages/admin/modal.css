@@ -1,0 +1,28 @@
+/* Modales de administración (HU-02). Fondo y tamaño tomados de .modalbg / .modal del prototipo original. */
+.modal-backdrop { position: fixed; inset: 0; background: #07192b99; display: grid; place-items: center; padding: 20px; z-index: 999; }
+.modal { width: min(680px, 95vw); max-height: calc(100vh - 40px); overflow: auto; background: white; border-radius: 18px; box-shadow: 0 20px 60px rgba(7, 25, 43, .3); -webkit-font-smoothing: antialiased; }
+.modal.modal-sm { width: min(480px, 95vw); }
+
+.modal-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; padding: 38px 34px 26px; border-bottom: 1px solid var(--line); }
+.modal-head h3 { margin: 0; color: var(--primary-dark); font-size: 20px; }
+.modal-head p { margin: 8px 0 0; color: #2a3f55; font-size: 14px; font-weight: 500; line-height: 1.55; }
+
+.modal-close { border: 0; background: transparent; color: #c94a4a; font-size: 24px; line-height: 1; padding: 3px 8px; border-radius: 8px; opacity: .75; transition: opacity .15s, background .15s; }
+.modal-close:hover { opacity: 1; background: #fdeeee; }
+.modal-close:disabled { opacity: .35; cursor: not-allowed; }
+
+.modal-body { display: grid; grid-template-columns: 1fr 1fr; gap: 26px 18px; padding: 36px 34px 40px; }
+.modal-body .wide { grid-column: 1 / -1; }
+.modal-body label { color: #33495e; }
+.modal-body .error, .modal-body .hint { grid-column: 1 / -1; margin: 0; }
+.hint { font-size: 12px; font-weight: 500; line-height: 1.55; color: #44576b; }
+.confirm-message { grid-column: 1 / -1; margin: 0; color: #1b2f44; font-size: 15.5px; font-weight: 500; line-height: 1.65; letter-spacing: .005em; }
+
+.modal-foot { display: flex; justify-content: flex-end; gap: 10px; padding: 24px 34px 34px; border-top: 1px solid var(--line); }
+.btn-danger-solid { background: #c73939; border-color: #c73939; color: white; }
+
+@media (max-width: 650px) {
+  .modal-head, .modal-body, .modal-foot { padding-left: 20px; padding-right: 20px; }
+  .modal-body { grid-template-columns: 1fr; }
+  .modal-foot { flex-direction: column-reverse; }
+}

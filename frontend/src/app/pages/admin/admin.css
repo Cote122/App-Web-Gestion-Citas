@@ -1,0 +1,35 @@
+/* Estilos compartidos de las pantallas de administración (HU-02). Siguen el diseño de "Mis citas" y "Registro". */
+:host { --soft-text: #4d6074; -webkit-font-smoothing: antialiased; }
+
+.card { padding: 22px 26px; }
+h2 { margin: 0; color: var(--primary-dark); }
+.head { display: flex; justify-content: space-between; gap: 16px; align-items: center; border-bottom: 1px solid var(--line); padding: 4px 0 16px; }
+.head p { margin: 5px 0 0; color: var(--soft-text); font-weight: 500; }
+.head .btn { white-space: nowrap; }
+
+/* Mensajes de resultado */
+.feedback { margin: 14px 0 0; padding: 10px 14px; border-radius: 10px; font-size: 13px; font-weight: 600; }
+.feedback.success { background: #ebf8f0; border: 1px solid #c3e8d2; color: #14653b; }
+.feedback.error { background: #fdf0f0; border: 1px solid #f1c9c9; color: #a62828; }
+
+/* Tabla compacta */
+.table-wrap { margin-top: 16px; border: 1px solid var(--line); border-radius: 12px; overflow-x: auto; }
+table { width: 100%; min-width: 820px; table-layout: fixed; border-collapse: collapse; font-size: 14px; }
+.center { text-align: center; }
+th { text-align: left; font-size: 12px; font-weight: 800; color: #3f566c; background: #f6f9fc; padding: 10px 14px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+td { padding: 9px 14px; border-bottom: 1px solid var(--line); vertical-align: middle; color: var(--text); }
+tbody tr:last-child td { border-bottom: 0; }
+tbody tr:hover { background: #f9fbfe; }
+.num { text-align: right; white-space: nowrap; }
+.name { font-weight: 700; color: var(--primary-dark); }
+.sub { display: block; margin-top: 2px; font-size: 12px; font-weight: 500; line-height: 1.45; color: var(--soft-text); }
+.warn { color: #8f520f; }
+tr.inactive .name, tr.inactive td { color: #6f7f8f; }
+.actions { text-align: right; white-space: nowrap; }
+.actions .btn { min-height: 30px; padding: 5px 10px; font-size: 12px; margin-left: 6px; }
+.empty { padding: 28px; text-align: center; color: var(--soft-text); font-weight: 500; }
+
+@media (max-width: 650px) {
+  .card { padding: 18px; }
+  .head { align-items: flex-start; flex-direction: column; }
+}

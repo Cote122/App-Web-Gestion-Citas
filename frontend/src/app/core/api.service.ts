@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Appointment, AvailabilitySlot, Professional, Specialty } from '../models/models';
+import { AdminProfessional, AdminSpecialty, Appointment, AvailabilitySlot, Professional, Specialty } from '../models/models';
 
 @Injectable({ providedIn: 'root' })
 export class ApiService {
@@ -44,5 +44,38 @@ export class ApiService {
       preferredTo: null,
       notes: 'Solicitud creada desde el flujo web inicial.'
     });
+  }
+
+  // HU-02: administración de especialidades y profesionales
+  adminSpecialties() {
+    return this.http.get<AdminSpecialty[]>('/api/admin/specialties');
+  }
+
+  createSpecialty(payload: { name: string; description: string; price: number }) {
+    return this.http.post<AdminSpecialty>('/api/admin/specialties', payload);
+  }
+
+  updateSpecialty(id: string, payload: { name: string; description: string; price: number }) {
+    return this.http.put<AdminSpecialty>(`/api/admin/specialties/${id}`, payload);
+  }
+
+  setSpecialtyActive(id: string, isActive: boolean) {
+    return this.http.patch<AdminSpecialty>(`/api/admin/specialties/${id}/status`, { isActive });
+  }
+
+  adminProfessionals() {
+    return this.http.get<AdminProfessional[]>('/api/admin/professionals');
+  }
+
+  createProfessional(payload: { fullName: string; office: string; specialtyId: string }) {
+    return this.http.post<AdminProfessional>('/api/admin/professionals', payload);
+  }
+
+  updateProfessional(id: string, payload: { fullName: string; office: string; specialtyId: string }) {
+    return this.http.put<AdminProfessional>(`/api/admin/professionals/${id}`, payload);
+  }
+
+  setProfessionalActive(id: string, isActive: boolean) {
+    return this.http.patch<AdminProfessional>(`/api/admin/professionals/${id}/status`, { isActive });
   }
 }

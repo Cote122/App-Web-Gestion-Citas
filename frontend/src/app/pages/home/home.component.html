@@ -14,7 +14,12 @@
     <a class="card" routerLink="/app/appointments"><b>Mis citas</b><span>Consulta, cancela o reprograma tus reservas.</span></a>
   </section>
 
-  <section class="card" *ngIf="current.role !== 'Paciente'">
+  <section class="quick" *ngIf="current.role === 'Administrador'">
+    <a class="card" routerLink="/app/admin/specialties"><b>Especialidades</b><span>Registra, edita o desactiva la oferta de especialidades.</span></a>
+    <a class="card" routerLink="/app/admin/professionals"><b>Profesionales</b><span>Registra profesionales y asígnales su especialidad.</span></a>
+  </section>
+
+  <section class="card" *ngIf="current.role !== 'Paciente' && current.role !== 'Administrador'">
     <h3>Base técnica lista</h3>
     <p class="muted">El starter ya identifica tu rol como <b>{{ current.role }}</b>. El siguiente Sprint puede incorporar el menú y las funciones específicas para este perfil.</p>
   </section>
