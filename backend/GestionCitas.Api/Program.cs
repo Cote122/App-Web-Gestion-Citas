@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using System.Text;
 using GestionCitas.Api.Data;
 using GestionCitas.Api.Services;
@@ -53,6 +54,40 @@ var app = builder.Build();
 
 app.UseCors("Frontend");
 app.UseAuthentication();
+
+// HU-03/HU-06: evita que un JWT antiguo conserve acceso después de desactivar
+// al usuario o cambiarle el rol. En ese caso se exige iniciar sesión nuevamente.
+app.Use(async (context, next) =>
+{
+    if (context.User.Identity?.IsAuthenticated == true)
+    {
+        var idValue = context.User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var tokenRole = context.User.FindFirstValue(ClaimTypes.Role);
+
+        if (!Guid.TryParse(idValue, out var userId))
+        {
+            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+            return;
+        }
+
+        var db = context.RequestServices.GetRequiredService<AppDbContext>();
+        var currentUser = await db.Users
+            .AsNoTracking()
+            .Where(x => x.Id == userId)
+            .Select(x => new { x.IsActive, x.Role })
+            .FirstOrDefaultAsync();
+
+        if (currentUser is null || !currentUser.IsActive || !string.Equals(currentUser.Role, tokenRole, StringComparison.Ordinal))
+        {
+            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+            await context.Response.WriteAsJsonAsync(new { message = "Tu acceso cambió. Inicia sesión nuevamente." });
+            return;
+        }
+    }
+
+    await next();
+});
+
 app.UseAuthorization();
 app.MapControllers();
 
