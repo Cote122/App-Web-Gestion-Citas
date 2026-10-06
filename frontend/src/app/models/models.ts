@@ -26,6 +26,25 @@ export interface Professional {
   specialtyId: string;
 }
 
+export interface AdminSpecialty {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  isActive: boolean;
+  professionalCount: number;
+}
+
+export interface AdminProfessional {
+  id: string;
+  fullName: string;
+  office: string;
+  specialtyId: string;
+  specialtyName: string;
+  specialtyIsActive: boolean;
+  isActive: boolean;
+}
+
 export interface AvailabilitySlot {
   id: string;
   startAt: string;

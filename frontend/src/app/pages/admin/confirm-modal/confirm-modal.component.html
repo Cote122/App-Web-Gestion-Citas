@@ -1,0 +1,17 @@
+<div class="modal-backdrop">
+  <div class="modal modal-sm" role="alertdialog" aria-modal="true" aria-labelledby="confirm-title" aria-describedby="confirm-message">
+    <div class="modal-head">
+      <div><h3 id="confirm-title">{{ title }}</h3></div>
+      <button class="modal-close" type="button" aria-label="Cerrar" [disabled]="busy" (click)="cancel()">×</button>
+    </div>
+
+    <div class="modal-body">
+      <p id="confirm-message" class="confirm-message">{{ message }}</p>
+    </div>
+
+    <div class="modal-foot">
+      <button class="btn btn-secondary" type="button" [disabled]="busy" (click)="cancel()">Cancelar</button>
+      <button class="btn btn-danger-solid" type="button" [disabled]="busy" (click)="confirmed.emit()">{{ busy ? 'Procesando...' : confirmText }}</button>
+    </div>
+  </div>
+</div>

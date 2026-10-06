@@ -1,0 +1,75 @@
+<section class="card">
+  <div class="head">
+    <div><h2>Profesionales</h2><p>Registra profesionales, asígnales su especialidad o desactívalos.</p></div>
+    <button class="btn btn-primary" (click)="openNew()">Nuevo profesional</button>
+  </div>
+
+  <p class="error feedback" *ngIf="error">{{ error }}</p>
+  <p class="success feedback" *ngIf="message">{{ message }}</p>
+  <p class="muted" *ngIf="loading">Cargando profesionales...</p>
+
+  <div class="table-wrap" *ngIf="!loading">
+    <table>
+      <colgroup>
+        <col style="width: 30%"><col style="width: 18%"><col style="width: 20%"><col style="width: 12%"><col style="width: 20%">
+      </colgroup>
+      <thead>
+        <tr><th>Profesional</th><th>Consultorio</th><th>Especialidad</th><th class="center">Estado</th><th class="actions">Acciones</th></tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let item of items" [class.inactive]="!item.isActive">
+          <td><span class="name">{{ item.fullName }}</span></td>
+          <td>{{ item.office || '—' }}</td>
+          <td>{{ item.specialtyName }}<span class="sub warn" *ngIf="!item.specialtyIsActive">Especialidad inactiva</span></td>
+          <td class="center"><span class="badge" [ngClass]="item.isActive ? 'badge-green' : 'badge-gray'">{{ item.isActive ? 'Activo' : 'Inactivo' }}</span></td>
+          <td class="actions">
+            <button class="btn btn-secondary" (click)="edit(item)">Editar</button>
+            <button class="btn" [ngClass]="item.isActive ? 'btn-danger' : 'btn-secondary'" (click)="toggle(item)">{{ item.isActive ? 'Desactivar' : 'Activar' }}</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="empty" *ngIf="!items.length">Aún no hay profesionales registrados.</div>
+  </div>
+</section>
+
+<app-confirm-modal *ngIf="deactivating as item"
+  title="¿Desactivar a “{{ item.fullName }}”?"
+  message="Dejará de aparecer para nuevas reservas. El registro y sus citas ya reservadas se conservan, y puedes volver a activarlo cuando quieras."
+  confirmText="Desactivar"
+  [busy]="changingStatus"
+  (confirmed)="confirmDeactivate()"
+  (cancelled)="cancelDeactivate()">
+</app-confirm-modal>
+
+<div class="modal-backdrop" *ngIf="modalOpen">
+  <form class="modal" role="dialog" aria-modal="true" aria-labelledby="professional-modal-title"
+        [formGroup]="form" (ngSubmit)="save()">
+    <div class="modal-head">
+      <div>
+        <h3 id="professional-modal-title">{{ editing ? 'Editar profesional' : 'Nuevo profesional' }}</h3>
+        <p>{{ editing ? 'Modifica los datos del profesional.' : 'Completa los datos obligatorios (*).' }}</p>
+      </div>
+      <button class="modal-close" type="button" aria-label="Cerrar" (click)="closeModal()">×</button>
+    </div>
+
+    <div class="modal-body">
+      <div class="form-field wide"><label>Nombre completo *</label><input #firstField formControlName="fullName" maxlength="200" placeholder="Ej. Dra. Ana López"></div>
+      <div class="form-field"><label>Consultorio</label><input formControlName="office" maxlength="100" placeholder="Ej. Consultorio 1"></div>
+      <div class="form-field">
+        <label>Especialidad *</label>
+        <select formControlName="specialtyId">
+          <option value="" disabled>Selecciona una especialidad</option>
+          <option *ngFor="let item of specialtyOptions" [value]="item.id">{{ item.name }}{{ item.isActive ? '' : ' (inactiva)' }}</option>
+        </select>
+      </div>
+      <p class="hint" *ngIf="!editing">Un profesional nuevo no tiene horarios todavía; la configuración de agenda se gestiona aparte.</p>
+      <p class="error" *ngIf="formError">{{ formError }}</p>
+    </div>
+
+    <div class="modal-foot">
+      <button class="btn btn-secondary" type="button" (click)="closeModal()">Cancelar</button>
+      <button class="btn btn-primary" type="submit" [disabled]="form.invalid || saving">{{ saving ? 'Guardando...' : (editing ? 'Guardar cambios' : 'Registrar profesional') }}</button>
+    </div>
+  </form>
+</div>

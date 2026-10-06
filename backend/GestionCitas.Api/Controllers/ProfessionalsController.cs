@@ -15,7 +15,7 @@ public class ProfessionalsController(AppDbContext db) : ControllerBase
     {
         var data = await db.Professionals
             .AsNoTracking()
-            .Where(x => x.IsActive && x.SpecialtyId == specialtyId)
+            .Where(x => x.IsActive && x.Specialty.IsActive && x.SpecialtyId == specialtyId)
             .OrderBy(x => x.FullName)
             .Select(x => new { x.Id, x.FullName, x.Office, x.SpecialtyId })
             .ToListAsync();

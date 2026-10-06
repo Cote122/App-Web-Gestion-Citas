@@ -5,6 +5,8 @@
       <a routerLink="/app/home" routerLinkActive="active">Inicio</a>
       <a *ngIf="isPatient()" routerLink="/app/book" routerLinkActive="active">Nueva cita</a>
       <a *ngIf="isPatient()" routerLink="/app/appointments" routerLinkActive="active">Mis citas</a>
+      <a *ngIf="isAdmin()" routerLink="/app/admin/specialties" routerLinkActive="active">Especialidades</a>
+      <a *ngIf="isAdmin()" routerLink="/app/admin/professionals" routerLinkActive="active">Profesionales</a>
     </nav>
     <button class="logout" (click)="logout()">Cerrar sesión</button>
   </aside>

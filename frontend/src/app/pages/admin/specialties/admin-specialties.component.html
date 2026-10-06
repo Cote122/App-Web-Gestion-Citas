@@ -1,0 +1,68 @@
+<section class="card">
+  <div class="head">
+    <div><h2>Especialidades</h2><p>Registra, edita o desactiva las especialidades de la oferta de atención.</p></div>
+    <button class="btn btn-primary" (click)="openNew()">Nueva especialidad</button>
+  </div>
+
+  <p class="error feedback" *ngIf="error">{{ error }}</p>
+  <p class="success feedback" *ngIf="message">{{ message }}</p>
+  <p class="muted" *ngIf="loading">Cargando especialidades...</p>
+
+  <div class="table-wrap" *ngIf="!loading">
+    <table>
+      <colgroup>
+        <col style="width: 38%"><col style="width: 14%"><col style="width: 14%"><col style="width: 14%"><col style="width: 20%">
+      </colgroup>
+      <thead>
+        <tr><th>Especialidad</th><th class="center">Precio</th><th class="center">Profesionales</th><th class="center">Estado</th><th class="actions">Acciones</th></tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let item of items" [class.inactive]="!item.isActive">
+          <td><span class="name">{{ item.name }}</span><span class="sub">{{ item.description || 'Sin descripción' }}</span></td>
+          <td class="center">S/ {{ item.price | number:'1.2-2' }}</td>
+          <td class="center">{{ item.professionalCount }}</td>
+          <td class="center"><span class="badge" [ngClass]="item.isActive ? 'badge-green' : 'badge-gray'">{{ item.isActive ? 'Activa' : 'Inactiva' }}</span></td>
+          <td class="actions">
+            <button class="btn btn-secondary" (click)="edit(item)">Editar</button>
+            <button class="btn" [ngClass]="item.isActive ? 'btn-danger' : 'btn-secondary'" (click)="toggle(item)">{{ item.isActive ? 'Desactivar' : 'Activar' }}</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="empty" *ngIf="!items.length">Aún no hay especialidades registradas.</div>
+  </div>
+</section>
+
+<app-confirm-modal *ngIf="deactivating as item"
+  title="¿Desactivar “{{ item.name }}”?"
+  message="Los pacientes dejarán de verla al reservar, junto con sus profesionales. El registro se conserva y puedes volver a activarla cuando quieras."
+  confirmText="Desactivar"
+  [busy]="changingStatus"
+  (confirmed)="confirmDeactivate()"
+  (cancelled)="cancelDeactivate()">
+</app-confirm-modal>
+
+<div class="modal-backdrop" *ngIf="modalOpen">
+  <form class="modal" role="dialog" aria-modal="true" aria-labelledby="specialty-modal-title"
+        [formGroup]="form" (ngSubmit)="save()">
+    <div class="modal-head">
+      <div>
+        <h3 id="specialty-modal-title">{{ editing ? 'Editar especialidad' : 'Nueva especialidad' }}</h3>
+        <p>{{ editing ? 'Modifica los datos de la especialidad.' : 'Completa los datos obligatorios (*).' }}</p>
+      </div>
+      <button class="modal-close" type="button" aria-label="Cerrar" (click)="closeModal()">×</button>
+    </div>
+
+    <div class="modal-body">
+      <div class="form-field"><label>Nombre *</label><input #firstField formControlName="name" maxlength="100"></div>
+      <div class="form-field"><label>Precio (S/) *</label><input formControlName="price" type="number" min="0" max="99999" step="0.01"></div>
+      <div class="form-field wide"><label>Descripción</label><input formControlName="description" maxlength="300"></div>
+      <p class="error" *ngIf="formError">{{ formError }}</p>
+    </div>
+
+    <div class="modal-foot">
+      <button class="btn btn-secondary" type="button" (click)="closeModal()">Cancelar</button>
+      <button class="btn btn-primary" type="submit" [disabled]="form.invalid || saving">{{ saving ? 'Guardando...' : (editing ? 'Guardar cambios' : 'Registrar especialidad') }}</button>
+    </div>
+  </form>
+</div>
