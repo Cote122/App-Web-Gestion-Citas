@@ -18,7 +18,14 @@ public class AuthController(AuthService authService) : ControllerBase
     [HttpPost("register")]
     public async Task<IActionResult> Register(RegisterPatientRequest request)
     {
-        var (response, error) = await authService.RegisterPatientAsync(request);
-        return response is null ? BadRequest(new { message = error }) : Ok(response);
+        var (user, error) = await authService.RegisterPatientAsync(request);
+        if (user is null)
+            return Conflict(new { message = error });
+
+        return Created(string.Empty, new
+        {
+            message = "Cuenta creada correctamente. Ya puedes iniciar sesión.",
+            user
+        });
     }
 }

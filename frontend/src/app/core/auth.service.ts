@@ -1,7 +1,7 @@
 import { Injectable, computed, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, tap } from 'rxjs';
-import { LoginResponse, User } from '../models/models';
+import { LoginResponse, RegisterResponse, User } from '../models/models';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -19,9 +19,8 @@ export class AuthService {
       .pipe(tap(response => this.saveSession(response)));
   }
 
-  register(payload: { dni: string; email: string; fullName: string; password: string }): Observable<LoginResponse> {
-    return this.http.post<LoginResponse>('/api/auth/register', payload)
-      .pipe(tap(response => this.saveSession(response)));
+  register(payload: { dni: string; email: string; fullName: string; password: string }): Observable<RegisterResponse> {
+    return this.http.post<RegisterResponse>('/api/auth/register', payload);
   }
 
   logout(): void {

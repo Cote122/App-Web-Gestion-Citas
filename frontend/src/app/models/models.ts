@@ -1,15 +1,31 @@
+export type UserRole = 'Paciente' | 'Profesional' | 'Administrador' | 'Caja';
+
 export interface User {
   id: string;
   dni: string;
   email: string;
   fullName: string;
-  role: 'Paciente' | 'Profesional' | 'Administrador' | 'Caja';
+  role: UserRole;
 }
 
 export interface LoginResponse {
   token: string;
   expiresAt: string;
   user: User;
+}
+
+export interface RegisterResponse {
+  message: string;
+  user: User;
+}
+
+export interface AdminUser extends User {
+  isActive: boolean;
+}
+
+export interface RoleDefinition {
+  role: UserRole;
+  permissions: string[];
 }
 
 export interface Specialty {

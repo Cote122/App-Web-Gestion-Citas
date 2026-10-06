@@ -4,12 +4,32 @@
     <h1>Registro de paciente</h1>
     <p class="muted">Los datos de esta versión son de prueba. No utilices información clínica real.</p>
     <form [formGroup]="form" (ngSubmit)="submit()">
-      <div class="form-field"><label>Nombre completo</label><input formControlName="fullName"></div>
-      <div class="form-field"><label>DNI</label><input formControlName="dni"></div>
-      <div class="form-field"><label>Correo</label><input formControlName="email" type="email"></div>
-      <div class="form-field"><label>Contraseña</label><input formControlName="password" type="password"></div>
+      <div class="form-field">
+        <label>Nombre completo</label>
+        <input formControlName="fullName" maxlength="200">
+        <small class="error" *ngIf="form.controls.fullName.touched && form.controls.fullName.hasError('required')">El nombre completo es obligatorio.</small>
+        <small class="error" *ngIf="form.controls.fullName.touched && form.controls.fullName.hasError('minlength')">Ingresa al menos 3 caracteres.</small>
+      </div>
+      <div class="form-field">
+        <label>DNI</label>
+        <input formControlName="dni" maxlength="8" inputmode="numeric">
+        <small class="error" *ngIf="form.controls.dni.touched && form.controls.dni.hasError('required')">El DNI es obligatorio.</small>
+        <small class="error" *ngIf="form.controls.dni.touched && form.controls.dni.hasError('pattern')">El DNI debe contener exactamente 8 dígitos.</small>
+      </div>
+      <div class="form-field">
+        <label>Correo</label>
+        <input formControlName="email" type="email" maxlength="200">
+        <small class="error" *ngIf="form.controls.email.touched && form.controls.email.hasError('required')">El correo es obligatorio.</small>
+        <small class="error" *ngIf="form.controls.email.touched && form.controls.email.hasError('email')">Ingresa un correo válido.</small>
+      </div>
+      <div class="form-field">
+        <label>Contraseña</label>
+        <input formControlName="password" type="password" maxlength="100" autocomplete="new-password">
+        <small class="error" *ngIf="form.controls.password.touched && form.controls.password.hasError('required')">La contraseña es obligatoria.</small>
+        <small class="error" *ngIf="form.controls.password.touched && form.controls.password.hasError('minlength')">La contraseña debe tener al menos 8 caracteres.</small>
+      </div>
       <p class="error" *ngIf="error">{{ error }}</p>
-      <button class="btn btn-primary" type="submit" [disabled]="form.invalid || loading">{{ loading ? 'Creando...' : 'Crear cuenta' }}</button>
+      <button class="btn btn-primary" type="submit" [disabled]="loading">{{ loading ? 'Creando...' : 'Crear cuenta' }}</button>
     </form>
   </div>
 </section>

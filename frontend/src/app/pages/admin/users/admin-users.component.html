@@ -1,0 +1,50 @@
+<section class="card">
+  <div class="head">
+    <div>
+      <h2>Usuarios y permisos</h2>
+      <p>Asigna un rol y revisa los accesos que tendrá cada usuario.</p>
+    </div>
+  </div>
+
+  <p class="error feedback" *ngIf="error">{{ error }}</p>
+  <p class="success feedback" *ngIf="message">{{ message }}</p>
+  <p class="muted" *ngIf="loading">Cargando usuarios...</p>
+
+  <div class="table-wrap" *ngIf="!loading">
+    <table>
+      <thead>
+        <tr>
+          <th>Usuario</th>
+          <th>Rol actual</th>
+          <th>Nuevo rol</th>
+          <th>Permisos del rol seleccionado</th>
+          <th class="actions">Acción</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let user of users" [class.inactive]="!user.isActive">
+          <td>
+            <span class="name">{{ user.fullName }}</span>
+            <span class="sub">DNI {{ user.dni }} · {{ user.email }}</span>
+          </td>
+          <td>{{ user.role }}</td>
+          <td>
+            <select [(ngModel)]="pendingRoles[user.id]">
+              <option *ngFor="let role of roles" [ngValue]="role.role">{{ role.role }}</option>
+            </select>
+          </td>
+          <td>
+            <span class="sub" *ngFor="let permission of permissionsFor(pendingRoles[user.id])">• {{ permission }}</span>
+          </td>
+          <td class="actions">
+            <button class="btn btn-primary"
+                    [disabled]="savingId === user.id || pendingRoles[user.id] === user.role"
+                    (click)="saveRole(user)">
+              {{ savingId === user.id ? 'Guardando...' : 'Guardar rol' }}
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>

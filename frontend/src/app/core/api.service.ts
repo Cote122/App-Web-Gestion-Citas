@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { AdminProfessional, AdminSpecialty, Appointment, AvailabilitySlot, Professional, Specialty } from '../models/models';
+import { AdminProfessional, AdminSpecialty, AdminUser, Appointment, AvailabilitySlot, Professional, RoleDefinition, Specialty, UserRole } from '../models/models';
 
 @Injectable({ providedIn: 'root' })
 export class ApiService {
@@ -46,7 +46,6 @@ export class ApiService {
     });
   }
 
-  // HU-02: administración de especialidades y profesionales
   adminSpecialties() {
     return this.http.get<AdminSpecialty[]>('/api/admin/specialties');
   }
@@ -77,5 +76,17 @@ export class ApiService {
 
   setProfessionalActive(id: string, isActive: boolean) {
     return this.http.patch<AdminProfessional>(`/api/admin/professionals/${id}/status`, { isActive });
+  }
+
+  adminUsers() {
+    return this.http.get<AdminUser[]>('/api/admin/users');
+  }
+
+  roleDefinitions() {
+    return this.http.get<RoleDefinition[]>('/api/admin/users/roles');
+  }
+
+  updateUserRole(id: string, role: UserRole) {
+    return this.http.patch<AdminUser>(`/api/admin/users/${id}/role`, { role });
   }
 }
