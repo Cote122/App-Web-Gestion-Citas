@@ -1,0 +1,18 @@
+/* Mismo estilo que los modales de administración (pages/admin/modal.css), versión pequeña. */
+.modal-backdrop { position: fixed; inset: 0; background: #07192b99; display: grid; place-items: center; padding: 20px; z-index: 999; }
+.modal { width: min(480px, 95vw); max-height: calc(100vh - 40px); overflow: auto; background: white; border-radius: 18px; box-shadow: 0 20px 60px rgba(7, 25, 43, .3); -webkit-font-smoothing: antialiased; }
+
+.modal-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; padding: 38px 34px 26px; border-bottom: 1px solid var(--line); }
+.modal-head h3 { margin: 0; color: var(--primary-dark); font-size: 20px; }
+
+.modal-close { border: 0; background: transparent; color: #c94a4a; font-size: 24px; line-height: 1; padding: 3px 8px; border-radius: 8px; opacity: .75; transition: opacity .15s, background .15s; }
+.modal-close:hover { opacity: 1; background: #fdeeee; }
+
+.modal-body { padding: 36px 34px 40px; }
+.modal-body p { margin: 0; color: #1b2f44; font-size: 15.5px; font-weight: 500; line-height: 1.65; letter-spacing: .005em; }
+
+.modal-foot { display: flex; justify-content: flex-end; padding: 24px 34px 34px; border-top: 1px solid var(--line); }
+
+@media (max-width: 650px) {
+  .modal-head, .modal-body, .modal-foot { padding-left: 20px; padding-right: 20px; }
+}
