@@ -18,6 +18,8 @@ public class AppointmentService(AppDbContext db)
             .FirstOrDefaultAsync(x => x.Id == slotId);
 
         if (slot is null) return (null, "El horario seleccionado no existe.");
+        if (!IsBookable(slot.Professional))
+            return (null, ProfessionalUnavailableMessage);
         if (!slot.IsAvailable || slot.StartAt <= DateTimeOffset.UtcNow)
             return (null, "El horario ya no está disponible.");
 
@@ -98,6 +100,8 @@ public class AppointmentService(AppDbContext db)
             .ThenInclude(x => x.Specialty)
             .FirstOrDefaultAsync(x => x.Id == newSlotId);
 
+        if (newSlot is not null && !IsBookable(newSlot.Professional))
+            return (null, ProfessionalUnavailableMessage);
         if (newSlot is null || !newSlot.IsAvailable || newSlot.StartAt <= DateTimeOffset.UtcNow)
             return (null, "El nuevo horario ya no está disponible.");
 
@@ -130,6 +134,13 @@ public class AppointmentService(AppDbContext db)
 
         return (ToDto(replacement, newSlot), null);
     }
+
+    private const string ProfessionalUnavailableMessage =
+        "El profesional ya no está disponible para nuevas reservas. Elige otro profesional.";
+
+    // HU-11: solo se reserva con profesionales y especialidades activos (se revalida al confirmar).
+    private static bool IsBookable(Professional professional) =>
+        professional.IsActive && professional.Specialty.IsActive;
 
     private static string GenerateCode() =>
         $"CIT-{DateTime.UtcNow:yyyy}-{Guid.NewGuid().ToString("N")[..6].ToUpperInvariant()}";

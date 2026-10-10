@@ -52,3 +52,9 @@
     <button class="btn btn-primary" [disabled]="loading" (click)="confirm()">{{ loading ? 'Guardando...' : (appointmentId ? 'Confirmar reprogramación' : 'Confirmar cita') }}</button>
   </section>
 </div>
+
+<app-alert-modal *ngIf="bookingError"
+  [title]="appointmentId ? 'No se pudo reprogramar la cita' : 'No se pudo registrar la cita'"
+  [message]="bookingError"
+  (closed)="closeBookingError()">
+</app-alert-modal>

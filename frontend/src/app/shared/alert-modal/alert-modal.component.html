@@ -1,0 +1,16 @@
+<div class="modal-backdrop">
+  <div class="modal" role="alertdialog" aria-modal="true" aria-labelledby="alert-title" aria-describedby="alert-message">
+    <div class="modal-head">
+      <h3 id="alert-title">{{ title }}</h3>
+      <button class="modal-close" type="button" aria-label="Cerrar" (click)="close()">×</button>
+    </div>
+
+    <div class="modal-body">
+      <p id="alert-message">{{ message }}</p>
+    </div>
+
+    <div class="modal-foot">
+      <button class="btn btn-primary" type="button" (click)="close()">{{ buttonText }}</button>
+    </div>
+  </div>
+</div>
