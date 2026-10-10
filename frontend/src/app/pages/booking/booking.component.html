@@ -51,4 +51,19 @@
   <section class="actions" *ngIf="slot">
     <button class="btn btn-primary" [disabled]="loading" (click)="confirm()">{{ loading ? 'Guardando...' : (appointmentId ? 'Confirmar reprogramación' : 'Confirmar cita') }}</button>
   </section>
+
+  <app-confirm-modal
+    *ngIf="mostrarModal"
+    [title]="appointmentId ? 'Confirmar Reprogramación' : 'Confirmar Registro de Cita'"
+    [confirmText]="appointmentId ? 'Sí, reprogramar' : 'Sí, confirmar cita'"
+    cancelText="Revisar datos"
+    [datos]="{
+      especialidad: specialty?.name || '',
+      medico: professional?.fullName || '',
+      fecha: (slot?.startAt | date:'dd/MM/yyyy') || '',
+      hora: (slot?.startAt | date:'HH:mm') || ''
+    }"
+    (confirmed)="ejecutarGuardadoCita()"
+    (cancelled)="cancelarModal()">
+  </app-confirm-modal>
 </div>
