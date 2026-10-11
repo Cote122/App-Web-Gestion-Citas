@@ -4,12 +4,13 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { finalize } from 'rxjs';
 import { ApiService } from '../../core/api.service';
 import { AvailabilitySlot, Professional, Specialty } from '../../models/models';
+import { ConfirmModalComponent } from '../../shared/confirm-modal/confirm-modal.component';
 import { AlertModalComponent } from '../../shared/alert-modal/alert-modal.component';
 
 @Component({
   selector: 'app-booking',
   standalone: true,
-  imports: [CommonModule, DatePipe, AlertModalComponent],
+  imports: [CommonModule, DatePipe, ConfirmModalComponent, AlertModalComponent],
   templateUrl: './booking.component.html',
   styleUrl: './booking.component.css'
 })
@@ -26,6 +27,8 @@ export class BookingComponent implements OnInit {
   error = '';
   bookingError = '';
   readonly appointmentId = this.route.snapshot.queryParamMap.get('appointmentId');
+
+  mostrarModal = false;
 
   constructor(private readonly api: ApiService, private readonly route: ActivatedRoute, private readonly router: Router) {}
 
@@ -46,7 +49,6 @@ export class BookingComponent implements OnInit {
     this.error = '';
     this.loadingProfessionals = true;
     this.api.professionals(item.id).pipe(finalize(() => this.loadingProfessionals = false)).subscribe({
-      // Si el paciente cambió de especialidad mientras cargaba, se ignora la respuesta anterior.
       next: data => { if (this.specialty?.id === item.id) this.professionals = data; },
       error: () => this.error = 'No se pudieron cargar los profesionales.'
     });
@@ -68,9 +70,16 @@ export class BookingComponent implements OnInit {
 
   confirm(): void {
     if (!this.slot || this.loading) return;
+    this.mostrarModal = true;
+  }
+
+  ejecutarGuardadoCita(): void {
+    if (!this.slot) return;
+    this.mostrarModal = false;
     this.loading = true;
     this.error = '';
     this.message = '';
+
     const request = this.appointmentId
       ? this.api.rescheduleAppointment(this.appointmentId, this.slot.id)
       : this.api.createAppointment(this.slot.id);
@@ -118,6 +127,10 @@ export class BookingComponent implements OnInit {
         });
       }
     });
+  }
+
+  cancelarModal(): void {
+    this.mostrarModal = false;
   }
 
   joinWaitlist(): void {
