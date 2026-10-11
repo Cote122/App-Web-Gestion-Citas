@@ -67,3 +67,9 @@
     (cancelled)="cancelarModal()">
   </app-confirm-modal>
 </div>
+
+<app-alert-modal *ngIf="bookingError"
+  [title]="appointmentId ? 'No se pudo reprogramar la cita' : 'No se pudo registrar la cita'"
+  [message]="bookingError"
+  (closed)="closeBookingError()">
+</app-alert-modal>

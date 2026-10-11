@@ -19,6 +19,8 @@ public class AvailabilityController(AppDbContext db) : ControllerBase
         var data = await db.AvailabilitySlots
             .AsNoTracking()
             .Where(x => x.ProfessionalId == professionalId && x.IsAvailable && x.StartAt >= start && x.StartAt <= end)
+            // HU-11: no ofrecer horarios de profesionales o especialidades desactivados.
+            .Where(x => x.Professional.IsActive && x.Professional.Specialty.IsActive)
             .OrderBy(x => x.StartAt)
             .Select(x => new { x.Id, x.StartAt, x.EndAt })
             .ToListAsync();

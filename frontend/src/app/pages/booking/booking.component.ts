@@ -5,11 +5,12 @@ import { finalize } from 'rxjs';
 import { ApiService } from '../../core/api.service';
 import { AvailabilitySlot, Professional, Specialty } from '../../models/models';
 import { ConfirmModalComponent } from '../../shared/confirm-modal/confirm-modal.component';
+import { AlertModalComponent } from '../../shared/alert-modal/alert-modal.component';
 
 @Component({
   selector: 'app-booking',
   standalone: true,
-  imports: [CommonModule, DatePipe, ConfirmModalComponent],
+  imports: [CommonModule, DatePipe, ConfirmModalComponent, AlertModalComponent],
   templateUrl: './booking.component.html',
   styleUrl: './booking.component.css'
 })
@@ -24,6 +25,7 @@ export class BookingComponent implements OnInit {
   loadingProfessionals = false;
   message = '';
   error = '';
+  bookingError = '';
   readonly appointmentId = this.route.snapshot.queryParamMap.get('appointmentId');
 
   mostrarModal = false;
@@ -87,7 +89,43 @@ export class BookingComponent implements OnInit {
         this.message = `${this.appointmentId ? 'Cita reprogramada' : 'Cita registrada'}: ${appointment.code}`;
         setTimeout(() => this.router.navigate(['/app/appointments']), 800);
       },
-      error: error => this.error = error?.error?.message ?? 'No se pudo guardar la cita.'
+      error: error => {
+        // El error de la reserva se muestra en un modal.
+        this.bookingError = error?.error?.message ?? 'No se pudo guardar la cita.';
+        // 409: el cupo o el profesional ya no están disponibles; se recarga la información.
+        if (error?.status === 409) this.refreshAfterConflict();
+      }
+    });
+  }
+
+  closeBookingError(): void {
+    this.bookingError = '';
+  }
+
+  // Recarga los profesionales de la especialidad y, si el elegido sigue activo, sus horarios.
+  // Si fue desactivado, desaparece de la lista y se limpia la selección.
+  private refreshAfterConflict(): void {
+    if (!this.specialty) return;
+    const specialtyId = this.specialty.id;
+    const professionalId = this.professional?.id;
+    this.slot = undefined;
+
+    this.api.professionals(specialtyId).subscribe({
+      next: professionals => {
+        if (this.specialty?.id !== specialtyId) return;
+        this.professionals = professionals;
+
+        const stillActive = professionals.find(x => x.id === professionalId);
+        if (!stillActive) {
+          this.professional = undefined;
+          this.slots = [];
+          return;
+        }
+
+        this.api.availability(stillActive.id).subscribe({
+          next: slots => { if (this.professional?.id === stillActive.id) this.slots = slots; }
+        });
+      }
     });
   }
 
