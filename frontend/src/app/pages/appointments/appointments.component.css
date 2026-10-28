@@ -18,6 +18,7 @@ h3 { margin: 0; color: var(--primary-dark); }
 .appointment-section {
   margin-top: 20px;
 }
+.waitlist-section,
 .history-section {
   padding-top: 20px;
   border-top: 1px solid var(--line);
@@ -45,6 +46,10 @@ h3 { margin: 0; color: var(--primary-dark); }
   background: #eef3f7;
   color: var(--muted);
 }
+.counter.waitlist-counter {
+  background: #fff6df;
+  color: #9a6700;
+}
 
 .list {
   display: grid;
@@ -63,6 +68,10 @@ h3 { margin: 0; color: var(--primary-dark); }
 .appointment.history {
   grid-template-columns: minmax(220px, 1.6fr) 120px 90px 120px;
   background: #fbfcfd;
+}
+.appointment.waitlist-item {
+  background: #fffdf7;
+  border-color: #ead9a3;
 }
 .appointment small {
   display: block;
@@ -99,6 +108,10 @@ h3 { margin: 0; color: var(--primary-dark); }
   background: #eef6ff;
   color: var(--primary);
 }
+.badge-waitlist {
+  background: #fff3cd;
+  color: #805b00;
+}
 
 .empty {
   padding: 30px;
@@ -111,7 +124,8 @@ h3 { margin: 0; color: var(--primary-dark); }
 
 @media (max-width: 1050px) {
   .appointment,
-  .appointment.history {
+  .appointment.history,
+  .appointment.waitlist-item {
     grid-template-columns: 1fr 1fr;
   }
 
@@ -128,7 +142,8 @@ h3 { margin: 0; color: var(--primary-dark); }
   }
 
   .appointment,
-  .appointment.history {
+  .appointment.history,
+  .appointment.waitlist-item {
     grid-template-columns: 1fr;
   }
 }
