@@ -2,7 +2,7 @@
   <div class="head">
     <div>
       <h2>Mis citas</h2>
-      <p>Consulta tus próximas citas y el historial de reservas.</p>
+      <p>Consulta tus próximas citas, lista de espera e historial.</p>
     </div>
 
     <button class="btn btn-primary" (click)="newAppointment()">
@@ -10,8 +10,7 @@
     </button>
   </div>
 
-  <p class="error" *ngIf="error">{{ error }}</p>
-  <p class="muted" *ngIf="loading">Cargando citas...</p>
+  <p class="muted" *ngIf="loading">Cargando información...</p>
 
   <ng-container *ngIf="!loading">
     <section class="appointment-section">
@@ -65,6 +64,53 @@
       </ng-template>
     </section>
 
+    <section class="appointment-section waitlist-section">
+      <div class="section-title">
+        <div>
+          <h3>Lista de espera</h3>
+          <p>Horarios ocupados en los que estás esperando que se libere un cupo.</p>
+        </div>
+        <span class="counter waitlist-counter">{{ waitlist.length }}</span>
+      </div>
+
+      <div class="list" *ngIf="waitlist.length; else noWaitlist">
+        <article *ngFor="let item of waitlist" class="appointment waitlist-item">
+          <div class="main">
+            <b>{{ item.specialty }}</b>
+            <span>{{ item.professional }} · {{ item.office }}</span>
+            <small>Registrado: {{ item.createdAt | date:'dd/MM/yyyy HH:mm' }}</small>
+          </div>
+
+          <div>
+            <small>Fecha esperada</small>
+            <b>{{ item.startAt | date:'dd/MM/yyyy' }}</b>
+          </div>
+
+          <div>
+            <small>Hora</small>
+            <b>{{ item.startAt | date:'HH:mm' }}</b>
+          </div>
+
+          <div>
+            <small>Posición</small>
+            <span class="badge badge-waitlist">N.º {{ item.position }}</span>
+          </div>
+
+          <div class="row-actions">
+            <button class="btn btn-danger" (click)="requestCancelWaitlist(item)">
+              Salir de lista
+            </button>
+          </div>
+        </article>
+      </div>
+
+      <ng-template #noWaitlist>
+        <div class="empty">
+          No tienes horarios activos en lista de espera.
+        </div>
+      </ng-template>
+    </section>
+
     <section class="appointment-section history-section">
       <div class="section-title">
         <div>
@@ -106,3 +152,26 @@
     </section>
   </ng-container>
 </section>
+
+<app-confirm-modal
+  *ngIf="waitlistToCancel"
+  title="Salir de lista de espera"
+  confirmText="Sí, salir de la lista"
+  cancelText="Mantenerme en espera"
+  [datos]="{
+    especialidad: waitlistToCancel.specialty,
+    medico: waitlistToCancel.professional,
+    fecha: (waitlistToCancel.startAt | date:'dd/MM/yyyy') || '',
+    hora: (waitlistToCancel.startAt | date:'HH:mm') || ''
+  }"
+  (confirmed)="confirmCancelWaitlist()"
+  (cancelled)="cancelWaitlistModal()">
+</app-confirm-modal>
+
+<app-alert-modal
+  *ngIf="alertMessage"
+  [title]="alertTitle"
+  [message]="alertMessage"
+  buttonText="Aceptar"
+  (closed)="closeAlert()">
+</app-alert-modal>
