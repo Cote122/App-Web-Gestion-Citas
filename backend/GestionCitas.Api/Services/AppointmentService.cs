@@ -64,8 +64,11 @@ public class AppointmentService(AppDbContext db)
     public async Task<(bool Ok, string? Error)> CancelAsync(Guid patientId, Guid appointmentId)
     {
         await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+
         var appointment = await db.Appointments
             .Include(x => x.Slot)
+                .ThenInclude(x => x.Professional)
+                .ThenInclude(x => x.Specialty)
             .FirstOrDefaultAsync(x => x.Id == appointmentId && x.PatientId == patientId);
 
         if (appointment is null) return (false, "Cita no encontrada.");
@@ -76,7 +79,8 @@ public class AppointmentService(AppDbContext db)
 
         appointment.Status = AppointmentStatus.Cancelada;
         appointment.UpdatedAt = DateTimeOffset.UtcNow;
-        appointment.Slot.IsAvailable = true;
+
+        await AssignReleasedSlotOrMakeAvailableAsync(appointment.Slot);
 
         await db.SaveChangesAsync();
         await tx.CommitAsync();
@@ -89,11 +93,15 @@ public class AppointmentService(AppDbContext db)
 
         var current = await db.Appointments
             .Include(x => x.Slot)
+                .ThenInclude(x => x.Professional)
+                .ThenInclude(x => x.Specialty)
             .FirstOrDefaultAsync(x => x.Id == appointmentId && x.PatientId == patientId);
 
         if (current is null) return (null, "Cita no encontrada.");
         if (current.Status != AppointmentStatus.Confirmada)
             return (null, "La cita ya no puede reprogramarse.");
+        if (current.Slot.StartAt <= DateTimeOffset.UtcNow)
+            return (null, "No se puede reprogramar una cita cuyo horario ya inició.");
 
         var newSlot = await db.AvailabilitySlots
             .Include(x => x.Professional)
@@ -107,7 +115,7 @@ public class AppointmentService(AppDbContext db)
 
         current.Status = AppointmentStatus.Reprogramada;
         current.UpdatedAt = DateTimeOffset.UtcNow;
-        current.Slot.IsAvailable = true;
+
         newSlot.IsAvailable = false;
 
         var replacement = new Appointment
@@ -118,8 +126,9 @@ public class AppointmentService(AppDbContext db)
             Status = AppointmentStatus.Confirmada,
             PreviousAppointmentId = current.Id
         };
-
         db.Appointments.Add(replacement);
+
+        await AssignReleasedSlotOrMakeAvailableAsync(current.Slot);
 
         try
         {
@@ -135,10 +144,53 @@ public class AppointmentService(AppDbContext db)
         return (ToDto(replacement, newSlot), null);
     }
 
+    private async Task AssignReleasedSlotOrMakeAvailableAsync(AvailabilitySlot slot)
+    {
+        var next = await db.WaitlistEntries
+            .Include(x => x.Patient)
+            .Where(x => x.SlotId == slot.Id && x.Status == WaitlistStatus.Activa)
+            .OrderBy(x => x.CreatedAt)
+            .ThenBy(x => x.Id)
+            .FirstOrDefaultAsync();
+
+        if (next is null)
+        {
+            slot.IsAvailable = true;
+            return;
+        }
+
+        var appointment = new Appointment
+        {
+            Code = GenerateCode(),
+            PatientId = next.PatientId,
+            SlotId = slot.Id,
+            Status = AppointmentStatus.Confirmada
+        };
+
+        db.Appointments.Add(appointment);
+
+        next.Status = WaitlistStatus.Asignada;
+        next.AssignedAppointment = appointment;
+        next.AssignedAt = DateTimeOffset.UtcNow;
+
+        slot.IsAvailable = false;
+
+        db.NotificationOutbox.Add(new NotificationOutbox
+        {
+            RecipientUserId = next.PatientId,
+            RecipientEmail = next.Patient.Email,
+            Type = "WaitlistSlotAssigned",
+            Subject = "Se liberó un cupo y tu cita fue registrada",
+            Body =
+                $"Hola {next.Patient.FullName}, se liberó el horario del {slot.StartAt:dd/MM/yyyy} " +
+                $"a las {slot.StartAt:HH:mm}. Como eras el primero de la lista de espera, " +
+                $"la cita fue registrada automáticamente a tu nombre con código {appointment.Code}."
+        });
+    }
+
     private const string ProfessionalUnavailableMessage =
         "El profesional ya no está disponible para nuevas reservas. Elige otro profesional.";
 
-    // HU-11: solo se reserva con profesionales y especialidades activos (se revalida al confirmar).
     private static bool IsBookable(Professional professional) =>
         professional.IsActive && professional.Specialty.IsActive;
 

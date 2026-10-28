@@ -1,12 +1,149 @@
 h2 { margin: 0; color: var(--primary-dark); }
-.head { display: flex; justify-content: space-between; gap: 16px; align-items: center; border-bottom: 1px solid var(--line); padding-bottom: 14px; }
-.head p { margin: 4px 0 0; color: var(--muted); }
-.list { display: grid; gap: 10px; margin-top: 14px; }
-.appointment { border: 1px solid var(--line); border-radius: 12px; padding: 14px; display: grid; grid-template-columns: minmax(220px, 1.6fr) 120px 90px 120px minmax(210px, auto); gap: 14px; align-items: center; }
-.appointment small { display: block; color: var(--muted); margin-bottom: 4px; }
-.appointment .main b, .appointment > div > b { color: var(--primary-dark); }
-.main span, .main small { display: block; color: var(--muted); margin-top: 4px; }
-.row-actions { display: flex; gap: 7px; justify-content: flex-end; }
-.row-actions .btn { min-height: 36px; padding: 7px 10px; font-size: 11px; }
-.empty { padding: 30px; text-align: center; color: var(--muted); }
-@media (max-width: 1050px) { .appointment { grid-template-columns: 1fr 1fr; } .row-actions { justify-content: flex-start; } }
+h3 { margin: 0; color: var(--primary-dark); }
+
+.head {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 14px;
+}
+.head p,
+.section-title p {
+  margin: 4px 0 0;
+  color: var(--muted);
+}
+
+.appointment-section {
+  margin-top: 20px;
+}
+.waitlist-section,
+.history-section {
+  padding-top: 20px;
+  border-top: 1px solid var(--line);
+}
+
+.section-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 12px;
+}
+
+.counter {
+  min-width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: #eaf7ef;
+  color: var(--success);
+  font-weight: 900;
+}
+.counter.secondary {
+  background: #eef3f7;
+  color: var(--muted);
+}
+.counter.waitlist-counter {
+  background: #fff6df;
+  color: #9a6700;
+}
+
+.list {
+  display: grid;
+  gap: 10px;
+}
+
+.appointment {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 14px;
+  display: grid;
+  grid-template-columns: minmax(220px, 1.6fr) 120px 90px 120px minmax(210px, auto);
+  gap: 14px;
+  align-items: center;
+}
+.appointment.history {
+  grid-template-columns: minmax(220px, 1.6fr) 120px 90px 120px;
+  background: #fbfcfd;
+}
+.appointment.waitlist-item {
+  background: #fffdf7;
+  border-color: #ead9a3;
+}
+.appointment small {
+  display: block;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+.appointment .main b,
+.appointment > div > b {
+  color: var(--primary-dark);
+}
+.main span,
+.main small {
+  display: block;
+  color: var(--muted);
+  margin-top: 4px;
+}
+
+.row-actions {
+  display: flex;
+  gap: 7px;
+  justify-content: flex-end;
+}
+.row-actions .btn {
+  min-height: 36px;
+  padding: 7px 10px;
+  font-size: 11px;
+}
+
+.badge-red {
+  background: #fff0f0;
+  color: #b42318;
+}
+.badge-blue {
+  background: #eef6ff;
+  color: var(--primary);
+}
+.badge-waitlist {
+  background: #fff3cd;
+  color: #805b00;
+}
+
+.empty {
+  padding: 30px;
+  text-align: center;
+  color: var(--muted);
+  border: 1px dashed var(--line);
+  border-radius: 12px;
+  background: #fbfcfd;
+}
+
+@media (max-width: 1050px) {
+  .appointment,
+  .appointment.history,
+  .appointment.waitlist-item {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .row-actions {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 650px) {
+  .head,
+  .section-title {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .appointment,
+  .appointment.history,
+  .appointment.waitlist-item {
+    grid-template-columns: 1fr;
+  }
+}

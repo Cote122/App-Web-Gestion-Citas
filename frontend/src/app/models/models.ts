@@ -65,6 +65,28 @@ export interface AvailabilitySlot {
   id: string;
   startAt: string;
   endAt: string;
+  isAvailable: boolean;
+}
+
+export interface WaitlistResponse {
+  id: string;
+  status: string;
+  position: number;
+  createdAt: string;
+  message: string;
+}
+
+export interface WaitlistItem {
+  id: string;
+  slotId: string;
+  specialty: string;
+  professional: string;
+  office: string;
+  startAt: string;
+  endAt: string;
+  status: string;
+  position: number;
+  createdAt: string;
 }
 
 export interface Appointment {

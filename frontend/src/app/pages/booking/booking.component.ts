@@ -7,6 +7,14 @@ import { AvailabilitySlot, Professional, Specialty } from '../../models/models';
 import { ConfirmModalComponent } from '../../shared/confirm-modal/confirm-modal.component';
 import { AlertModalComponent } from '../../shared/alert-modal/alert-modal.component';
 
+interface CalendarDay {
+  date: Date | null;
+  key: string;
+  hasSlots: boolean;
+  availableCount: number;
+  occupiedCount: number;
+}
+
 @Component({
   selector: 'app-booking',
   standalone: true,
@@ -21,22 +29,32 @@ export class BookingComponent implements OnInit {
   specialty?: Specialty;
   professional?: Professional;
   slot?: AvailabilitySlot;
+
   loading = false;
   loadingProfessionals = false;
-  message = '';
-  error = '';
-  bookingError = '';
+
+  alertTitle = '';
+  alertMessage = '';
+  alertRedirectToAppointments = false;
+
   readonly appointmentId = this.route.snapshot.queryParamMap.get('appointmentId');
+
+  selectedDateKey = '';
+  calendarMonth = this.startOfMonth(new Date());
 
   mostrarModal = false;
 
-  constructor(private readonly api: ApiService, private readonly route: ActivatedRoute, private readonly router: Router) {}
+  constructor(
+    private readonly api: ApiService,
+    private readonly route: ActivatedRoute,
+    private readonly router: Router
+  ) {}
 
   ngOnInit(): void {
     this.loading = true;
     this.api.specialties().pipe(finalize(() => this.loading = false)).subscribe({
       next: data => this.specialties = data,
-      error: () => this.error = 'No se pudieron cargar las especialidades.'
+      error: () => this.showAlert('No se pudo cargar', 'No se pudieron cargar las especialidades.')
     });
   }
 
@@ -46,39 +64,72 @@ export class BookingComponent implements OnInit {
     this.slot = undefined;
     this.slots = [];
     this.professionals = [];
-    this.error = '';
+    this.selectedDateKey = '';
+
     this.loadingProfessionals = true;
     this.api.professionals(item.id).pipe(finalize(() => this.loadingProfessionals = false)).subscribe({
       next: data => { if (this.specialty?.id === item.id) this.professionals = data; },
-      error: () => this.error = 'No se pudieron cargar los profesionales.'
+      error: () => this.showAlert('No se pudo cargar', 'No se pudieron cargar los profesionales.')
     });
   }
 
   chooseProfessional(item: Professional): void {
     this.professional = item;
     this.slot = undefined;
+    this.selectedDateKey = '';
     this.loading = true;
+
     this.api.availability(item.id).pipe(finalize(() => this.loading = false)).subscribe({
-      next: data => this.slots = data,
-      error: () => this.error = 'No se pudo consultar la disponibilidad.'
+      next: data => {
+        this.slots = data;
+
+        if (data.length) {
+          const firstDate = new Date(data[0].startAt);
+          this.calendarMonth = this.startOfMonth(firstDate);
+          this.selectedDateKey = this.dateKey(firstDate);
+        }
+      },
+      error: () => this.showAlert('No se pudo consultar', 'No se pudo consultar la disponibilidad.')
     });
   }
 
+  chooseDate(day: CalendarDay): void {
+    if (!day.date || !day.hasSlots) return;
+    this.selectedDateKey = day.key;
+    this.slot = undefined;
+  }
+
   chooseSlot(item: AvailabilitySlot): void {
+    if (!item.isAvailable) return;
     this.slot = item;
   }
 
+  previousMonth(): void {
+    this.calendarMonth = new Date(
+      this.calendarMonth.getFullYear(),
+      this.calendarMonth.getMonth() - 1,
+      1
+    );
+  }
+
+  nextMonth(): void {
+    this.calendarMonth = new Date(
+      this.calendarMonth.getFullYear(),
+      this.calendarMonth.getMonth() + 1,
+      1
+    );
+  }
+
   confirm(): void {
-    if (!this.slot || this.loading) return;
+    if (!this.slot || this.loading || !this.slot.isAvailable) return;
     this.mostrarModal = true;
   }
 
   ejecutarGuardadoCita(): void {
     if (!this.slot) return;
+
     this.mostrarModal = false;
     this.loading = true;
-    this.error = '';
-    this.message = '';
 
     const request = this.appointmentId
       ? this.api.rescheduleAppointment(this.appointmentId, this.slot.id)
@@ -86,26 +137,64 @@ export class BookingComponent implements OnInit {
 
     request.pipe(finalize(() => this.loading = false)).subscribe({
       next: appointment => {
-        this.message = `${this.appointmentId ? 'Cita reprogramada' : 'Cita registrada'}: ${appointment.code}`;
-        setTimeout(() => this.router.navigate(['/app/appointments']), 800);
+        this.showAlert(
+          this.appointmentId ? 'Cita reprogramada' : 'Cita registrada',
+          `${this.appointmentId ? 'La cita fue reprogramada' : 'La cita fue registrada'} correctamente. Código: ${appointment.code}.`,
+          true
+        );
       },
       error: error => {
-        // El error de la reserva se muestra en un modal.
-        this.bookingError = error?.error?.message ?? 'No se pudo guardar la cita.';
-        // 409: el cupo o el profesional ya no están disponibles; se recarga la información.
+        this.showAlert(
+          this.appointmentId ? 'No se pudo reprogramar la cita' : 'No se pudo registrar la cita',
+          error?.error?.message ?? 'No se pudo guardar la cita.'
+        );
+
         if (error?.status === 409) this.refreshAfterConflict();
       }
     });
   }
 
-  closeBookingError(): void {
-    this.bookingError = '';
+  joinWaitlist(item: AvailabilitySlot): void {
+    if (item.isAvailable || this.appointmentId) return;
+
+    this.api.joinWaitlist(item.id).subscribe({
+      next: response => {
+        this.showAlert(
+          'Registro en lista de espera',
+          `${response.message} Tu posición actual es ${response.position}.`,
+          true
+        );
+      },
+      error: error => {
+        this.showAlert(
+          'No se pudo registrar en la lista de espera',
+          error?.error?.message ?? 'No se pudo registrar la lista de espera.'
+        );
+      }
+    });
   }
 
-  // Recarga los profesionales de la especialidad y, si el elegido sigue activo, sus horarios.
-  // Si fue desactivado, desaparece de la lista y se limpia la selección.
+  closeAlert(): void {
+    const shouldRedirect = this.alertRedirectToAppointments;
+
+    this.alertTitle = '';
+    this.alertMessage = '';
+    this.alertRedirectToAppointments = false;
+
+    if (shouldRedirect) {
+      this.router.navigate(['/app/appointments']);
+    }
+  }
+
+  private showAlert(title: string, message: string, redirectToAppointments = false): void {
+    this.alertTitle = title;
+    this.alertMessage = message;
+    this.alertRedirectToAppointments = redirectToAppointments;
+  }
+
   private refreshAfterConflict(): void {
     if (!this.specialty) return;
+
     const specialtyId = this.specialty.id;
     const professionalId = this.professional?.id;
     this.slot = undefined;
@@ -119,11 +208,14 @@ export class BookingComponent implements OnInit {
         if (!stillActive) {
           this.professional = undefined;
           this.slots = [];
+          this.selectedDateKey = '';
           return;
         }
 
         this.api.availability(stillActive.id).subscribe({
-          next: slots => { if (this.professional?.id === stillActive.id) this.slots = slots; }
+          next: slots => {
+            if (this.professional?.id === stillActive.id) this.slots = slots;
+          }
         });
       }
     });
@@ -133,11 +225,63 @@ export class BookingComponent implements OnInit {
     this.mostrarModal = false;
   }
 
-  joinWaitlist(): void {
-    if (!this.specialty) return;
-    this.api.joinWaitlist(this.specialty.id, this.professional?.id).subscribe({
-      next: () => this.message = 'Solicitud registrada en la lista de espera.',
-      error: error => this.error = error?.error?.message ?? 'No se pudo registrar la lista de espera.'
-    });
+  get monthLabel(): string {
+    return new Intl.DateTimeFormat('es-PE', {
+      month: 'long',
+      year: 'numeric'
+    }).format(this.calendarMonth);
+  }
+
+  get calendarDays(): CalendarDay[] {
+    const year = this.calendarMonth.getFullYear();
+    const month = this.calendarMonth.getMonth();
+    const first = new Date(year, month, 1);
+    const last = new Date(year, month + 1, 0);
+    const days: CalendarDay[] = [];
+
+    const leadingBlanks = (first.getDay() + 6) % 7;
+    for (let i = 0; i < leadingBlanks; i++) {
+      days.push({ date: null, key: '', hasSlots: false, availableCount: 0, occupiedCount: 0 });
+    }
+
+    for (let day = 1; day <= last.getDate(); day++) {
+      const date = new Date(year, month, day);
+      const key = this.dateKey(date);
+      const daySlots = this.slots.filter(x => this.dateKey(new Date(x.startAt)) === key);
+
+      days.push({
+        date,
+        key,
+        hasSlots: daySlots.length > 0,
+        availableCount: daySlots.filter(x => x.isAvailable).length,
+        occupiedCount: daySlots.filter(x => !x.isAvailable).length
+      });
+    }
+
+    return days;
+  }
+
+  get selectedDaySlots(): AvailabilitySlot[] {
+    if (!this.selectedDateKey) return [];
+
+    return this.slots
+      .filter(x => this.dateKey(new Date(x.startAt)) === this.selectedDateKey)
+      .sort((a, b) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime());
+  }
+
+  get selectedDate(): Date | null {
+    const first = this.selectedDaySlots[0];
+    return first ? new Date(first.startAt) : null;
+  }
+
+  private dateKey(date: Date): string {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
+  private startOfMonth(date: Date): Date {
+    return new Date(date.getFullYear(), date.getMonth(), 1);
   }
 }
