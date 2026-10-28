@@ -3,7 +3,7 @@ import { CommonModule, DatePipe } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { finalize } from 'rxjs';
 import { ApiService } from '../../core/api.service';
-import { AvailabilitySlot, Professional, Specialty } from '../../models/models';
+import { Appointment, AvailabilitySlot, Professional, Specialty } from '../../models/models';
 import { ConfirmModalComponent } from '../../shared/confirm-modal/confirm-modal.component';
 import { AlertModalComponent } from '../../shared/alert-modal/alert-modal.component';
 
@@ -29,6 +29,7 @@ export class BookingComponent implements OnInit {
   specialty?: Specialty;
   professional?: Professional;
   slot?: AvailabilitySlot;
+  currentAppointment?: Appointment;
 
   loading = false;
   loadingProfessionals = false;
@@ -53,12 +54,75 @@ export class BookingComponent implements OnInit {
   ngOnInit(): void {
     this.loading = true;
     this.api.specialties().pipe(finalize(() => this.loading = false)).subscribe({
-      next: data => this.specialties = data,
+      next: data => {
+        this.specialties = data;
+
+        if (this.appointmentId) {
+          this.loadRescheduleContext();
+        }
+      },
       error: () => this.showAlert('No se pudo cargar', 'No se pudieron cargar las especialidades.')
     });
   }
 
+  private loadRescheduleContext(): void {
+    if (!this.appointmentId) return;
+
+    this.loading = true;
+    this.api.myAppointments()
+      .pipe(finalize(() => this.loading = false))
+      .subscribe({
+        next: appointments => {
+          const current = appointments.find(x => x.id === this.appointmentId);
+
+          if (!current || current.status !== 'Confirmada') {
+            this.showAlert(
+              'No se puede reprogramar',
+              'La cita seleccionada ya no se encuentra disponible para reprogramación.',
+              true
+            );
+            return;
+          }
+
+          this.currentAppointment = current;
+
+          const specialty = this.specialties.find(x => x.id === current.specialtyId);
+          if (!specialty) {
+            this.showAlert('No se pudo cargar', 'No se encontró la especialidad de la cita.', true);
+            return;
+          }
+
+          this.specialty = specialty;
+          this.loadingProfessionals = true;
+
+          this.api.professionals(specialty.id)
+            .pipe(finalize(() => this.loadingProfessionals = false))
+            .subscribe({
+              next: professionals => {
+                const professional = professionals.find(x => x.id === current.professionalId);
+
+                if (!professional) {
+                  this.showAlert(
+                    'No se puede reprogramar',
+                    'El profesional de la cita ya no se encuentra disponible para reprogramación.',
+                    true
+                  );
+                  return;
+                }
+
+                this.professionals = [professional];
+                this.chooseProfessional(professional);
+              },
+              error: () => this.showAlert('No se pudo cargar', 'No se pudo cargar el profesional de la cita.', true)
+            });
+        },
+        error: () => this.showAlert('No se pudo cargar', 'No se pudo consultar la cita a reprogramar.', true)
+      });
+  }
+
   chooseSpecialty(item: Specialty): void {
+    if (this.appointmentId) return;
+
     this.specialty = item;
     this.professional = undefined;
     this.slot = undefined;
@@ -74,6 +138,10 @@ export class BookingComponent implements OnInit {
   }
 
   chooseProfessional(item: Professional): void {
+    if (this.appointmentId && this.currentAppointment && item.id !== this.currentAppointment.professionalId) {
+      return;
+    }
+
     this.professional = item;
     this.slot = undefined;
     this.selectedDateKey = '';
@@ -101,23 +169,20 @@ export class BookingComponent implements OnInit {
 
   chooseSlot(item: AvailabilitySlot): void {
     if (!item.isAvailable) return;
+    if (this.currentAppointment && new Date(item.startAt).getTime() === new Date(this.currentAppointment.startAt).getTime()) {
+      this.showAlert('Selecciona otro horario', 'La nueva fecha u hora debe ser diferente a la de tu cita actual.');
+      return;
+    }
+
     this.slot = item;
   }
 
   previousMonth(): void {
-    this.calendarMonth = new Date(
-      this.calendarMonth.getFullYear(),
-      this.calendarMonth.getMonth() - 1,
-      1
-    );
+    this.calendarMonth = new Date(this.calendarMonth.getFullYear(), this.calendarMonth.getMonth() - 1, 1);
   }
 
   nextMonth(): void {
-    this.calendarMonth = new Date(
-      this.calendarMonth.getFullYear(),
-      this.calendarMonth.getMonth() + 1,
-      1
-    );
+    this.calendarMonth = new Date(this.calendarMonth.getFullYear(), this.calendarMonth.getMonth() + 1, 1);
   }
 
   confirm(): void {
@@ -193,31 +258,11 @@ export class BookingComponent implements OnInit {
   }
 
   private refreshAfterConflict(): void {
-    if (!this.specialty) return;
+    if (!this.specialty || !this.professional) return;
 
-    const specialtyId = this.specialty.id;
-    const professionalId = this.professional?.id;
     this.slot = undefined;
-
-    this.api.professionals(specialtyId).subscribe({
-      next: professionals => {
-        if (this.specialty?.id !== specialtyId) return;
-        this.professionals = professionals;
-
-        const stillActive = professionals.find(x => x.id === professionalId);
-        if (!stillActive) {
-          this.professional = undefined;
-          this.slots = [];
-          this.selectedDateKey = '';
-          return;
-        }
-
-        this.api.availability(stillActive.id).subscribe({
-          next: slots => {
-            if (this.professional?.id === stillActive.id) this.slots = slots;
-          }
-        });
-      }
+    this.api.availability(this.professional.id).subscribe({
+      next: slots => this.slots = slots
     });
   }
 

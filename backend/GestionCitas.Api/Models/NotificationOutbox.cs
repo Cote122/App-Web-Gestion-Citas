@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using GestionCitas.Api.Common;
 
 namespace GestionCitas.Api.Models;
 
@@ -24,7 +25,7 @@ public class NotificationOutbox
     [MaxLength(30)]
     public string Status { get; set; } = "Pendiente";
 
-    public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+    public DateTimeOffset CreatedAt { get; set; } = PeruClock.Now;
     public DateTimeOffset? SentAt { get; set; }
 
     [MaxLength(1000)]

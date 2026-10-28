@@ -10,6 +10,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<Professional> Professionals => Set<Professional>();
     public DbSet<AvailabilitySlot> AvailabilitySlots => Set<AvailabilitySlot>();
     public DbSet<Appointment> Appointments => Set<Appointment>();
+    public DbSet<AppointmentAuditLog> AppointmentAuditLogs => Set<AppointmentAuditLog>();
     public DbSet<WaitlistEntry> WaitlistEntries => Set<WaitlistEntry>();
     public DbSet<NotificationOutbox> NotificationOutbox => Set<NotificationOutbox>();
 
@@ -38,6 +39,16 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         modelBuilder.Entity<Appointment>()
             .Property(x => x.Status)
             .HasConversion<string>();
+
+        modelBuilder.Entity<AppointmentAuditLog>(entity =>
+        {
+            entity.HasIndex(x => new { x.AppointmentId, x.CreatedAt });
+
+            entity.HasOne(x => x.Appointment)
+                .WithMany()
+                .HasForeignKey(x => x.AppointmentId)
+                .OnDelete(DeleteBehavior.NoAction);
+        });
 
         modelBuilder.Entity<WaitlistEntry>(entity =>
         {

@@ -7,7 +7,9 @@ public record CreateWaitlistRequest(Guid SlotId);
 public record AppointmentDto(
     Guid Id,
     string Code,
+    Guid SpecialtyId,
     string Specialty,
+    Guid ProfessionalId,
     string Professional,
     string Office,
     DateTimeOffset StartAt,

@@ -3,7 +3,11 @@
     <div>
       <small>{{ appointmentId ? 'REPROGRAMACIÓN' : 'NUEVA CITA' }}</small>
       <h2>{{ appointmentId ? 'Selecciona un nuevo horario' : 'Agenda tu cita médica' }}</h2>
-      <p>Elige especialidad, profesional y luego una fecha en el calendario.</p>
+      <p>
+        {{ appointmentId
+          ? 'La especialidad y el profesional se mantienen. Solo selecciona una nueva fecha u hora disponible.'
+          : 'Elige especialidad, profesional y luego una fecha en el calendario.' }}
+      </p>
     </div>
 
     <div class="summary">
@@ -13,7 +17,16 @@
     </div>
   </section>
 
-  <section class="card">
+  <section class="card" *ngIf="appointmentId && currentAppointment && specialty && professional">
+    <h3>Cita actual</h3>
+    <div class="summary">
+      <span>{{ specialty.name }}</span>
+      <span>{{ professional.fullName }}</span>
+      <span>{{ currentAppointment.startAt | date:'dd/MM/yyyy HH:mm' }}</span>
+    </div>
+  </section>
+
+  <section class="card" *ngIf="!appointmentId">
     <h3>1. Especialidad</h3>
     <div class="choices">
       <button *ngFor="let item of specialties"
@@ -26,7 +39,7 @@
     </div>
   </section>
 
-  <section class="card" *ngIf="specialty">
+  <section class="card" *ngIf="!appointmentId && specialty">
     <h3>2. Profesional</h3>
     <p class="muted" *ngIf="loadingProfessionals">Cargando profesionales...</p>
 
@@ -47,7 +60,7 @@
   <section class="card" *ngIf="professional">
     <div class="calendar-header">
       <div>
-        <h3>3. Elige una fecha</h3>
+        <h3>{{ appointmentId ? '1. Elige una nueva fecha' : '3. Elige una fecha' }}</h3>
         <p>Los días marcados tienen horarios programados.</p>
       </div>
 
@@ -91,7 +104,7 @@
   </section>
 
   <section class="card" *ngIf="professional && selectedDate">
-    <h3>4. Horarios para {{ selectedDate | date:'EEEE dd/MM/yyyy' }}</h3>
+    <h3>{{ appointmentId ? '2. Horarios' : '4. Horarios' }} para {{ selectedDate | date:'EEEE dd/MM/yyyy' }}</h3>
 
     <div class="day-slots">
       <article *ngFor="let item of selectedDaySlots"
