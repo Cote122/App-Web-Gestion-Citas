@@ -13,10 +13,51 @@ namespace GestionCitas.Api.Controllers;
 [Authorize(Roles = "Paciente")]
 public class WaitlistController(AppDbContext db) : ControllerBase
 {
+    [HttpGet("mine")]
+    public async Task<IActionResult> Mine()
+    {
+        var patientId = CurrentUserId();
+
+        var entries = await db.WaitlistEntries
+            .AsNoTracking()
+            .Where(x => x.PatientId == patientId && x.Status == WaitlistStatus.Activa)
+            .Include(x => x.Slot)
+                .ThenInclude(x => x.Professional)
+                .ThenInclude(x => x.Specialty)
+            .OrderBy(x => x.Slot.StartAt)
+            .ToListAsync();
+
+        var result = new List<WaitlistItemDto>(entries.Count);
+
+        foreach (var entry in entries)
+        {
+            var position = await db.WaitlistEntries
+                .AsNoTracking()
+                .CountAsync(x =>
+                    x.SlotId == entry.SlotId &&
+                    x.Status == WaitlistStatus.Activa &&
+                    x.CreatedAt <= entry.CreatedAt);
+
+            result.Add(new WaitlistItemDto(
+                entry.Id,
+                entry.SlotId,
+                entry.Slot.Professional.Specialty.Name,
+                entry.Slot.Professional.FullName,
+                entry.Slot.Professional.Office,
+                entry.Slot.StartAt,
+                entry.Slot.EndAt,
+                entry.Status.ToString(),
+                position,
+                entry.CreatedAt));
+        }
+
+        return Ok(result);
+    }
+
     [HttpPost]
     public async Task<IActionResult> Create(CreateWaitlistRequest request)
     {
-        var patientId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var patientId = CurrentUserId();
 
         var slot = await db.AvailabilitySlots
             .AsNoTracking()
@@ -80,4 +121,27 @@ public class WaitlistController(AppDbContext db) : ControllerBase
             message = "Te registraste en la lista de espera. Si se libera este horario y eres el primero de la cola, la cita se registrará automáticamente a tu nombre y se generará una notificación."
         });
     }
+
+    [HttpDelete("{id:guid}")]
+    public async Task<IActionResult> Cancel(Guid id)
+    {
+        var patientId = CurrentUserId();
+
+        var entry = await db.WaitlistEntries
+            .FirstOrDefaultAsync(x => x.Id == id && x.PatientId == patientId);
+
+        if (entry is null)
+            return NotFound(new { message = "No se encontró el registro de lista de espera." });
+
+        if (entry.Status != WaitlistStatus.Activa)
+            return BadRequest(new { message = "Este registro ya no se encuentra activo en la lista de espera." });
+
+        entry.Status = WaitlistStatus.Cerrada;
+        await db.SaveChangesAsync();
+
+        return Ok(new { message = "Saliste correctamente de la lista de espera." });
+    }
+
+    private Guid CurrentUserId() =>
+        Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 }
