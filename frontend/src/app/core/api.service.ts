@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { AdminProfessional, AdminSpecialty, AdminUser, Appointment, AvailabilitySlot, Professional, RoleDefinition, Specialty, UserRole } from '../models/models';
+import { AdminProfessional, AdminSpecialty, AdminUser, Appointment, AvailabilitySlot, Professional, RoleDefinition, Specialty, UserRole, WaitlistResponse } from '../models/models';
 
 @Injectable({ providedIn: 'root' })
 export class ApiService {
@@ -36,14 +36,8 @@ export class ApiService {
     return this.http.put<Appointment>(`/api/appointments/${id}/reschedule`, { slotId });
   }
 
-  joinWaitlist(specialtyId: string, professionalId?: string) {
-    return this.http.post('/api/waitlist', {
-      specialtyId,
-      professionalId: professionalId || null,
-      preferredFrom: null,
-      preferredTo: null,
-      notes: 'Solicitud creada desde el flujo web inicial.'
-    });
+  joinWaitlist(slotId: string) {
+    return this.http.post<WaitlistResponse>('/api/waitlist', { slotId });
   }
 
   adminSpecialties() {
