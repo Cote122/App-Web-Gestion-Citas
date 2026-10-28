@@ -17,12 +17,13 @@
 - `AppointmentAuditLogs` contiene evento `Rescheduled`.
 - `NotificationOutbox` contiene `AppointmentRescheduled`.
 
-### RP-02 Mismo horario
-Intentar reprogramar usando el mismo `SlotId`.
+### RP-02 Mismo horario o cambio de profesional
+Intentar reprogramar a la misma fecha/hora o seleccionar un horario de otro profesional.
 
 **Resultado esperado**
-- Se rechaza con: "Selecciona un horario diferente al de tu cita actual."
-- La cita original permanece confirmada.
+- La reprogramación conserva el mismo profesional y especialidad.
+- Se exige una fecha u hora realmente distinta.
+- La cita original permanece confirmada si la validación falla.
 
 ### RP-03 Nuevo horario ocupado al confirmar
 1. Dos pacientes consultan el mismo horario disponible.
