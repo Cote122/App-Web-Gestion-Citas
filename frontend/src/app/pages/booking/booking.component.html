@@ -13,9 +13,6 @@
     </div>
   </section>
 
-  <p class="error" *ngIf="error">{{ error }}</p>
-  <p class="success" *ngIf="message">{{ message }}</p>
-
   <section class="card">
     <h3>1. Especialidad</h3>
     <div class="choices">
@@ -42,7 +39,7 @@
       </button>
     </div>
 
-    <div class="empty" *ngIf="!loadingProfessionals && !professionals.length && !error">
+    <div class="empty" *ngIf="!loadingProfessionals && !professionals.length">
       <p>No hay profesionales disponibles para <b>{{ specialty.name }}</b> en este momento.</p>
     </div>
   </section>
@@ -155,8 +152,9 @@
 </div>
 
 <app-alert-modal
-  *ngIf="bookingError"
-  [title]="appointmentId ? 'No se pudo reprogramar la cita' : 'No se pudo registrar la cita'"
-  [message]="bookingError"
-  (closed)="closeBookingError()">
+  *ngIf="alertMessage"
+  [title]="alertTitle"
+  [message]="alertMessage"
+  buttonText="Aceptar"
+  (closed)="closeAlert()">
 </app-alert-modal>
