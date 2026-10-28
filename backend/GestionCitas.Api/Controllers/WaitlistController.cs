@@ -31,12 +31,7 @@ public class WaitlistController(AppDbContext db) : ControllerBase
 
         foreach (var entry in entries)
         {
-            var position = await db.WaitlistEntries
-                .AsNoTracking()
-                .CountAsync(x =>
-                    x.SlotId == entry.SlotId &&
-                    x.Status == WaitlistStatus.Activa &&
-                    x.CreatedAt <= entry.CreatedAt);
+            var position = await GetPositionAsync(entry.SlotId, entry.Id);
 
             result.Add(new WaitlistItemDto(
                 entry.Id,
@@ -107,10 +102,7 @@ public class WaitlistController(AppDbContext db) : ControllerBase
         db.WaitlistEntries.Add(entry);
         await db.SaveChangesAsync();
 
-        var position = await db.WaitlistEntries.CountAsync(x =>
-            x.SlotId == slot.Id &&
-            x.Status == WaitlistStatus.Activa &&
-            x.CreatedAt <= entry.CreatedAt);
+        var position = await GetPositionAsync(entry.SlotId, entry.Id);
 
         return Ok(new
         {
@@ -140,6 +132,20 @@ public class WaitlistController(AppDbContext db) : ControllerBase
         await db.SaveChangesAsync();
 
         return Ok(new { message = "Saliste correctamente de la lista de espera." });
+    }
+
+    private async Task<int> GetPositionAsync(Guid slotId, Guid entryId)
+    {
+        var orderedIds = await db.WaitlistEntries
+            .AsNoTracking()
+            .Where(x => x.SlotId == slotId && x.Status == WaitlistStatus.Activa)
+            .OrderBy(x => x.CreatedAt)
+            .ThenBy(x => x.Id)
+            .Select(x => x.Id)
+            .ToListAsync();
+
+        var index = orderedIds.FindIndex(id => id == entryId);
+        return index >= 0 ? index + 1 : 0;
     }
 
     private Guid CurrentUserId() =>
