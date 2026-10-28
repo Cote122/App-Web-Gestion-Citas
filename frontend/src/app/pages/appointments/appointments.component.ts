@@ -26,6 +26,9 @@ export class AppointmentsComponent implements OnInit {
   appointmentToCancel?: Appointment;
   waitlistToCancel?: WaitlistItem;
 
+  attendanceAppointment?: Appointment;
+  attendanceResponse?: 'Confirmada' | 'NoAsistira';
+
   constructor(
     private readonly api: ApiService,
     private readonly router: Router
@@ -132,6 +135,45 @@ export class AppointmentsComponent implements OnInit {
     this.waitlistToCancel = undefined;
   }
 
+  requestAttendanceResponse(
+    item: Appointment,
+    response: 'Confirmada' | 'NoAsistira'
+  ): void {
+    this.attendanceAppointment = item;
+    this.attendanceResponse = response;
+  }
+
+  confirmAttendanceResponse(): void {
+    if (!this.attendanceAppointment || !this.attendanceResponse) return;
+
+    const id = this.attendanceAppointment.id;
+    const response = this.attendanceResponse;
+
+    this.attendanceAppointment = undefined;
+    this.attendanceResponse = undefined;
+
+    this.api.respondAttendance(id, response).subscribe({
+      next: () => {
+        this.showAlert(
+          'Confirmación registrada',
+          response === 'Confirmada'
+            ? 'Confirmaste que asistirás a tu cita.'
+            : 'Registramos que no asistirás. La cita no ha sido cancelada automáticamente.'
+        );
+        this.load();
+      },
+      error: error => this.showAlert(
+        'No se pudo registrar la respuesta',
+        error?.error?.message ?? 'No se pudo registrar la confirmación de asistencia.'
+      )
+    });
+  }
+
+  cancelAttendanceModal(): void {
+    this.attendanceAppointment = undefined;
+    this.attendanceResponse = undefined;
+  }
+
   newAppointment(): void {
     this.router.navigate(['/app/book']);
   }
@@ -145,6 +187,40 @@ export class AppointmentsComponent implements OnInit {
   isActive(item: Appointment): boolean {
     return item.status === 'Confirmada' &&
       new Date(item.startAt).getTime() > Date.now();
+  }
+
+  canRespondAttendance(item: Appointment): boolean {
+    return this.isActive(item) &&
+      !!item.attendanceRequestedAt &&
+      item.attendanceStatus === 'Pendiente';
+  }
+
+  attendanceLabel(item: Appointment): string {
+    switch (item.attendanceStatus) {
+      case 'Confirmada': return 'Asistencia confirmada';
+      case 'NoAsistira': return 'No asistirá';
+      default: return 'Pendiente de respuesta';
+    }
+  }
+
+  attendanceClass(item: Appointment): string {
+    switch (item.attendanceStatus) {
+      case 'Confirmada': return 'attendance-confirmed';
+      case 'NoAsistira': return 'attendance-declined';
+      default: return 'attendance-pending';
+    }
+  }
+
+  get attendanceModalTitle(): string {
+    return this.attendanceResponse === 'Confirmada'
+      ? 'Confirmar asistencia'
+      : 'Indicar que no asistirás';
+  }
+
+  get attendanceModalConfirmText(): string {
+    return this.attendanceResponse === 'Confirmada'
+      ? 'Sí, asistiré'
+      : 'Sí, no asistiré';
   }
 
   statusClass(item: Appointment): string {
