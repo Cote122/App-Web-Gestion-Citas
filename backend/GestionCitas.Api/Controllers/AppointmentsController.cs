@@ -35,5 +35,18 @@ public class AppointmentsController(AppointmentService appointmentService) : Con
         return appointment is null ? Conflict(new { message = error }) : Ok(appointment);
     }
 
+    [HttpPut("{id:guid}/attendance")]
+    public async Task<IActionResult> RespondAttendance(Guid id, AttendanceResponseRequest request)
+    {
+        var (appointment, error) = await appointmentService.RespondAttendanceAsync(
+            CurrentUserId(),
+            id,
+            request.Response);
+
+        return appointment is null
+            ? BadRequest(new { message = error })
+            : Ok(appointment);
+    }
+
     private Guid CurrentUserId() => Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 }

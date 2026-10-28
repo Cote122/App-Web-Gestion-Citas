@@ -54,6 +54,29 @@
               Cancelar
             </button>
           </div>
+
+          <div class="attendance-panel" *ngIf="item.attendanceRequestedAt">
+            <div>
+              <small>Confirmación de asistencia</small>
+              <b class="attendance-state" [ngClass]="attendanceClass(item)">
+                {{ attendanceLabel(item) }}
+              </b>
+              <small *ngIf="item.attendanceRespondedAt">
+                Respondido: {{ item.attendanceRespondedAt | date:'dd/MM/yyyy HH:mm' }}
+              </small>
+            </div>
+
+            <div class="attendance-actions" *ngIf="canRespondAttendance(item)">
+              <button class="btn btn-primary"
+                      (click)="requestAttendanceResponse(item, 'Confirmada')">
+                Sí, asistiré
+              </button>
+              <button class="btn btn-secondary"
+                      (click)="requestAttendanceResponse(item, 'NoAsistira')">
+                No asistiré
+              </button>
+            </div>
+          </div>
         </article>
       </div>
 
@@ -181,6 +204,21 @@
   }"
   (confirmed)="confirmCancelWaitlist()"
   (cancelled)="cancelWaitlistModal()">
+</app-confirm-modal>
+
+<app-confirm-modal
+  *ngIf="attendanceAppointment && attendanceResponse"
+  [title]="attendanceModalTitle"
+  [confirmText]="attendanceModalConfirmText"
+  cancelText="Volver"
+  [datos]="{
+    especialidad: attendanceAppointment.specialty,
+    medico: attendanceAppointment.professional,
+    fecha: (attendanceAppointment.startAt | date:'dd/MM/yyyy') || '',
+    hora: (attendanceAppointment.startAt | date:'HH:mm') || ''
+  }"
+  (confirmed)="confirmAttendanceResponse()"
+  (cancelled)="cancelAttendanceModal()">
 </app-confirm-modal>
 
 <app-alert-modal

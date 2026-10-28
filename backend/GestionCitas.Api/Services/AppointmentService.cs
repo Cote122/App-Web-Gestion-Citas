@@ -99,6 +99,7 @@ public class AppointmentService(AppDbContext db)
         db.NotificationOutbox.Add(new NotificationOutbox
         {
             RecipientUserId = appointment.PatientId,
+            RelatedAppointmentId = appointment.Id,
             RecipientEmail = appointment.Patient.Email,
             Type = "AppointmentCancelled",
             Subject = "Tu cita fue cancelada",
@@ -183,6 +184,7 @@ public class AppointmentService(AppDbContext db)
         db.NotificationOutbox.Add(new NotificationOutbox
         {
             RecipientUserId = current.PatientId,
+            RelatedAppointmentId = current.Id,
             RecipientEmail = current.Patient.Email,
             Type = "AppointmentRescheduled",
             Subject = "Tu cita fue reprogramada",
@@ -206,6 +208,60 @@ public class AppointmentService(AppDbContext db)
         }
 
         return (ToDto(replacement, newSlot), null);
+    }
+
+    public async Task<(AppointmentDto? Appointment, string? Error)> RespondAttendanceAsync(
+        Guid patientId,
+        Guid appointmentId,
+        string response)
+    {
+        var appointment = await db.Appointments
+            .Include(x => x.Slot)
+                .ThenInclude(x => x.Professional)
+                .ThenInclude(x => x.Specialty)
+            .FirstOrDefaultAsync(x => x.Id == appointmentId && x.PatientId == patientId);
+
+        if (appointment is null)
+            return (null, "Cita no encontrada.");
+
+        if (appointment.Status != AppointmentStatus.Confirmada ||
+            appointment.Slot.StartAt <= DateTimeOffset.UtcNow)
+            return (null, "Esta cita ya no admite confirmación de asistencia.");
+
+        if (appointment.AttendanceRequestedAt is null)
+            return (null, "Aún no se ha solicitado confirmación de asistencia para esta cita.");
+
+        if (appointment.AttendanceStatus != AttendanceConfirmationStatus.Pendiente)
+            return (null, "Ya registraste una respuesta de asistencia para esta cita.");
+
+        AttendanceConfirmationStatus status;
+        if (string.Equals(response, "Confirmada", StringComparison.OrdinalIgnoreCase))
+            status = AttendanceConfirmationStatus.Confirmada;
+        else if (string.Equals(response, "NoAsistira", StringComparison.OrdinalIgnoreCase))
+            status = AttendanceConfirmationStatus.NoAsistira;
+        else
+            return (null, "La respuesta de asistencia no es válida.");
+
+        var now = PeruClock.Now;
+        appointment.AttendanceStatus = status;
+        appointment.AttendanceRespondedAt = now;
+        appointment.UpdatedAt = now;
+
+        db.AppointmentAuditLogs.Add(new AppointmentAuditLog
+        {
+            Appointment = appointment,
+            PatientId = appointment.PatientId,
+            EventType = status == AttendanceConfirmationStatus.Confirmada
+                ? "AttendanceConfirmed"
+                : "AttendanceDeclined",
+            PreviousSlotId = appointment.SlotId,
+            Details = status == AttendanceConfirmationStatus.Confirmada
+                ? $"El paciente confirmó asistencia a la cita {appointment.Code}."
+                : $"El paciente indicó que no asistirá a la cita {appointment.Code}."
+        });
+
+        await db.SaveChangesAsync();
+        return (ToDto(appointment, appointment.Slot), null);
     }
 
     private async Task AssignReleasedSlotOrMakeAvailableAsync(AvailabilitySlot slot)
@@ -242,6 +298,7 @@ public class AppointmentService(AppDbContext db)
         db.NotificationOutbox.Add(new NotificationOutbox
         {
             RecipientUserId = next.PatientId,
+            RelatedAppointmentId = appointment.Id,
             RecipientEmail = next.Patient.Email,
             Type = "WaitlistSlotAssigned",
             Subject = "Se liberó un cupo y tu cita fue registrada",
@@ -273,5 +330,8 @@ public class AppointmentService(AppDbContext db)
             slot.StartAt,
             slot.EndAt,
             appointment.Status.ToString(),
-            slot.Professional.Specialty.Price);
+            slot.Professional.Specialty.Price,
+            appointment.AttendanceStatus.ToString(),
+            appointment.AttendanceRequestedAt,
+            appointment.AttendanceRespondedAt);
 }

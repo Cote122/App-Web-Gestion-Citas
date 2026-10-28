@@ -94,11 +94,39 @@ h3 { margin: 0; color: var(--primary-dark); }
   gap: 7px;
   justify-content: flex-end;
 }
-.row-actions .btn {
+.row-actions .btn,
+.attendance-actions .btn {
   min-height: 36px;
   padding: 7px 10px;
   font-size: 11px;
 }
+
+.attendance-panel {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #f8fbfe;
+}
+.attendance-panel small {
+  margin: 0 0 3px;
+}
+.attendance-state {
+  display: block;
+  font-size: 13px;
+}
+.attendance-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.attendance-confirmed { color: var(--success); }
+.attendance-declined { color: #b42318; }
+.attendance-pending { color: #9a6700; }
 
 .badge-red {
   background: #fff0f0;
@@ -136,7 +164,8 @@ h3 { margin: 0; color: var(--primary-dark); }
 
 @media (max-width: 650px) {
   .head,
-  .section-title {
+  .section-title,
+  .attendance-panel {
     align-items: stretch;
     flex-direction: column;
   }

@@ -36,9 +36,11 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             .HasIndex(x => new { x.ProfessionalId, x.StartAt })
             .IsUnique();
 
-        modelBuilder.Entity<Appointment>()
-            .Property(x => x.Status)
-            .HasConversion<string>();
+        modelBuilder.Entity<Appointment>(entity =>
+        {
+            entity.Property(x => x.Status).HasConversion<string>();
+            entity.Property(x => x.AttendanceStatus).HasConversion<string>();
+        });
 
         modelBuilder.Entity<AppointmentAuditLog>(entity =>
         {
@@ -67,7 +69,18 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
                 .OnDelete(DeleteBehavior.NoAction);
         });
 
-        modelBuilder.Entity<NotificationOutbox>()
-            .HasIndex(x => new { x.Status, x.CreatedAt });
+        modelBuilder.Entity<NotificationOutbox>(entity =>
+        {
+            entity.HasIndex(x => new { x.Status, x.CreatedAt });
+
+            entity.HasIndex(x => new { x.Type, x.RelatedAppointmentId })
+                .IsUnique()
+                .HasFilter("[RelatedAppointmentId] IS NOT NULL");
+
+            entity.HasOne<Appointment>()
+                .WithMany()
+                .HasForeignKey(x => x.RelatedAppointmentId)
+                .OnDelete(DeleteBehavior.NoAction);
+        });
     }
 }
