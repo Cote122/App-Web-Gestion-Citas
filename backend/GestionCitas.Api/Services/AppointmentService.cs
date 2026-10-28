@@ -1,4 +1,5 @@
 using System.Data;
+using GestionCitas.Api.Common;
 using GestionCitas.Api.Data;
 using GestionCitas.Api.Dtos;
 using GestionCitas.Api.Models;
@@ -79,7 +80,7 @@ public class AppointmentService(AppDbContext db)
             return (false, "No se puede cancelar una cita cuyo horario ya inició.");
 
         var cancelledSlotId = appointment.SlotId;
-        var cancelledAt = DateTimeOffset.UtcNow;
+        var cancelledAt = PeruClock.Now;
 
         appointment.Status = AppointmentStatus.Cancelada;
         appointment.UpdatedAt = cancelledAt;
@@ -149,7 +150,7 @@ public class AppointmentService(AppDbContext db)
 
         var previousSlotId = current.SlotId;
         var previousStartAt = current.Slot.StartAt;
-        var changedAt = DateTimeOffset.UtcNow;
+        var changedAt = PeruClock.Now;
 
         current.Status = AppointmentStatus.Reprogramada;
         current.UpdatedAt = changedAt;
@@ -234,7 +235,7 @@ public class AppointmentService(AppDbContext db)
 
         next.Status = WaitlistStatus.Asignada;
         next.AssignedAppointment = appointment;
-        next.AssignedAt = DateTimeOffset.UtcNow;
+        next.AssignedAt = PeruClock.Now;
 
         slot.IsAvailable = false;
 
@@ -258,7 +259,7 @@ public class AppointmentService(AppDbContext db)
         professional.IsActive && professional.Specialty.IsActive;
 
     private static string GenerateCode() =>
-        $"CIT-{DateTime.UtcNow:yyyy}-{Guid.NewGuid().ToString("N")[..6].ToUpperInvariant()}";
+        $"CIT-{PeruClock.Now:yyyy}-{Guid.NewGuid().ToString("N")[..6].ToUpperInvariant()}";
 
     private static AppointmentDto ToDto(Appointment appointment, AvailabilitySlot slot) =>
         new(
