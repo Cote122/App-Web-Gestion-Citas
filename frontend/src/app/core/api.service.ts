@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { AdminProfessional, AdminSpecialty, AdminUser, Appointment, AvailabilitySlot, Professional, RoleDefinition, Specialty, UserRole, WaitlistResponse } from '../models/models';
+import { AdminProfessional, AdminSpecialty, AdminUser, Appointment, AvailabilitySlot, Professional, RoleDefinition, Specialty, UserRole, WaitlistItem, WaitlistResponse } from '../models/models';
 
 @Injectable({ providedIn: 'root' })
 export class ApiService {
@@ -38,6 +38,14 @@ export class ApiService {
 
   joinWaitlist(slotId: string) {
     return this.http.post<WaitlistResponse>('/api/waitlist', { slotId });
+  }
+
+  myWaitlist() {
+    return this.http.get<WaitlistItem[]>('/api/waitlist/mine');
+  }
+
+  cancelWaitlist(id: string) {
+    return this.http.delete<{ message: string }>(`/api/waitlist/${id}`);
   }
 
   adminSpecialties() {
