@@ -23,6 +23,7 @@ export class AppointmentsComponent implements OnInit {
   alertTitle = '';
   alertMessage = '';
 
+  appointmentToCancel?: Appointment;
   waitlistToCancel?: WaitlistItem;
 
   constructor(
@@ -79,10 +80,17 @@ export class AppointmentsComponent implements OnInit {
       );
   }
 
-  cancel(item: Appointment): void {
-    if (!confirm(`¿Cancelar la cita ${item.code}?`)) return;
+  requestCancelAppointment(item: Appointment): void {
+    this.appointmentToCancel = item;
+  }
 
-    this.api.cancelAppointment(item.id).subscribe({
+  confirmCancelAppointment(): void {
+    if (!this.appointmentToCancel) return;
+
+    const id = this.appointmentToCancel.id;
+    this.appointmentToCancel = undefined;
+
+    this.api.cancelAppointment(id).subscribe({
       next: () => {
         this.showAlert('Cita cancelada', 'La cita fue cancelada correctamente.');
         this.load();
@@ -92,6 +100,10 @@ export class AppointmentsComponent implements OnInit {
         error?.error?.message ?? 'No se pudo cancelar la cita.'
       )
     });
+  }
+
+  cancelAppointmentModal(): void {
+    this.appointmentToCancel = undefined;
   }
 
   requestCancelWaitlist(item: WaitlistItem): void {
