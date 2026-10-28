@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using GestionCitas.Api.Common;
 
 namespace GestionCitas.Api.Models;
 
@@ -20,5 +21,5 @@ public class AppointmentAuditLog
     [MaxLength(1000)]
     public string Details { get; set; } = string.Empty;
 
-    public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+    public DateTimeOffset CreatedAt { get; set; } = PeruClock.Now;
 }
