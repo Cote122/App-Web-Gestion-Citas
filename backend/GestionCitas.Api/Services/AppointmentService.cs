@@ -264,7 +264,9 @@ public class AppointmentService(AppDbContext db)
         new(
             appointment.Id,
             appointment.Code,
+            slot.Professional.SpecialtyId,
             slot.Professional.Specialty.Name,
+            slot.ProfessionalId,
             slot.Professional.FullName,
             slot.Professional.Office,
             slot.StartAt,
