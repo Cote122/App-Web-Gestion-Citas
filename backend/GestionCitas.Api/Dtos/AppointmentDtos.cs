@@ -14,3 +14,15 @@ public record AppointmentDto(
     DateTimeOffset EndAt,
     string Status,
     decimal Price);
+
+public record WaitlistItemDto(
+    Guid Id,
+    Guid SlotId,
+    string Specialty,
+    string Professional,
+    string Office,
+    DateTimeOffset StartAt,
+    DateTimeOffset EndAt,
+    string Status,
+    int Position,
+    DateTimeOffset CreatedAt);
