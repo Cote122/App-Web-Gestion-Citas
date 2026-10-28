@@ -76,6 +76,19 @@ export interface WaitlistResponse {
   message: string;
 }
 
+export interface WaitlistItem {
+  id: string;
+  slotId: string;
+  specialty: string;
+  professional: string;
+  office: string;
+  startAt: string;
+  endAt: string;
+  status: string;
+  position: number;
+  createdAt: string;
+}
+
 export interface Appointment {
   id: string;
   code: string;
