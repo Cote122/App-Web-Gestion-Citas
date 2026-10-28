@@ -12,8 +12,13 @@ builder.Services.AddControllers();
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+builder.Services.Configure<CommunicationSettings>(
+    builder.Configuration.GetSection("Communications"));
+
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<AppointmentService>();
+builder.Services.AddScoped<AppointmentCommunicationService>();
+builder.Services.AddHostedService<AppointmentCommunicationWorker>();
 
 var jwtKey = builder.Configuration["Jwt:Key"];
 if (string.IsNullOrWhiteSpace(jwtKey) || jwtKey.Length < 32)
