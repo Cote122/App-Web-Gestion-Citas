@@ -32,9 +32,10 @@ export class BookingComponent implements OnInit {
 
   loading = false;
   loadingProfessionals = false;
-  message = '';
-  error = '';
-  bookingError = '';
+
+  alertTitle = '';
+  alertMessage = '';
+  alertRedirectToAppointments = false;
 
   readonly appointmentId = this.route.snapshot.queryParamMap.get('appointmentId');
 
@@ -53,7 +54,7 @@ export class BookingComponent implements OnInit {
     this.loading = true;
     this.api.specialties().pipe(finalize(() => this.loading = false)).subscribe({
       next: data => this.specialties = data,
-      error: () => this.error = 'No se pudieron cargar las especialidades.'
+      error: () => this.showAlert('No se pudo cargar', 'No se pudieron cargar las especialidades.')
     });
   }
 
@@ -64,13 +65,11 @@ export class BookingComponent implements OnInit {
     this.slots = [];
     this.professionals = [];
     this.selectedDateKey = '';
-    this.error = '';
-    this.message = '';
 
     this.loadingProfessionals = true;
     this.api.professionals(item.id).pipe(finalize(() => this.loadingProfessionals = false)).subscribe({
       next: data => { if (this.specialty?.id === item.id) this.professionals = data; },
-      error: () => this.error = 'No se pudieron cargar los profesionales.'
+      error: () => this.showAlert('No se pudo cargar', 'No se pudieron cargar los profesionales.')
     });
   }
 
@@ -78,8 +77,6 @@ export class BookingComponent implements OnInit {
     this.professional = item;
     this.slot = undefined;
     this.selectedDateKey = '';
-    this.error = '';
-    this.message = '';
     this.loading = true;
 
     this.api.availability(item.id).pipe(finalize(() => this.loading = false)).subscribe({
@@ -92,7 +89,7 @@ export class BookingComponent implements OnInit {
           this.selectedDateKey = this.dateKey(firstDate);
         }
       },
-      error: () => this.error = 'No se pudo consultar la disponibilidad.'
+      error: () => this.showAlert('No se pudo consultar', 'No se pudo consultar la disponibilidad.')
     });
   }
 
@@ -100,15 +97,11 @@ export class BookingComponent implements OnInit {
     if (!day.date || !day.hasSlots) return;
     this.selectedDateKey = day.key;
     this.slot = undefined;
-    this.message = '';
-    this.error = '';
   }
 
   chooseSlot(item: AvailabilitySlot): void {
     if (!item.isAvailable) return;
     this.slot = item;
-    this.message = '';
-    this.error = '';
   }
 
   previousMonth(): void {
@@ -137,8 +130,6 @@ export class BookingComponent implements OnInit {
 
     this.mostrarModal = false;
     this.loading = true;
-    this.error = '';
-    this.message = '';
 
     const request = this.appointmentId
       ? this.api.rescheduleAppointment(this.appointmentId, this.slot.id)
@@ -146,11 +137,18 @@ export class BookingComponent implements OnInit {
 
     request.pipe(finalize(() => this.loading = false)).subscribe({
       next: appointment => {
-        this.message = `${this.appointmentId ? 'Cita reprogramada' : 'Cita registrada'}: ${appointment.code}`;
-        setTimeout(() => this.router.navigate(['/app/appointments']), 800);
+        this.showAlert(
+          this.appointmentId ? 'Cita reprogramada' : 'Cita registrada',
+          `${this.appointmentId ? 'La cita fue reprogramada' : 'La cita fue registrada'} correctamente. Código: ${appointment.code}.`,
+          true
+        );
       },
       error: error => {
-        this.bookingError = error?.error?.message ?? 'No se pudo guardar la cita.';
+        this.showAlert(
+          this.appointmentId ? 'No se pudo reprogramar la cita' : 'No se pudo registrar la cita',
+          error?.error?.message ?? 'No se pudo guardar la cita.'
+        );
+
         if (error?.status === 409) this.refreshAfterConflict();
       }
     });
@@ -159,21 +157,39 @@ export class BookingComponent implements OnInit {
   joinWaitlist(item: AvailabilitySlot): void {
     if (item.isAvailable || this.appointmentId) return;
 
-    this.error = '';
-    this.message = '';
-
     this.api.joinWaitlist(item.id).subscribe({
       next: response => {
-        this.message = `${response.message} Posición actual: ${response.position}.`;
+        this.showAlert(
+          'Registro en lista de espera',
+          `${response.message} Tu posición actual es ${response.position}.`,
+          true
+        );
       },
       error: error => {
-        this.error = error?.error?.message ?? 'No se pudo registrar la lista de espera.';
+        this.showAlert(
+          'No se pudo registrar en la lista de espera',
+          error?.error?.message ?? 'No se pudo registrar la lista de espera.'
+        );
       }
     });
   }
 
-  closeBookingError(): void {
-    this.bookingError = '';
+  closeAlert(): void {
+    const shouldRedirect = this.alertRedirectToAppointments;
+
+    this.alertTitle = '';
+    this.alertMessage = '';
+    this.alertRedirectToAppointments = false;
+
+    if (shouldRedirect) {
+      this.router.navigate(['/app/appointments']);
+    }
+  }
+
+  private showAlert(title: string, message: string, redirectToAppointments = false): void {
+    this.alertTitle = title;
+    this.alertMessage = message;
+    this.alertRedirectToAppointments = redirectToAppointments;
   }
 
   private refreshAfterConflict(): void {
@@ -223,7 +239,6 @@ export class BookingComponent implements OnInit {
     const last = new Date(year, month + 1, 0);
     const days: CalendarDay[] = [];
 
-    // Calendario lunes-domingo.
     const leadingBlanks = (first.getDay() + 6) % 7;
     for (let i = 0; i < leadingBlanks; i++) {
       days.push({ date: null, key: '', hasSlots: false, availableCount: 0, occupiedCount: 0 });
