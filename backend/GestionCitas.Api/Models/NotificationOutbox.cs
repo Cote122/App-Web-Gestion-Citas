@@ -10,6 +10,8 @@ public class NotificationOutbox
     public Guid RecipientUserId { get; set; }
     public User RecipientUser { get; set; } = null!;
 
+    public Guid? RelatedAppointmentId { get; set; }
+
     [MaxLength(200)]
     public string RecipientEmail { get; set; } = string.Empty;
 
