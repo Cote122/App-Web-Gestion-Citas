@@ -128,7 +128,6 @@ public class AppointmentService(AppDbContext db)
         };
         db.Appointments.Add(replacement);
 
-        // El horario anterior puede pasar inmediatamente al primero de la lista de espera.
         await AssignReleasedSlotOrMakeAvailableAsync(current.Slot);
 
         try
@@ -151,6 +150,7 @@ public class AppointmentService(AppDbContext db)
             .Include(x => x.Patient)
             .Where(x => x.SlotId == slot.Id && x.Status == WaitlistStatus.Activa)
             .OrderBy(x => x.CreatedAt)
+            .ThenBy(x => x.Id)
             .FirstOrDefaultAsync();
 
         if (next is null)
@@ -173,7 +173,6 @@ public class AppointmentService(AppDbContext db)
         next.AssignedAppointment = appointment;
         next.AssignedAt = DateTimeOffset.UtcNow;
 
-        // El cupo permanece ocupado porque se asigna en la misma transacción.
         slot.IsAvailable = false;
 
         db.NotificationOutbox.Add(new NotificationOutbox
