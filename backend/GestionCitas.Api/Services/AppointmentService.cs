@@ -142,6 +142,10 @@ public class AppointmentService(AppDbContext db)
             return (null, ProfessionalUnavailableMessage);
         if (newSlot is null || !newSlot.IsAvailable || newSlot.StartAt <= DateTimeOffset.UtcNow)
             return (null, "El nuevo horario ya no está disponible.");
+        if (newSlot.ProfessionalId != current.Slot.ProfessionalId)
+            return (null, "La reprogramación debe mantener el mismo profesional de la cita.");
+        if (newSlot.StartAt == current.Slot.StartAt)
+            return (null, "Selecciona una fecha u hora diferente a la de tu cita actual.");
 
         var previousSlotId = current.SlotId;
         var previousStartAt = current.Slot.StartAt;
