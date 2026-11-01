@@ -16,6 +16,10 @@ public class Appointment
     public AvailabilitySlot Slot { get; set; } = null!;
 
     public AppointmentStatus Status { get; set; } = AppointmentStatus.Confirmada;
+
+    [MaxLength(500)]
+    public string? Reason { get; set; }
+
     public Guid? PreviousAppointmentId { get; set; }
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset? UpdatedAt { get; set; }

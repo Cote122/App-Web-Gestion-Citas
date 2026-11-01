@@ -11,6 +11,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<AvailabilitySlot> AvailabilitySlots => Set<AvailabilitySlot>();
     public DbSet<Appointment> Appointments => Set<Appointment>();
     public DbSet<WaitlistEntry> WaitlistEntries => Set<WaitlistEntry>();
+    public DbSet<MedicalRecord> MedicalRecords => Set<MedicalRecord>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -39,7 +40,27 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             .HasConversion<string>();
 
         modelBuilder.Entity<WaitlistEntry>()
-            .Property(x => x.Status)
-            .HasConversion<string>();
+                    .Property(x => x.Status)
+                    .HasConversion<string>();
+
+        modelBuilder.Entity<MedicalRecord>(entity =>
+        {
+            entity.HasOne(x => x.Patient)
+                .WithMany()
+                .HasForeignKey(x => x.PatientId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(x => x.Professional)
+                .WithMany()
+                .HasForeignKey(x => x.ProfessionalId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(x => x.Appointment)
+                .WithMany()
+                .HasForeignKey(x => x.AppointmentId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasIndex(x => x.AppointmentId).IsUnique();
+        });
     }
 }

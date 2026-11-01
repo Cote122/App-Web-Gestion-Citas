@@ -1,0 +1,38 @@
+h2 { margin: 0; color: var(--primary-dark); }
+.head { display: flex; justify-content: space-between; gap: 16px; align-items: center; border-bottom: 1px solid var(--line); padding-bottom: 14px; }
+.head p { margin: 4px 0 0; color: var(--muted); }
+.date-filter { min-width: 180px; }
+.list { display: grid; gap: 10px; margin-top: 14px; }
+.appointment {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 14px;
+  display: grid;
+  grid-template-columns: minmax(220px, 1.6fr) 120px 90px 120px;
+  gap: 14px;
+  align-items: center;
+  cursor: pointer;
+}
+.appointment:hover, .appointment.selected { border-color: #9dc0e4; background: #f7fbff; }
+.appointment small { display: block; color: var(--muted); margin-bottom: 4px; }
+.appointment .main b, .appointment > div > b { color: var(--primary-dark); }
+.main span, .main small { display: block; color: var(--muted); margin-top: 4px; }
+.empty { padding: 30px; text-align: center; color: var(--muted); }
+
+.modal-backdrop { position: fixed; inset: 0; background: #07192b99; display: grid; place-items: center; padding: 20px; z-index: 999; }
+.modal { width: min(520px, 95vw); max-height: calc(100vh - 40px); overflow: auto; background: white; border-radius: 18px; box-shadow: 0 20px 60px rgba(7, 25, 43, .3); }
+.modal-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; padding: 28px 28px 18px; border-bottom: 1px solid var(--line); }
+.modal-head h3 { margin: 0; color: var(--primary-dark); font-size: 20px; }
+.modal-head p { margin: 8px 0 0; color: #2a3f55; font-size: 14px; }
+.modal-close { border: 0; background: transparent; color: #c94a4a; font-size: 24px; line-height: 1; padding: 3px 8px; border-radius: 8px; }
+.modal-body { padding: 24px 28px 32px; }
+.detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+.detail-grid .wide { grid-column: 1 / -1; }
+.detail-grid small { display: block; color: var(--muted); margin-bottom: 4px; }
+.detail-grid b { color: var(--primary-dark); }
+
+@media (max-width: 900px) {
+  .appointment { grid-template-columns: 1fr 1fr; }
+  .head { align-items: flex-start; flex-direction: column; }
+  .detail-grid { grid-template-columns: 1fr; }
+}

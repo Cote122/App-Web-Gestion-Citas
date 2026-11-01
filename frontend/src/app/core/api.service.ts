@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { AdminProfessional, AdminSpecialty, AdminUser, Appointment, AvailabilitySlot, Professional, RoleDefinition, Specialty, UserRole } from '../models/models';
+import { AdminProfessional, AdminSpecialty, AdminUser, Appointment, AvailabilitySlot, MedicalRecord, Professional, ProfessionalAgendaItem, ProfessionalAppointmentDetail, RoleDefinition, Specialty, UserRole } from '../models/models';
 
 @Injectable({ providedIn: 'root' })
 export class ApiService {
@@ -86,7 +86,23 @@ export class ApiService {
     return this.http.get<RoleDefinition[]>('/api/admin/users/roles');
   }
 
-  updateUserRole(id: string, role: UserRole) {
+    updateUserRole(id: string, role: UserRole) {
     return this.http.patch<AdminUser>(`/api/admin/users/${id}/role`, { role });
+  }
+
+  professionalAgenda(date?: string) {
+    return this.http.get<ProfessionalAgendaItem[]>('/api/professional/agenda', { params: { date: date || '' } });
+  }
+
+    professionalAppointmentDetail(id: string) {
+    return this.http.get<ProfessionalAppointmentDetail>(`/api/professional/agenda/${id}`);
+  }
+
+  createMedicalRecord(payload: Partial<MedicalRecord>) {
+    return this.http.post<MedicalRecord>('/api/medical-records', payload);
+  }
+
+  getMedicalHistory(patientId: string) {
+    return this.http.get<MedicalRecord[]>(`/api/medical-records/patient/${patientId}`);
   }
 }

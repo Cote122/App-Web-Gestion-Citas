@@ -1,0 +1,88 @@
+<section class="card">
+  <div class="head">
+    <div>
+      <h2>Mi agenda</h2>
+      <p>Pacientes agendados contigo.</p>
+    </div>
+  </div>
+
+  <p class="error" *ngIf="error">{{ error }}</p>
+  <p class="muted" *ngIf="loading">Cargando agenda...</p>
+
+  <div class="list" *ngIf="!loading">
+    <article
+      *ngFor="let item of items"
+      class="appointment"
+      [class.selected]="detail?.id === item.id"
+      (click)="select(item)">
+      <div class="main">
+        <b>{{ item.patientName }}</b>
+        <span>{{ item.specialty }} · {{ item.office }}</span>
+        <small>{{ item.reason || 'Sin motivo registrado' }}</small>
+      </div>
+      <div><small>Fecha</small><b>{{ item.startAt | date:'dd/MM/yyyy' }}</b></div>
+      <div><small>Hora</small><b>{{ item.startAt | date:'HH:mm' }}</b></div>
+      <div><span class="badge" [ngClass]="badgeClass(item.status)">{{ item.status }}</span></div>
+    </article>
+    <div class="empty" *ngIf="!items.length">No existen citas pendientes registradas.</div>
+  </div>
+</section>
+
+<div class="modal-backdrop" *ngIf="detail || loadingDetail" (click)="closeDetail()">
+  <div class="modal modal-sm" role="dialog" aria-modal="true" aria-labelledby="patient-detail-title" (click)="$event.stopPropagation()">
+    <div class="modal-head">
+      <div>
+        <h3 id="patient-detail-title">Detalle del paciente</h3>
+        <p *ngIf="detail">Datos autorizados para la atención {{ detail.code }}.</p>
+      </div>
+      <button class="modal-close" type="button" aria-label="Cerrar" (click)="closeDetail()">×</button>
+    </div>
+
+    <div class="modal-body" *ngIf="loadingDetail && !detail">
+      <p class="muted">Cargando detalle...</p>
+    </div>
+
+    <div class="modal-body detail-grid" *ngIf="detail">
+      <div>
+        <small>Paciente</small>
+        <b>{{ detail.patient.fullName }}</b>
+      </div>
+      <div>
+        <small>DNI</small>
+        <b>{{ detail.patient.dni }}</b>
+      </div>
+      <div class="wide">
+        <small>Correo</small>
+        <b>{{ detail.patient.email }}</b>
+      </div>
+      <div>
+        <small>Especialidad</small>
+        <b>{{ detail.specialty }}</b>
+      </div>
+      <div>
+        <small>Consultorio</small>
+        <b>{{ detail.office }}</b>
+      </div>
+      <div>
+        <small>Fecha y hora</small>
+        <b>{{ detail.startAt | date:'dd/MM/yyyy HH:mm' }}</b>
+      </div>
+      <div>
+        <small>Estado</small>
+        <b>{{ detail.status }}</b>
+      </div>
+            <div class="wide">
+        <small>Motivo de consulta</small>
+        <b>{{ detail.reason || 'No registrado' }}</b>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" *ngIf="recordAppointmentId && recordPatientId" (click)="closeRecordForm()">
+  <app-medical-record-form
+    [appointmentId]="recordAppointmentId"
+    [patientId]="recordPatientId"
+    (close)="closeRecordForm()">
+  </app-medical-record-form>
+</div>

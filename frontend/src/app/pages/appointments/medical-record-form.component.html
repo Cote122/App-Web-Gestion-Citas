@@ -1,0 +1,39 @@
+<div class="modal-container">
+  <!-- Agregamos la etiqueta de apertura <form> con ngSubmit y #formRef -->
+  <form (ngSubmit)="save()" #recordForm="ngForm">
+    
+    <div class="form-field">
+      <label for="reason">Motivo de consulta *</label>
+      <textarea id="reason" [(ngModel)]="record.reason" name="reason" rows="3" required placeholder="Describa el motivo de la consulta..."></textarea>
+    </div>
+
+    <div class="form-field">
+      <label for="attentionDate">Fecha de atención *</label>
+      <input type="date" id="attentionDate" [(ngModel)]="record.attentionDate" name="attentionDate" required>
+    </div>
+
+    <div class="form-field">
+      <label for="diagnosis">Diagnóstico *</label>
+      <textarea id="diagnosis" [(ngModel)]="record.diagnosis" name="diagnosis" rows="3" required placeholder="Describa el diagnóstico..."></textarea>
+    </div>
+
+    <div class="form-field">
+      <label for="observations">Observaciones</label>
+      <textarea id="observations" [(ngModel)]="record.observations" name="observations" rows="3" placeholder="Observaciones adicionales..."></textarea>
+    </div>
+
+    <div class="form-field">
+      <label for="recommendations">Recomendaciones</label>
+      <textarea id="recommendations" [(ngModel)]="record.recommendations" name="recommendations" rows="3" placeholder="Recomendaciones para el paciente..."></textarea>
+    </div>
+
+    <div class="modal-actions">
+      <button type="button" class="btn btn-secondary" (click)="close.emit()">Cancelar</button>
+      <!-- Opcional: puedes deshabilitar el botón si el formulario es inválido agregando: [disabled]="loading || recordForm.invalid" -->
+      <button type="submit" class="btn btn-primary" [disabled]="loading">
+        {{ loading ? 'Guardando...' : 'Guardar Atención' }}
+      </button>
+    </div>
+
+  </form>
+</div>

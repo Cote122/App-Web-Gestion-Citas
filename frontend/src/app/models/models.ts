@@ -77,4 +77,51 @@ export interface Appointment {
   endAt: string;
   status: string;
   price: number;
+  reason?: string; // Opcional: motivo de consulta
 }
+
+export interface ProfessionalPatient {
+  id: string;
+  dni: string;
+  fullName: string;
+  email: string;
+}
+
+export interface ProfessionalAgendaItem {
+  id: string;
+  code: string;
+  patientName: string;
+  startAt: string;
+  endAt: string;
+  specialty: string;
+  reason?: string;
+  status: string;
+  office: string;
+}
+
+export interface ProfessionalAppointmentDetail {
+  id: string;
+  code: string;
+  startAt: string;
+  endAt: string;
+  specialty: string;
+  office: string;
+  reason?: string;
+  status: string;
+  patient: ProfessionalPatient;
+}
+
+export interface MedicalRecord {
+  id: string;
+  patientId: string;
+  professionalId: string;
+  appointmentId: string;
+  reason?: string;
+  observations?: string;
+  diagnosis?: string;
+  recommendations?: string;
+  attentionDate: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
