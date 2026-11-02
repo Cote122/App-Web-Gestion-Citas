@@ -39,7 +39,10 @@ public class SmtpEmailSender(IOptions<EmailSettings> options)
             Text = body
         };
 
-        using var client = new SmtpClient();
+        using var client = new SmtpClient
+        {
+            CheckCertificateRevocation = settings.CheckCertificateRevocation
+        };
 
         var socketOptions = settings.UseSsl
             ? SecureSocketOptions.SslOnConnect
