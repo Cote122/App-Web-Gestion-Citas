@@ -15,15 +15,16 @@ public class EmailOutboxWorker(
         var interval = TimeSpan.FromSeconds(
             Math.Clamp(settings.ProcessIntervalSeconds, 10, 3600));
 
-        if (!settings.Enabled)
+        if (!settings.Enabled || !settings.AutomaticDispatchEnabled)
         {
             logger.LogInformation(
-                "EmailOutboxWorker desactivado. Configura Email:Enabled=true para enviar correos.");
+                "EmailOutboxWorker desactivado. Para despacho automático configura " +
+                "Email:Enabled=true y Email:AutomaticDispatchEnabled=true.");
         }
 
         while (!stoppingToken.IsCancellationRequested)
         {
-            if (settings.Enabled)
+            if (settings.Enabled && settings.AutomaticDispatchEnabled)
             {
                 try
                 {
