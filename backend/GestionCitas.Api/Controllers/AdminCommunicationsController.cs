@@ -14,9 +14,38 @@ namespace GestionCitas.Api.Controllers;
 [Authorize(Roles = "Administrador")]
 public class AdminCommunicationsController(
     AppDbContext db,
-    AppointmentCommunicationService communicationService)
+    AppointmentCommunicationService communicationService,
+    SmtpEmailSender smtpEmailSender)
     : ControllerBase
 {
+    [HttpPost("test-email")]
+    public async Task<IActionResult> SendTestEmail(
+        SendTestEmailRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(request.Email))
+            return BadRequest(new { message = "Indica un correo de prueba." });
+
+        try
+        {
+            await smtpEmailSender.SendAsync(
+                request.Email.Trim(),
+                "Prueba SMTP - Gestión de Citas",
+                "Si recibiste este mensaje, la integración SMTP con no-reply@mu-tante.com está funcionando correctamente.",
+                cancellationToken);
+
+            return Ok(new { message = "Correo de prueba enviado correctamente." });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new
+            {
+                message = "No se pudo enviar el correo de prueba.",
+                detail = ex.Message
+            });
+        }
+    }
+
     [HttpPost("process")]
     public async Task<IActionResult> Process(CancellationToken cancellationToken)
     {
