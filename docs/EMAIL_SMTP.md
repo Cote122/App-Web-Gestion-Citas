@@ -30,6 +30,7 @@ La contraseña nunca debe almacenarse en GitHub, Angular ni `appsettings.json`.
   "SmtpHost": "smtpout.secureserver.net",
   "SmtpPort": 465,
   "UseSsl": true,
+  "CheckCertificateRevocation": true,
   "Username": "",
   "Password": "",
   "FromAddress": "no-reply@mu-tante.com",
@@ -51,6 +52,23 @@ dotnet user-secrets set "Email:Username" "no-reply@mu-tante.com"
 dotnet user-secrets set "Email:Password" "TU_PASSWORD_REAL"
 dotnet user-secrets set "Email:Enabled" "true"
 ```
+
+### Si la red/VPN impide validar CRL/OCSP
+
+Si MailKit devuelve un error indicando que no puede comprobar la revocación del certificado, primero puede probarse sin VPN. Si la red sigue bloqueando CRL/OCSP, únicamente en desarrollo local:
+
+```powershell
+dotnet user-secrets set "Email:CheckCertificateRevocation" "false"
+```
+
+Esto no acepta certificados arbitrarios ni desactiva la validación de hostname/cadena; solo omite la consulta de revocación que la red no puede completar.
+
+En producción debe permanecer:
+
+```text
+Email__CheckCertificateRevocation=true
+```
+
 
 No activar todavía:
 
