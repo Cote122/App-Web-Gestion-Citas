@@ -1,0 +1,9 @@
+.git
+**/bin
+**/obj
+frontend
+**/appsettings.Development.json
+**/appsettings.Local.json
+**/.env
+**/.env.*
+credenciales.local.bat
