@@ -14,6 +14,10 @@ public class EmailSettings
     public int SmtpPort { get; set; } = 465;
     public bool UseSsl { get; set; } = true;
 
+    // Mantener true en producción. Puede desactivarse localmente cuando una
+    // VPN/firewall impide consultar CRL/OCSP aunque el certificado sea válido.
+    public bool CheckCertificateRevocation { get; set; } = true;
+
     // Username y Password deben venir de User Secrets o variables de entorno.
     public string Username { get; set; } = string.Empty;
     public string Password { get; set; } = string.Empty;
