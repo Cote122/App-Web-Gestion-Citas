@@ -6,6 +6,10 @@ public class EmailSettings
     // acumulados durante las pruebas locales.
     public bool Enabled { get; set; } = false;
 
+    // Permite validar SMTP con un correo de prueba sin comenzar a despachar
+    // automáticamente todo NotificationOutbox.
+    public bool AutomaticDispatchEnabled { get; set; } = false;
+
     public string SmtpHost { get; set; } = "smtpout.secureserver.net";
     public int SmtpPort { get; set; } = 465;
     public bool UseSsl { get; set; } = true;
