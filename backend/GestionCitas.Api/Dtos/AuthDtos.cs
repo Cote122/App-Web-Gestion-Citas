@@ -20,19 +20,28 @@ public sealed class RegisterPatientRequest
     public string Dni { get; init; } = string.Empty;
 
     [Required(ErrorMessage = "El correo es obligatorio.")]
-    [EmailAddress(ErrorMessage = "Ingresa un correo válido.")]
-    [MaxLength(200)]
+    [MaxLength(100, ErrorMessage = "El correo no puede superar los 100 caracteres.")]
+    [RegularExpression(@"^\s*[^@\s<>()\[\],;:""]+@[^@\s<>()\[\],;:""]+\.[A-Za-z]{2,}\s*$", ErrorMessage = "Ingresa un correo válido.")]
     public string Email { get; init; } = string.Empty;
 
-    [Required(ErrorMessage = "El nombre completo es obligatorio.")]
-    [MinLength(3, ErrorMessage = "El nombre completo debe tener al menos 3 caracteres.")]
-    [MaxLength(200)]
+    // HU-37: el nombre se toma del servicio de DNI al registrar; este valor solo se usa para mostrarlo.
+    [MaxLength(150, ErrorMessage = "El nombre completo no puede superar los 150 caracteres.")]
     public string FullName { get; init; } = string.Empty;
+
+    // HU-38: celular peruano.
+    [Required(ErrorMessage = "El celular es obligatorio.")]
+    [RegularExpression(@"^9\d{8}$", ErrorMessage = "Debe tener 9 dígitos y empezar con 9.")]
+    public string Phone { get; init; } = string.Empty;
 
     [Required(ErrorMessage = "La contraseña es obligatoria.")]
     [MinLength(8, ErrorMessage = "La contraseña debe tener al menos 8 caracteres.")]
-    [MaxLength(100)]
+    [MaxLength(64, ErrorMessage = "La contraseña no puede superar los 64 caracteres.")]
+    [RegularExpression(@"^(?=.*[A-Za-zÁÉÍÓÚÜÑáéíóúüñ])(?=.*\d).+$", ErrorMessage = "La contraseña debe tener al menos una letra y un número.")]
     public string Password { get; init; } = string.Empty;
+
+    [Required(ErrorMessage = "Confirma tu contraseña.")]
+    [Compare(nameof(Password), ErrorMessage = "Las contraseñas no coinciden.")]
+    public string ConfirmPassword { get; init; } = string.Empty;
 }
 
 public record UserDto(Guid Id, string Dni, string Email, string FullName, string Role);

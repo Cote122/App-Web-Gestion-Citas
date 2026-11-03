@@ -1,13 +1,32 @@
 using GestionCitas.Api.Dtos;
 using GestionCitas.Api.Services;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace GestionCitas.Api.Controllers;
 
 [ApiController]
 [Route("api/auth")]
-public class AuthController(AuthService authService) : ControllerBase
+public class AuthController(AuthService authService, DniLookupService dniLookup) : ControllerBase
 {
+    // HU-37: valida el DNI y devuelve el nombre para autocompletar el registro.
+    // Tiene límite de consultas por IP para no agotar el plan del servicio externo.
+    [HttpGet("dni/{dni}")]
+    [EnableRateLimiting("dni")]
+    public async Task<IActionResult> LookupDni(string dni, CancellationToken cancellationToken)
+    {
+        if (dni.Length != 8 || !dni.All(char.IsAsciiDigit))
+            return BadRequest(new { message = "El DNI debe tener exactamente 8 números." });
+
+        var result = await dniLookup.LookupAsync(dni, cancellationToken);
+        return result.Status switch
+        {
+            DniLookupStatus.Valid => Ok(new { valid = true, fullName = result.FullName }),
+            DniLookupStatus.NotFound => NotFound(new { message = "No encontramos ese DNI. Verifica el número." }),
+            _ => StatusCode(StatusCodes.Status503ServiceUnavailable, new { message = "No pudimos verificar tu DNI ahora. Intenta en unos minutos." })
+        };
+    }
+
     [HttpPost("login")]
     public async Task<IActionResult> Login(LoginRequest request)
     {

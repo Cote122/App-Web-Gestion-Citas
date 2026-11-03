@@ -15,6 +15,23 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<AppointmentService>();
 
+// HU-37: validación de DNI con servicio externo (token en DniApi:Token) y límite de consultas por IP.
+builder.Services.AddMemoryCache();
+builder.Services.AddHttpClient<DniLookupService>(client =>
+{
+    client.BaseAddress = new Uri(builder.Configuration["DniApi:BaseUrl"] ?? "https://dniruc.apisperu.com/api/v1/");
+    client.Timeout = TimeSpan.FromSeconds(8);
+});
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.AddPolicy("dni", context => System.Threading.RateLimiting.RateLimitPartition.GetFixedWindowLimiter(
+        context.Connection.RemoteIpAddress?.ToString() ?? "desconocido",
+        _ => new System.Threading.RateLimiting.FixedWindowRateLimiterOptions { PermitLimit = 10, Window = TimeSpan.FromMinutes(1) }));
+    options.OnRejected = async (context, token) =>
+        await context.HttpContext.Response.WriteAsJsonAsync(new { message = "Hiciste muchas consultas seguidas. Espera un minuto e intenta otra vez." }, token);
+});
+
 var jwtKey = builder.Configuration["Jwt:Key"];
 if (string.IsNullOrWhiteSpace(jwtKey) || jwtKey.Length < 32)
 {
@@ -89,6 +106,7 @@ app.Use(async (context, next) =>
 });
 
 app.UseAuthorization();
+app.UseRateLimiter();
 app.MapControllers();
 
 using (var scope = app.Services.CreateScope())
