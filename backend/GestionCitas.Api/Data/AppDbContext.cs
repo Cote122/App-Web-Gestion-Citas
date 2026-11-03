@@ -11,6 +11,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<AvailabilitySlot> AvailabilitySlots => Set<AvailabilitySlot>();
     public DbSet<Appointment> Appointments => Set<Appointment>();
     public DbSet<WaitlistEntry> WaitlistEntries => Set<WaitlistEntry>();
+    public DbSet<NotificationOutbox> NotificationOutbox => Set<NotificationOutbox>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -38,8 +39,24 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             .Property(x => x.Status)
             .HasConversion<string>();
 
-        modelBuilder.Entity<WaitlistEntry>()
-            .Property(x => x.Status)
-            .HasConversion<string>();
+        modelBuilder.Entity<WaitlistEntry>(entity =>
+        {
+            entity.Property(x => x.Status).HasConversion<string>();
+
+            entity.HasIndex(x => new { x.SlotId, x.Status, x.CreatedAt });
+
+            entity.HasOne(x => x.Slot)
+                .WithMany()
+                .HasForeignKey(x => x.SlotId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(x => x.AssignedAppointment)
+                .WithMany()
+                .HasForeignKey(x => x.AssignedAppointmentId)
+                .OnDelete(DeleteBehavior.NoAction);
+        });
+
+        modelBuilder.Entity<NotificationOutbox>()
+            .HasIndex(x => new { x.Status, x.CreatedAt });
     }
 }

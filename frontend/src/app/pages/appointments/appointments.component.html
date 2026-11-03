@@ -1,16 +1,177 @@
 <section class="card">
-  <div class="head"><div><h2>Mis citas</h2><p>Consulta tus reservas futuras y pasadas.</p></div><button class="btn btn-primary" (click)="newAppointment()">Nueva cita</button></div>
-  <p class="error" *ngIf="error">{{ error }}</p>
-  <p class="muted" *ngIf="loading">Cargando citas...</p>
+  <div class="head">
+    <div>
+      <h2>Mis citas</h2>
+      <p>Consulta tus próximas citas, lista de espera e historial.</p>
+    </div>
 
-  <div class="list" *ngIf="!loading">
-    <article *ngFor="let item of items" class="appointment">
-      <div class="main"><b>{{ item.specialty }}</b><span>{{ item.professional }} · {{ item.office }}</span><small>{{ item.code }}</small></div>
-      <div><small>Fecha</small><b>{{ item.startAt | date:'dd/MM/yyyy' }}</b></div>
-      <div><small>Hora</small><b>{{ item.startAt | date:'HH:mm' }}</b></div>
-      <div><span class="badge" [ngClass]="item.status === 'Confirmada' ? 'badge-green' : 'badge-gray'">{{ item.status }}</span></div>
-      <div class="row-actions" *ngIf="isActive(item)"><button class="btn btn-secondary" (click)="reschedule(item)">Reprogramar</button><button class="btn btn-danger" (click)="cancel(item)">Cancelar</button></div>
-    </article>
-    <div class="empty" *ngIf="!items.length">Aún no tienes citas registradas.</div>
+    <button class="btn btn-primary" (click)="newAppointment()">
+      Nueva cita
+    </button>
   </div>
+
+  <p class="muted" *ngIf="loading">Cargando información...</p>
+
+  <ng-container *ngIf="!loading">
+    <section class="appointment-section">
+      <div class="section-title">
+        <div>
+          <h3>Próximas citas</h3>
+          <p>Reservas confirmadas que todavía no han ocurrido.</p>
+        </div>
+        <span class="counter">{{ upcomingAppointments.length }}</span>
+      </div>
+
+      <div class="list" *ngIf="upcomingAppointments.length; else noUpcoming">
+        <article *ngFor="let item of upcomingAppointments" class="appointment">
+          <div class="main">
+            <b>{{ item.specialty }}</b>
+            <span>{{ item.professional }} · {{ item.office }}</span>
+            <small>{{ item.code }}</small>
+          </div>
+
+          <div>
+            <small>Fecha</small>
+            <b>{{ item.startAt | date:'dd/MM/yyyy' }}</b>
+          </div>
+
+          <div>
+            <small>Hora</small>
+            <b>{{ item.startAt | date:'HH:mm' }}</b>
+          </div>
+
+          <div>
+            <span class="badge" [ngClass]="statusClass(item)">
+              {{ item.status }}
+            </span>
+          </div>
+
+          <div class="row-actions" *ngIf="isActive(item)">
+            <button class="btn btn-secondary" (click)="reschedule(item)">
+              Reprogramar
+            </button>
+            <button class="btn btn-danger" (click)="cancel(item)">
+              Cancelar
+            </button>
+          </div>
+        </article>
+      </div>
+
+      <ng-template #noUpcoming>
+        <div class="empty">
+          No tienes citas próximas. Puedes registrar una nueva cita cuando lo necesites.
+        </div>
+      </ng-template>
+    </section>
+
+    <section class="appointment-section waitlist-section">
+      <div class="section-title">
+        <div>
+          <h3>Lista de espera</h3>
+          <p>Horarios ocupados en los que estás esperando que se libere un cupo.</p>
+        </div>
+        <span class="counter waitlist-counter">{{ waitlist.length }}</span>
+      </div>
+
+      <div class="list" *ngIf="waitlist.length; else noWaitlist">
+        <article *ngFor="let item of waitlist" class="appointment waitlist-item">
+          <div class="main">
+            <b>{{ item.specialty }}</b>
+            <span>{{ item.professional }} · {{ item.office }}</span>
+            <small>Registrado: {{ item.createdAt | date:'dd/MM/yyyy HH:mm' }}</small>
+          </div>
+
+          <div>
+            <small>Fecha esperada</small>
+            <b>{{ item.startAt | date:'dd/MM/yyyy' }}</b>
+          </div>
+
+          <div>
+            <small>Hora</small>
+            <b>{{ item.startAt | date:'HH:mm' }}</b>
+          </div>
+
+          <div>
+            <small>Posición</small>
+            <span class="badge badge-waitlist">N.º {{ item.position }}</span>
+          </div>
+
+          <div class="row-actions">
+            <button class="btn btn-danger" (click)="requestCancelWaitlist(item)">
+              Salir de lista
+            </button>
+          </div>
+        </article>
+      </div>
+
+      <ng-template #noWaitlist>
+        <div class="empty">
+          No tienes horarios activos en lista de espera.
+        </div>
+      </ng-template>
+    </section>
+
+    <section class="appointment-section history-section">
+      <div class="section-title">
+        <div>
+          <h3>Historial</h3>
+          <p>Citas pasadas, canceladas o que fueron reprogramadas.</p>
+        </div>
+        <span class="counter secondary">{{ appointmentHistory.length }}</span>
+      </div>
+
+      <div class="list" *ngIf="appointmentHistory.length; else noHistory">
+        <article *ngFor="let item of appointmentHistory" class="appointment history">
+          <div class="main">
+            <b>{{ item.specialty }}</b>
+            <span>{{ item.professional }} · {{ item.office }}</span>
+            <small>{{ item.code }}</small>
+          </div>
+
+          <div>
+            <small>Fecha</small>
+            <b>{{ item.startAt | date:'dd/MM/yyyy' }}</b>
+          </div>
+
+          <div>
+            <small>Hora</small>
+            <b>{{ item.startAt | date:'HH:mm' }}</b>
+          </div>
+
+          <div>
+            <span class="badge" [ngClass]="statusClass(item)">
+              {{ item.status }}
+            </span>
+          </div>
+        </article>
+      </div>
+
+      <ng-template #noHistory>
+        <div class="empty">Aún no tienes citas en el historial.</div>
+      </ng-template>
+    </section>
+  </ng-container>
 </section>
+
+<app-confirm-modal
+  *ngIf="waitlistToCancel"
+  title="Salir de lista de espera"
+  confirmText="Sí, salir de la lista"
+  cancelText="Mantenerme en espera"
+  [datos]="{
+    especialidad: waitlistToCancel.specialty,
+    medico: waitlistToCancel.professional,
+    fecha: (waitlistToCancel.startAt | date:'dd/MM/yyyy') || '',
+    hora: (waitlistToCancel.startAt | date:'HH:mm') || ''
+  }"
+  (confirmed)="confirmCancelWaitlist()"
+  (cancelled)="cancelWaitlistModal()">
+</app-confirm-modal>
+
+<app-alert-modal
+  *ngIf="alertMessage"
+  [title]="alertTitle"
+  [message]="alertMessage"
+  buttonText="Aceptar"
+  (closed)="closeAlert()">
+</app-alert-modal>

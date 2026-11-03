@@ -2,7 +2,7 @@ namespace GestionCitas.Api.Dtos;
 
 public record CreateAppointmentRequest(Guid SlotId);
 public record RescheduleAppointmentRequest(Guid SlotId);
-public record CreateWaitlistRequest(Guid SpecialtyId, Guid? ProfessionalId, DateTimeOffset? PreferredFrom, DateTimeOffset? PreferredTo, string? Notes);
+public record CreateWaitlistRequest(Guid SlotId);
 
 public record AppointmentDto(
     Guid Id,
@@ -14,3 +14,15 @@ public record AppointmentDto(
     DateTimeOffset EndAt,
     string Status,
     decimal Price);
+
+public record WaitlistItemDto(
+    Guid Id,
+    Guid SlotId,
+    string Specialty,
+    string Professional,
+    string Office,
+    DateTimeOffset StartAt,
+    DateTimeOffset EndAt,
+    string Status,
+    int Position,
+    DateTimeOffset CreatedAt);

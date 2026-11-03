@@ -11,6 +11,7 @@ public enum AppointmentStatus
 public enum WaitlistStatus
 {
     Activa,
+    Asignada,
     Notificada,
     Cerrada
 }

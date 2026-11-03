@@ -1,6 +1,11 @@
 <div class="booking">
   <section class="card booking-head">
-    <div><small>{{ appointmentId ? 'REPROGRAMACIÓN' : 'NUEVA CITA' }}</small><h2>{{ appointmentId ? 'Selecciona un nuevo horario' : 'Agenda tu cita médica' }}</h2><p>La API vuelve a verificar el cupo al confirmar.</p></div>
+    <div>
+      <small>{{ appointmentId ? 'REPROGRAMACIÓN' : 'NUEVA CITA' }}</small>
+      <h2>{{ appointmentId ? 'Selecciona un nuevo horario' : 'Agenda tu cita médica' }}</h2>
+      <p>Elige especialidad, profesional y luego una fecha en el calendario.</p>
+    </div>
+
     <div class="summary">
       <span>{{ specialty?.name || 'Especialidad' }}</span>
       <span>{{ professional?.fullName || 'Profesional' }}</span>
@@ -8,14 +13,15 @@
     </div>
   </section>
 
-  <p class="error" *ngIf="error">{{ error }}</p>
-  <p class="success" *ngIf="message">{{ message }}</p>
-
   <section class="card">
     <h3>1. Especialidad</h3>
     <div class="choices">
-      <button *ngFor="let item of specialties" (click)="chooseSpecialty(item)" [class.selected]="specialty?.id === item.id">
-        <b>{{ item.name }}</b><small>{{ item.description }}</small><span>S/ {{ item.price | number:'1.2-2' }}</span>
+      <button *ngFor="let item of specialties"
+              (click)="chooseSpecialty(item)"
+              [class.selected]="specialty?.id === item.id">
+        <b>{{ item.name }}</b>
+        <small>{{ item.description }}</small>
+        <span>S/ {{ item.price | number:'1.2-2' }}</span>
       </button>
     </div>
   </section>
@@ -23,33 +29,110 @@
   <section class="card" *ngIf="specialty">
     <h3>2. Profesional</h3>
     <p class="muted" *ngIf="loadingProfessionals">Cargando profesionales...</p>
+
     <div class="choices two" *ngIf="!loadingProfessionals && professionals.length">
-      <button *ngFor="let item of professionals" (click)="chooseProfessional(item)" [class.selected]="professional?.id === item.id">
-        <b>{{ item.fullName }}</b><small>{{ item.office }}</small>
+      <button *ngFor="let item of professionals"
+              (click)="chooseProfessional(item)"
+              [class.selected]="professional?.id === item.id">
+        <b>{{ item.fullName }}</b>
+        <small>{{ item.office }}</small>
       </button>
     </div>
-    <div class="empty" *ngIf="!loadingProfessionals && !professionals.length && !error">
+
+    <div class="empty" *ngIf="!loadingProfessionals && !professionals.length">
       <p>No hay profesionales disponibles para <b>{{ specialty.name }}</b> en este momento.</p>
     </div>
   </section>
 
   <section class="card" *ngIf="professional">
-    <h3>3. Fecha y hora disponible</h3>
-    <div class="slots" *ngIf="slots.length; else noSlots">
-      <button *ngFor="let item of slots" (click)="chooseSlot(item)" [class.selected]="slot?.id === item.id">
-        <b>{{ item.startAt | date:'EEE dd/MM' }}</b><span>{{ item.startAt | date:'HH:mm' }}</span>
+    <div class="calendar-header">
+      <div>
+        <h3>3. Elige una fecha</h3>
+        <p>Los días marcados tienen horarios programados.</p>
+      </div>
+
+      <div class="calendar-nav">
+        <button type="button" class="btn btn-secondary" (click)="previousMonth()">‹</button>
+        <b>{{ monthLabel | titlecase }}</b>
+        <button type="button" class="btn btn-secondary" (click)="nextMonth()">›</button>
+      </div>
+    </div>
+
+    <div class="calendar" *ngIf="slots.length; else noAgenda">
+      <div class="weekday">Lun</div>
+      <div class="weekday">Mar</div>
+      <div class="weekday">Mié</div>
+      <div class="weekday">Jue</div>
+      <div class="weekday">Vie</div>
+      <div class="weekday">Sáb</div>
+      <div class="weekday">Dom</div>
+
+      <button *ngFor="let day of calendarDays"
+              type="button"
+              class="calendar-day"
+              [class.blank]="!day.date"
+              [class.has-slots]="day.hasSlots"
+              [class.selected]="day.key === selectedDateKey"
+              [disabled]="!day.date || !day.hasSlots"
+              (click)="chooseDate(day)">
+        <ng-container *ngIf="day.date">
+          <span class="day-number">{{ day.date | date:'d' }}</span>
+          <small *ngIf="day.availableCount">{{ day.availableCount }} disp.</small>
+          <small *ngIf="!day.availableCount && day.occupiedCount">{{ day.occupiedCount }} ocupado(s)</small>
+        </ng-container>
       </button>
     </div>
-    <ng-template #noSlots>
+
+    <ng-template #noAgenda>
       <div class="empty" *ngIf="!loading">
-        <p>No hay horarios disponibles en el rango consultado.</p>
-        <button class="btn btn-secondary" (click)="joinWaitlist()">Ingresar a lista de espera</button>
+        No hay horarios programados para este profesional en los próximos 30 días.
       </div>
     </ng-template>
   </section>
 
+  <section class="card" *ngIf="professional && selectedDate">
+    <h3>4. Horarios para {{ selectedDate | date:'EEEE dd/MM/yyyy' }}</h3>
+
+    <div class="day-slots">
+      <article *ngFor="let item of selectedDaySlots"
+               class="time-card"
+               [class.unavailable]="!item.isAvailable"
+               [class.selected]="slot?.id === item.id">
+
+        <button *ngIf="item.isAvailable"
+                type="button"
+                class="time-select"
+                (click)="chooseSlot(item)">
+          <b>{{ item.startAt | date:'HH:mm' }}</b>
+          <span>Disponible</span>
+        </button>
+
+        <div *ngIf="!item.isAvailable" class="occupied-slot">
+          <b>{{ item.startAt | date:'HH:mm' }}</b>
+          <span>Ocupado</span>
+
+          <button *ngIf="!appointmentId"
+                  type="button"
+                  class="waitlist-link"
+                  (click)="joinWaitlist(item)">
+            Ingresar a lista de espera
+          </button>
+        </div>
+      </article>
+    </div>
+
+    <p class="waitlist-note" *ngIf="!appointmentId">
+      Si ingresas a la lista de espera de un horario ocupado y el paciente actual cancela o reprograma,
+      el sistema asignará automáticamente el cupo al primero de la cola y generará una notificación.
+    </p>
+  </section>
+
   <section class="actions" *ngIf="slot">
-    <button class="btn btn-primary" [disabled]="loading" (click)="confirm()">{{ loading ? 'Guardando...' : (appointmentId ? 'Confirmar reprogramación' : 'Confirmar cita') }}</button>
+    <button class="btn btn-primary"
+            [disabled]="loading"
+            (click)="confirm()">
+      {{ loading ? 'Guardando...' : (appointmentId ? 'Confirmar reprogramación' : 'Confirmar cita') }}
+    </button>
   </section>
 
   <app-confirm-modal
@@ -68,8 +151,10 @@
   </app-confirm-modal>
 </div>
 
-<app-alert-modal *ngIf="bookingError"
-  [title]="appointmentId ? 'No se pudo reprogramar la cita' : 'No se pudo registrar la cita'"
-  [message]="bookingError"
-  (closed)="closeBookingError()">
+<app-alert-modal
+  *ngIf="alertMessage"
+  [title]="alertTitle"
+  [message]="alertMessage"
+  buttonText="Aceptar"
+  (closed)="closeAlert()">
 </app-alert-modal>
