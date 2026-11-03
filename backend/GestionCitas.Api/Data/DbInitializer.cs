@@ -64,6 +64,8 @@ public static class DbInitializer
         if (!await db.AvailabilitySlots.AnyAsync(x => x.StartAt >= DateTimeOffset.UtcNow.AddDays(-1)))
         {
             var professionals = await db.Professionals.Where(x => x.IsActive).ToListAsync();
+            // HU-14: no se generan cupos dentro de vacaciones o licencias activas.
+            var absences = await db.ProfessionalAbsences.Where(x => x.IsActive).ToListAsync();
             var offset = TimeSpan.FromHours(-5);
             var today = DateTime.Today;
             var hours = new[] { 9, 10, 11, 15, 16 };
@@ -79,6 +81,8 @@ public static class DbInitializer
                     foreach (var hour in hours)
                     {
                         var start = new DateTimeOffset(day.Year, day.Month, day.Day, hour, 0, 0, offset);
+                        var end = start.AddMinutes(45);
+                        if (absences.Any(a => a.ProfessionalId == professional.Id && a.StartAt < end && a.EndAt > start)) continue;
                         slots.Add(new AvailabilitySlot
                         {
                             ProfessionalId = professional.Id,
