@@ -89,6 +89,8 @@ export interface WaitlistItem {
   createdAt: string;
 }
 
+export type AttendanceStatus = 'Pendiente' | 'Confirmada' | 'NoAsistira';
+
 export interface Appointment {
   id: string;
   code: string;
@@ -101,4 +103,7 @@ export interface Appointment {
   endAt: string;
   status: string;
   price: number;
+  attendanceStatus: AttendanceStatus;
+  attendanceRequestedAt?: string | null;
+  attendanceRespondedAt?: string | null;
 }

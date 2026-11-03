@@ -36,6 +36,10 @@ export class ApiService {
     return this.http.put<Appointment>(`/api/appointments/${id}/reschedule`, { slotId });
   }
 
+  respondAttendance(id: string, response: 'Confirmada' | 'NoAsistira') {
+    return this.http.put<Appointment>(`/api/appointments/${id}/attendance`, { response });
+  }
+
   joinWaitlist(slotId: string) {
     return this.http.post<WaitlistResponse>('/api/waitlist', { slotId });
   }

@@ -71,3 +71,81 @@ Intentar cancelar una cita que ya no está confirmada o cuyo horario inició.
 
 **Resultado esperado**
 - La operación es rechazada y no modifica el horario.
+
+## HU-20 — Recordatorios automáticos
+
+### RM-01 Cita dentro de la ventana
+1. Crear una cita confirmada dentro de las próximas 24 horas.
+2. Esperar el proceso automático o ejecutar `POST /api/admin/communications/process`.
+3. Consultar `NotificationOutbox`.
+
+**Resultado esperado**
+- Existe una fila `AppointmentReminder`.
+- `RelatedAppointmentId` corresponde a la cita.
+- `Status = Pendiente`.
+- El contenido incluye especialidad, profesional, fecha, hora y código.
+
+### RM-02 Sin duplicados
+Ejecutar el proceso de comunicaciones varias veces para la misma cita.
+
+**Resultado esperado**
+- Solo existe un `AppointmentReminder` para la cita.
+
+### RM-03 Cita no elegible
+Probar con una cita cancelada, reprogramada, atendida o fuera de la ventana.
+
+**Resultado esperado**
+- No se genera `AppointmentReminder`.
+
+## HU-23 — Confirmación de asistencia
+
+### AT-01 Solicitud automática
+1. Crear una cita confirmada dentro de las próximas 48 horas.
+2. Ejecutar el procesador.
+3. Iniciar sesión con el paciente y abrir Mis citas.
+
+**Resultado esperado**
+- `AttendanceRequestedAt` tiene valor.
+- Existe `AttendanceConfirmationRequest` en `NotificationOutbox`.
+- Aparecen los botones `Sí, asistiré` y `No asistiré`.
+
+### AT-02 Paciente confirma
+1. Presionar `Sí, asistiré`.
+2. Confirmar en el modal.
+
+**Resultado esperado**
+- Se muestra alerta de éxito.
+- `AttendanceStatus = Confirmada`.
+- `AttendanceRespondedAt` registra hora Perú.
+- `AppointmentAuditLogs` contiene `AttendanceConfirmed`.
+- Los botones dejan de mostrarse.
+
+### AT-03 Paciente no asistirá
+1. En otra cita con solicitud activa, presionar `No asistiré`.
+2. Confirmar.
+
+**Resultado esperado**
+- `AttendanceStatus = NoAsistira`.
+- Se registra `AttendanceDeclined`.
+- La cita continúa en estado `Confirmada`; no se cancela automáticamente.
+- La respuesta queda disponible para consulta administrativa.
+
+### AT-04 Solicitud manual administrativa
+Como administrador ejecutar:
+
+```http
+POST /api/admin/communications/appointments/{appointmentId}/request-attendance
+```
+
+**Resultado esperado**
+- Se genera la solicitud para una cita futura confirmada aunque el worker aún no la haya procesado.
+
+### AT-05 Visibilidad operativa
+Como administrador consultar:
+
+```http
+GET /api/admin/communications/attendance
+```
+
+**Resultado esperado**
+- Se observan citas futuras con paciente, fecha, profesional, estado de asistencia y fechas de solicitud/respuesta.

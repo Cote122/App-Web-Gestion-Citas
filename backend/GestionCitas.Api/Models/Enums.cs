@@ -15,3 +15,10 @@ public enum WaitlistStatus
     Notificada,
     Cerrada
 }
+
+public enum AttendanceConfirmationStatus
+{
+    Pendiente,
+    Confirmada,
+    NoAsistira
+}
