@@ -10,7 +10,7 @@ using Microsoft.IdentityModel.Tokens;
 
 namespace GestionCitas.Api.Services;
 
-public class AuthService(AppDbContext db, IConfiguration configuration)
+public class AuthService(AppDbContext db, IConfiguration configuration, DniLookupService dniLookup)
 {
     private readonly PasswordHasher<User> _hasher = new();
 
@@ -33,16 +33,25 @@ public class AuthService(AppDbContext db, IConfiguration configuration)
     {
         var dni = request.Dni.Trim();
         var email = request.Email.Trim().ToLowerInvariant();
-        var fullName = request.FullName.Trim();
+        var phone = request.Phone.Trim();
 
         if (await db.Users.AnyAsync(x => x.Dni == dni || x.Email.ToLower() == email))
             return (null, "Ya existe una cuenta asociada al DNI o correo indicado.");
+
+        // HU-37: el DNI se vuelve a validar aquí (no basta con la pantalla) y se usa el nombre oficial.
+        var dniResult = await dniLookup.LookupAsync(dni);
+        if (dniResult.Status == DniLookupStatus.NotFound)
+            return (null, "No encontramos ese DNI. Verifica el número.");
+        if (dniResult.Status == DniLookupStatus.Unavailable)
+            return (null, "No pudimos verificar tu DNI ahora. Intenta en unos minutos.");
+        var fullName = dniResult.FullName!;
 
         var user = new User
         {
             Dni = dni,
             Email = email,
             FullName = fullName,
+            Phone = phone,
             Role = "Paciente",
             IsActive = true
         };

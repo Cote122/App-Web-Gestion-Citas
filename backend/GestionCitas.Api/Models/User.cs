@@ -15,6 +15,10 @@ public class User
     [MaxLength(200)]
     public string FullName { get; set; } = string.Empty;
 
+    // HU-38: celular peruano (9 dígitos). Opcional para cuentas creadas antes de este cambio.
+    [MaxLength(15)]
+    public string? Phone { get; set; }
+
     public string PasswordHash { get; set; } = string.Empty;
 
     [MaxLength(30)]
