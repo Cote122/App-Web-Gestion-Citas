@@ -21,6 +21,8 @@ public class AppointmentService(AppDbContext db)
         if (slot is null) return (null, "El horario seleccionado no existe.");
         if (!IsBookable(slot.Professional))
             return (null, ProfessionalUnavailableMessage);
+        if (await AbsenceRules.IsInAbsenceAsync(db, slot))
+            return (null, AbsenceRules.AbsenceMessage);
         if (!slot.IsAvailable || slot.StartAt <= DateTimeOffset.UtcNow)
             return (null, "El horario ya no está disponible.");
 
@@ -142,6 +144,8 @@ public class AppointmentService(AppDbContext db)
 
         if (newSlot is not null && !IsBookable(newSlot.Professional))
             return (null, ProfessionalUnavailableMessage);
+        if (newSlot is not null && await AbsenceRules.IsInAbsenceAsync(db, newSlot))
+            return (null, AbsenceRules.AbsenceMessage);
         if (newSlot is null || !newSlot.IsAvailable || newSlot.StartAt <= DateTimeOffset.UtcNow)
             return (null, "El nuevo horario ya no está disponible.");
         if (newSlot.ProfessionalId != current.Slot.ProfessionalId)

@@ -14,6 +14,7 @@ export class ShellComponent {
   readonly user = this.auth.user;
   readonly isPatient = computed(() => this.user()?.role === 'Paciente');
   readonly isAdmin = computed(() => this.user()?.role === 'Administrador');
+  readonly isProfessional = computed(() => this.user()?.role === 'Profesional');
 
   constructor(private readonly auth: AuthService, private readonly router: Router) {}
 

@@ -13,6 +13,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<AppointmentAuditLog> AppointmentAuditLogs => Set<AppointmentAuditLog>();
     public DbSet<WaitlistEntry> WaitlistEntries => Set<WaitlistEntry>();
     public DbSet<NotificationOutbox> NotificationOutbox => Set<NotificationOutbox>();
+    public DbSet<ProfessionalAbsence> ProfessionalAbsences => Set<ProfessionalAbsence>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -35,6 +36,13 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         modelBuilder.Entity<AvailabilitySlot>()
             .HasIndex(x => new { x.ProfessionalId, x.StartAt })
             .IsUnique();
+
+        // HU-14: vacaciones y licencias del profesional.
+        modelBuilder.Entity<ProfessionalAbsence>(entity =>
+        {
+            entity.Property(x => x.Type).HasConversion<string>().HasMaxLength(20);
+            entity.HasIndex(x => new { x.ProfessionalId, x.StartAt, x.EndAt });
+        });
 
         modelBuilder.Entity<Appointment>(entity =>
         {
