@@ -26,3 +26,10 @@
     <section class="content"><router-outlet /></section>
   </main>
 </div>
+
+<app-idle-warning-modal *ngIf="idle.warning()"
+  [secondsLeft]="idle.secondsLeft()"
+  [totalSeconds]="warningSeconds"
+  (stay)="idle.keepAlive()"
+  (leave)="logout()">
+</app-idle-warning-modal>
