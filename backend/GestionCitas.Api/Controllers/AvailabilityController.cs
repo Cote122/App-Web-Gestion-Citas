@@ -1,4 +1,5 @@
 using GestionCitas.Api.Data;
+using GestionCitas.Api.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -18,11 +19,19 @@ public class AvailabilityController(AppDbContext db) : ControllerBase
 
         var data = await db.AvailabilitySlots
             .AsNoTracking()
-            .Where(x => x.ProfessionalId == professionalId && x.IsAvailable && x.StartAt >= start && x.StartAt <= end)
-            // HU-11: no ofrecer horarios de profesionales o especialidades desactivados.
+            .Where(x => x.ProfessionalId == professionalId && x.StartAt >= start && x.StartAt <= end)
+            // HU-11: no mostrar agenda de profesionales o especialidades desactivados.
             .Where(x => x.Professional.IsActive && x.Professional.Specialty.IsActive)
+            // HU-14: no mostrar horarios durante vacaciones o licencias del profesional.
+            .WithoutAbsences(db)
             .OrderBy(x => x.StartAt)
-            .Select(x => new { x.Id, x.StartAt, x.EndAt })
+            .Select(x => new
+            {
+                x.Id,
+                x.StartAt,
+                x.EndAt,
+                x.IsAvailable
+            })
             .ToListAsync();
 
         return Ok(data);

@@ -1,0 +1,21 @@
+/* HU-14: complementa los estilos compartidos de admin.css y modal.css. */
+.none { display: inline; margin-right: 6px; }
+.modal-body.single { display: block; }
+
+.types { display: flex; gap: 10px; }
+.type-option { flex: 1; display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 14px; border: 1px solid #cad7e4; border-radius: 10px; cursor: pointer; color: var(--primary-dark); font-weight: 700; font-size: 14px; }
+.type-option.selected { border-color: var(--primary); background: #f2f8ff; }
+.type-option input { accent-color: var(--primary); }
+
+.no-affected { display: grid; gap: 4px; text-align: center; padding: 10px 0; }
+.no-affected b { color: #187647; font-size: 15px; }
+.no-affected span { color: #44576b; font-size: 14px; }
+
+.affected-list { list-style: none; margin: 0; padding: 0; border: 1px solid var(--line); border-radius: 12px; max-height: 320px; overflow: auto; }
+.affected-list li { display: flex; justify-content: space-between; gap: 12px; padding: 12px 14px; border-bottom: 1px solid var(--line); }
+.affected-list li:last-child { border-bottom: 0; }
+.affected-list b { display: block; color: var(--primary-dark); font-size: 14px; }
+.affected-list span { display: block; color: #4d6074; font-size: 12px; margin-top: 2px; }
+.affected-list .when { text-align: right; white-space: nowrap; }
+
+@media (max-width: 520px) { .types { flex-direction: column; } }

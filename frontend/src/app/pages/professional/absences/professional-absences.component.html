@@ -1,0 +1,115 @@
+<section class="card">
+  <div class="head">
+    <div><h2>Mis ausencias</h2><p>Registra tus vacaciones o licencias. En esas fechas no se ofrecerán tus horarios a los pacientes.</p></div>
+    <button class="btn btn-primary" (click)="openNew()">Registrar ausencia</button>
+  </div>
+
+  <p class="error feedback" *ngIf="error">{{ error }}</p>
+  <p class="success feedback" *ngIf="message">{{ message }}</p>
+  <p class="muted" *ngIf="loading">Cargando ausencias...</p>
+
+  <div class="table-wrap" *ngIf="!loading">
+    <table>
+      <colgroup>
+        <col style="width: 15%"><col style="width: 25%"><col style="width: 24%"><col style="width: 14%"><col style="width: 22%">
+      </colgroup>
+      <thead>
+        <tr><th>Tipo</th><th>Fechas</th><th>Motivo</th><th class="center">Estado</th><th class="actions">Citas afectadas</th></tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let item of items" [class.inactive]="item.status === 'Anulada' || item.status === 'Finalizada'">
+          <td><span class="name">{{ item.type }}</span></td>
+          <td>{{ formatDate(item.startDate) }} – {{ formatDate(item.endDate) }}</td>
+          <td><span class="sub">{{ item.reason || '—' }}</span></td>
+          <td class="center"><span class="badge" [ngClass]="badgeClass(item.status)">{{ item.status }}</span></td>
+          <td class="actions">
+            <button *ngIf="item.affectedCount > 0" class="btn btn-secondary" (click)="viewAffected(item)">Ver {{ item.affectedCount }}</button>
+            <span *ngIf="item.affectedCount === 0" class="sub none">Ninguna</span>
+            <button *ngIf="item.canCancel" class="btn btn-danger" (click)="cancelling = item">Anular</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="empty" *ngIf="!items.length">Aún no registraste ausencias.</div>
+  </div>
+</section>
+
+<!-- Registrar ausencia -->
+<div class="modal-backdrop" *ngIf="modalOpen">
+  <form class="modal" role="dialog" aria-modal="true" aria-labelledby="absence-title" [formGroup]="form" (ngSubmit)="save()">
+    <div class="modal-head">
+      <div>
+        <h3 id="absence-title">Registrar ausencia</h3>
+        <p>Tus horarios de esas fechas dejarán de mostrarse a los pacientes.</p>
+      </div>
+      <button class="modal-close" type="button" aria-label="Cerrar" (click)="closeModals()">×</button>
+    </div>
+
+    <div class="modal-body">
+      <div class="form-field wide">
+        <label>Tipo *</label>
+        <div class="types">
+          <label class="type-option" [class.selected]="form.controls.type.value === 'Vacaciones'">
+            <input type="radio" formControlName="type" value="Vacaciones"> Vacaciones
+          </label>
+          <label class="type-option" [class.selected]="form.controls.type.value === 'Licencia'">
+            <input type="radio" formControlName="type" value="Licencia"> Licencia
+          </label>
+        </div>
+      </div>
+      <div class="form-field"><label for="startDate">Desde *</label><input id="startDate" type="date" formControlName="startDate" [min]="today"></div>
+      <div class="form-field"><label for="endDate">Hasta *</label><input id="endDate" type="date" formControlName="endDate" [min]="form.controls.startDate.value || today"></div>
+      <div class="form-field wide">
+        <label for="reason">Motivo (opcional)</label>
+        <input id="reason" formControlName="reason" maxlength="200" placeholder="Ej. Vacaciones programadas" (input)="cleanReason()">
+      </div>
+      <p class="hint">Si tienes citas reservadas en esas fechas, te mostraremos la lista para que se puedan reprogramar.</p>
+      <p class="error" *ngIf="formError || dateError">{{ formError || dateError }}</p>
+    </div>
+
+    <div class="modal-foot">
+      <button class="btn btn-secondary" type="button" (click)="closeModals()">Cancelar</button>
+      <button class="btn btn-primary" type="submit" [disabled]="saving">{{ saving ? 'Guardando...' : 'Registrar ausencia' }}</button>
+    </div>
+  </form>
+</div>
+
+<!-- Citas afectadas -->
+<div class="modal-backdrop" *ngIf="affectedOpen">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="affected-title">
+    <div class="modal-head">
+      <div>
+        <h3 id="affected-title">{{ affectedTitle }}</h3>
+        <p *ngIf="!loadingAffected && affected.length">Estas citas ya estaban reservadas. Coordina con admisión para reprogramarlas.</p>
+      </div>
+      <button class="modal-close" type="button" aria-label="Cerrar" (click)="closeModals()">×</button>
+    </div>
+
+    <div class="modal-body single">
+      <p class="muted" *ngIf="loadingAffected">Cargando citas...</p>
+      <div class="no-affected" *ngIf="!loadingAffected && !affected.length">
+        <b>No tienes citas reservadas en esas fechas.</b>
+        <span>Puedes ausentarte con tranquilidad.</span>
+      </div>
+      <ul class="affected-list" *ngIf="!loadingAffected && affected.length">
+        <li *ngFor="let item of affected">
+          <div><b>{{ item.patientName }}</b><span>{{ item.patientEmail }}</span></div>
+          <div class="when"><b>{{ item.startAt | date:'dd/MM/yyyy' }}</b><span>{{ item.startAt | date:'HH:mm' }} · {{ item.code }}</span></div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="modal-foot">
+      <button class="btn btn-primary" type="button" (click)="closeModals()">Entendido</button>
+    </div>
+  </div>
+</div>
+
+<app-confirm-modal *ngIf="cancelling as item"
+  title="¿Anular esta ausencia?"
+  message="Tus horarios de esas fechas volverán a estar disponibles para los pacientes."
+  confirmText="Anular"
+  [busy]="changingStatus"
+  (confirmed)="confirmCancel()"
+  (cancelled)="cancelCancel()">
+</app-confirm-modal>
