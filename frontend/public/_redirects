@@ -1,0 +1,2 @@
+/api/* https://app-web-gestion-citas.runasp.net/api/:splat 200!
+/* /index.html 200
