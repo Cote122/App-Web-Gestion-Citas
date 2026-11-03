@@ -1,7 +1,7 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
 import { AuthService } from '../../core/auth.service';
 
@@ -15,13 +15,22 @@ import { AuthService } from '../../core/auth.service';
 export class LoginComponent {
   loading = false;
   error = '';
+  // HU-34: aviso cuando la sesión se cerró por inactividad.
+  readonly sessionNotice = this.route.snapshot.queryParamMap.get('session') === 'idle'
+    ? 'Tu sesión se cerró por inactividad. Inicia sesión otra vez.'
+    : '';
 
   form = this.fb.nonNullable.group({
     identifier: ['70000011', Validators.required],
     password: ['Demo#2026', Validators.required]
   });
 
-  constructor(private readonly fb: FormBuilder, private readonly auth: AuthService, private readonly router: Router) {}
+  constructor(
+    private readonly fb: FormBuilder,
+    private readonly auth: AuthService,
+    private readonly router: Router,
+    private readonly route: ActivatedRoute
+  ) {}
 
   submit(): void {
     if (this.form.invalid || this.loading) return;
