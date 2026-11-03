@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { adminGuard, authGuard, patientGuard } from './core/auth.guard';
+import { adminGuard, authGuard, patientGuard, professionalGuard } from './core/auth.guard';
 import { LoginComponent } from './pages/login/login.component';
 import { RegisterComponent } from './pages/register/register.component';
 import { ShellComponent } from './layout/shell/shell.component';
@@ -9,6 +9,7 @@ import { AppointmentsComponent } from './pages/appointments/appointments.compone
 import { AdminSpecialtiesComponent } from './pages/admin/specialties/admin-specialties.component';
 import { AdminProfessionalsComponent } from './pages/admin/professionals/admin-professionals.component';
 import { AdminUsersComponent } from './pages/admin/users/admin-users.component';
+import { ProfessionalAbsencesComponent } from './pages/professional/absences/professional-absences.component';
 
 export const routes: Routes = [
   { path: 'login', component: LoginComponent },
@@ -24,6 +25,7 @@ export const routes: Routes = [
       { path: 'admin/users', component: AdminUsersComponent, canActivate: [adminGuard] },
       { path: 'admin/specialties', component: AdminSpecialtiesComponent, canActivate: [adminGuard] },
       { path: 'admin/professionals', component: AdminProfessionalsComponent, canActivate: [adminGuard] },
+      { path: 'professional/absences', component: ProfessionalAbsencesComponent, canActivate: [professionalGuard] },
       { path: '', pathMatch: 'full', redirectTo: 'home' }
     ]
   },

@@ -17,9 +17,14 @@ export class ShellComponent implements OnInit, OnDestroy {
   readonly user = this.auth.user;
   readonly isPatient = computed(() => this.user()?.role === 'Paciente');
   readonly isAdmin = computed(() => this.user()?.role === 'Administrador');
+  readonly isProfessional = computed(() => this.user()?.role === 'Profesional');
   readonly warningSeconds = SESSION_IDLE_CONFIG.warningSeconds;
 
-  constructor(private readonly auth: AuthService, private readonly router: Router, readonly idle: IdleService) {}
+  constructor(
+    private readonly auth: AuthService,
+    private readonly router: Router,
+    readonly idle: IdleService
+  ) {}
 
   // HU-34: el control de inactividad funciona mientras se está dentro de la app con sesión.
   ngOnInit(): void {
