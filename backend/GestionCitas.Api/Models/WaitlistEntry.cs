@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using GestionCitas.Api.Common;
 
 namespace GestionCitas.Api.Models;
 
@@ -32,5 +33,5 @@ public class WaitlistEntry
     public Appointment? AssignedAppointment { get; set; }
     public DateTimeOffset? AssignedAt { get; set; }
 
-    public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+    public DateTimeOffset CreatedAt { get; set; } = PeruClock.Now;
 }

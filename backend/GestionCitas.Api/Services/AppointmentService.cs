@@ -1,4 +1,5 @@
 using System.Data;
+using GestionCitas.Api.Common;
 using GestionCitas.Api.Data;
 using GestionCitas.Api.Dtos;
 using GestionCitas.Api.Models;
@@ -66,6 +67,7 @@ public class AppointmentService(AppDbContext db)
         await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable);
 
         var appointment = await db.Appointments
+            .Include(x => x.Patient)
             .Include(x => x.Slot)
                 .ThenInclude(x => x.Professional)
                 .ThenInclude(x => x.Specialty)
@@ -77,8 +79,34 @@ public class AppointmentService(AppDbContext db)
         if (appointment.Slot.StartAt <= DateTimeOffset.UtcNow)
             return (false, "No se puede cancelar una cita cuyo horario ya inició.");
 
+        var cancelledSlotId = appointment.SlotId;
+        var cancelledAt = PeruClock.Now;
+
         appointment.Status = AppointmentStatus.Cancelada;
-        appointment.UpdatedAt = DateTimeOffset.UtcNow;
+        appointment.UpdatedAt = cancelledAt;
+
+        db.AppointmentAuditLogs.Add(new AppointmentAuditLog
+        {
+            Appointment = appointment,
+            PatientId = appointment.PatientId,
+            EventType = "Cancelled",
+            PreviousSlotId = cancelledSlotId,
+            Details =
+                $"Cita {appointment.Code} cancelada por el paciente. " +
+                $"Horario original: {appointment.Slot.StartAt:dd/MM/yyyy HH:mm}."
+        });
+
+        db.NotificationOutbox.Add(new NotificationOutbox
+        {
+            RecipientUserId = appointment.PatientId,
+            RecipientEmail = appointment.Patient.Email,
+            Type = "AppointmentCancelled",
+            Subject = "Tu cita fue cancelada",
+            Body =
+                $"Hola {appointment.Patient.FullName}, tu cita {appointment.Code} del " +
+                $"{appointment.Slot.StartAt:dd/MM/yyyy} a las {appointment.Slot.StartAt:HH:mm} " +
+                "fue cancelada correctamente."
+        });
 
         await AssignReleasedSlotOrMakeAvailableAsync(appointment.Slot);
 
@@ -92,6 +120,7 @@ public class AppointmentService(AppDbContext db)
         await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable);
 
         var current = await db.Appointments
+            .Include(x => x.Patient)
             .Include(x => x.Slot)
                 .ThenInclude(x => x.Professional)
                 .ThenInclude(x => x.Specialty)
@@ -102,6 +131,8 @@ public class AppointmentService(AppDbContext db)
             return (null, "La cita ya no puede reprogramarse.");
         if (current.Slot.StartAt <= DateTimeOffset.UtcNow)
             return (null, "No se puede reprogramar una cita cuyo horario ya inició.");
+        if (current.SlotId == newSlotId)
+            return (null, "Selecciona un horario diferente al de tu cita actual.");
 
         var newSlot = await db.AvailabilitySlots
             .Include(x => x.Professional)
@@ -112,9 +143,17 @@ public class AppointmentService(AppDbContext db)
             return (null, ProfessionalUnavailableMessage);
         if (newSlot is null || !newSlot.IsAvailable || newSlot.StartAt <= DateTimeOffset.UtcNow)
             return (null, "El nuevo horario ya no está disponible.");
+        if (newSlot.ProfessionalId != current.Slot.ProfessionalId)
+            return (null, "La reprogramación debe mantener el mismo profesional de la cita.");
+        if (newSlot.StartAt == current.Slot.StartAt)
+            return (null, "Selecciona una fecha u hora diferente a la de tu cita actual.");
+
+        var previousSlotId = current.SlotId;
+        var previousStartAt = current.Slot.StartAt;
+        var changedAt = PeruClock.Now;
 
         current.Status = AppointmentStatus.Reprogramada;
-        current.UpdatedAt = DateTimeOffset.UtcNow;
+        current.UpdatedAt = changedAt;
 
         newSlot.IsAvailable = false;
 
@@ -127,6 +166,31 @@ public class AppointmentService(AppDbContext db)
             PreviousAppointmentId = current.Id
         };
         db.Appointments.Add(replacement);
+
+        db.AppointmentAuditLogs.Add(new AppointmentAuditLog
+        {
+            Appointment = current,
+            PatientId = current.PatientId,
+            EventType = "Rescheduled",
+            PreviousSlotId = previousSlotId,
+            NewSlotId = newSlot.Id,
+            Details =
+                $"Cita {current.Code} reprogramada. Horario anterior: " +
+                $"{previousStartAt:dd/MM/yyyy HH:mm}. Nuevo horario: " +
+                $"{newSlot.StartAt:dd/MM/yyyy HH:mm}. Nueva cita: {replacement.Code}."
+        });
+
+        db.NotificationOutbox.Add(new NotificationOutbox
+        {
+            RecipientUserId = current.PatientId,
+            RecipientEmail = current.Patient.Email,
+            Type = "AppointmentRescheduled",
+            Subject = "Tu cita fue reprogramada",
+            Body =
+                $"Hola {current.Patient.FullName}, tu cita fue reprogramada correctamente. " +
+                $"Nuevo horario: {newSlot.StartAt:dd/MM/yyyy} a las {newSlot.StartAt:HH:mm}. " +
+                $"Nuevo código: {replacement.Code}."
+        });
 
         await AssignReleasedSlotOrMakeAvailableAsync(current.Slot);
 
@@ -171,7 +235,7 @@ public class AppointmentService(AppDbContext db)
 
         next.Status = WaitlistStatus.Asignada;
         next.AssignedAppointment = appointment;
-        next.AssignedAt = DateTimeOffset.UtcNow;
+        next.AssignedAt = PeruClock.Now;
 
         slot.IsAvailable = false;
 
@@ -195,13 +259,15 @@ public class AppointmentService(AppDbContext db)
         professional.IsActive && professional.Specialty.IsActive;
 
     private static string GenerateCode() =>
-        $"CIT-{DateTime.UtcNow:yyyy}-{Guid.NewGuid().ToString("N")[..6].ToUpperInvariant()}";
+        $"CIT-{PeruClock.Now:yyyy}-{Guid.NewGuid().ToString("N")[..6].ToUpperInvariant()}";
 
     private static AppointmentDto ToDto(Appointment appointment, AvailabilitySlot slot) =>
         new(
             appointment.Id,
             appointment.Code,
+            slot.Professional.SpecialtyId,
             slot.Professional.Specialty.Name,
+            slot.ProfessionalId,
             slot.Professional.FullName,
             slot.Professional.Office,
             slot.StartAt,

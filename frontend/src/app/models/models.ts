@@ -92,7 +92,9 @@ export interface WaitlistItem {
 export interface Appointment {
   id: string;
   code: string;
+  specialtyId: string;
   specialty: string;
+  professionalId: string;
   professional: string;
   office: string;
   startAt: string;

@@ -50,7 +50,7 @@
             <button class="btn btn-secondary" (click)="reschedule(item)">
               Reprogramar
             </button>
-            <button class="btn btn-danger" (click)="cancel(item)">
+            <button class="btn btn-danger" (click)="requestCancelAppointment(item)">
               Cancelar
             </button>
           </div>
@@ -152,6 +152,21 @@
     </section>
   </ng-container>
 </section>
+
+<app-confirm-modal
+  *ngIf="appointmentToCancel"
+  title="Cancelar cita"
+  confirmText="Sí, cancelar cita"
+  cancelText="Mantener cita"
+  [datos]="{
+    especialidad: appointmentToCancel.specialty,
+    medico: appointmentToCancel.professional,
+    fecha: (appointmentToCancel.startAt | date:'dd/MM/yyyy') || '',
+    hora: (appointmentToCancel.startAt | date:'HH:mm') || ''
+  }"
+  (confirmed)="confirmCancelAppointment()"
+  (cancelled)="cancelAppointmentModal()">
+</app-confirm-modal>
 
 <app-confirm-modal
   *ngIf="waitlistToCancel"
