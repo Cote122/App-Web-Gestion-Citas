@@ -12,7 +12,7 @@
   <div class="list" *ngIf="!loading">
     <article
       *ngFor="let item of items"
-      class="appointment appointment-action"
+      class="appointment"
       [class.selected]="detail?.id === item.id"
       (click)="select(item)">
       <div class="main">

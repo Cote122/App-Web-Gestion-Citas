@@ -1,8 +1,12 @@
 <div class="modal-container" (click)="$event.stopPropagation()">
-  <!-- Agregamos la etiqueta de apertura <form> con ngSubmit y #formRef -->
+  <h2>Registro de Atención Médica</h2>
+
+  <div class="error-banner" *ngIf="error">
+    {{ error }}
+  </div>
+
   <form (ngSubmit)="save()" #recordForm="ngForm">
-    
-    <div class="form-field">
+    <div class="form-field" [class.invalid]="recordForm.submitted && !record.reason">
       <label for="reason">Motivo de consulta *</label>
       <textarea id="reason" [(ngModel)]="record.reason" name="reason" rows="3" required placeholder="Describa el motivo de la consulta..."></textarea>
     </div>
@@ -29,11 +33,9 @@
 
     <div class="modal-actions">
       <button type="button" class="btn btn-secondary" (click)="close.emit()">Cancelar</button>
-      <!-- Opcional: puedes deshabilitar el botón si el formulario es inválido agregando: [disabled]="loading || recordForm.invalid" -->
       <button type="submit" class="btn btn-primary" [disabled]="loading">
         {{ loading ? 'Guardando...' : 'Guardar Atención' }}
       </button>
     </div>
-
   </form>
 </div>

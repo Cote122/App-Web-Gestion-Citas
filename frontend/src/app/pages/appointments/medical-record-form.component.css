@@ -103,3 +103,11 @@
   opacity: 0.6;
   cursor: not-allowed;
 }
+
+.form-field.invalid input,
+.form-field.invalid textarea,
+input.ng-invalid.ng-touched,
+textarea.ng-invalid.ng-touched {
+  border-color: #ef4444;
+  background-color: #fef2f2;
+}

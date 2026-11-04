@@ -49,18 +49,15 @@ export class AgendaComponent implements OnInit {
     });
   }
 
-  openRecordForm(appointmentId: string, patientId: string): void {
-    console.log('ID Cita:', appointmentId);
-    console.log('ID Paciente:', patientId);
-    console.log('User ID actual:', this.currentUserId);
-    
+  openRecordForm(appointmentId: string, patientId: string): void { 
     this.recordAppointmentId = appointmentId;
     this.recordPatientId = patientId;
   }
 
   closeRecordForm(): void {
     this.recordAppointmentId = null;
-    this.recordPatientId = null;
+    this.recordPatientId = null
+    this.load();
   }
 
   closeDetail(): void {

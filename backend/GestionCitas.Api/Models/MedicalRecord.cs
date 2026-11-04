@@ -15,9 +15,6 @@ public class MedicalRecord
     public Guid AppointmentId { get; set; }
     public Appointment Appointment { get; set; } = null!;
 
-    [MaxLength(500)]
-    public string? Reason { get; set; }
-
     [MaxLength(2000)]
     public string? Observations { get; set; }
 

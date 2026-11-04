@@ -1,4 +1,4 @@
-import { Component, input, output } from '@angular/core';
+import { Component, input, output, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { finalize } from 'rxjs';
@@ -12,7 +12,7 @@ import { MedicalRecord } from '../../models/models';
   templateUrl: './medical-record-form.component.html',
   styleUrl: './medical-record-form.component.css'
 })
-export class MedicalRecordFormComponent {
+export class MedicalRecordFormComponent implements OnInit {
   appointmentId = input.required<string>();
   patientId = input.required<string>();
   professionalId = input.required<string>();
@@ -30,6 +30,30 @@ export class MedicalRecordFormComponent {
   error = '';
 
   constructor(private readonly api: ApiService) {}
+
+  ngOnInit(): void {
+    this.loadExistingRecord();
+  }
+
+  loadExistingRecord(): void {
+    // Verificamos si ya existe un registro previo para esta cita
+    this.api.getMedicalRecordByAppointment(this.appointmentId()).subscribe({
+      next: (data) => {
+        if (data) {
+          this.record = {
+            attentionDate: data.attentionDate ? data.attentionDate.split('T')[0] : this.record.attentionDate,
+            reason: data.reason ?? '',
+            observations: data.observations ?? '',
+            diagnosis: data.diagnosis ?? '',
+            recommendations: data.recommendations ?? ''
+          };
+        }
+      },
+      error: () => {
+        // Si da 404 u otro error, asumimos que aún no existe y se queda en blanco para crear
+      }
+    });
+  }
 
   save(): void {
     if (!this.record.attentionDate) {

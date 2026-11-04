@@ -18,7 +18,7 @@ public class ProfessionalAgendaService(AppDbContext db)
 
         var rows = await db.Appointments
             .AsNoTracking()
-            .Where(x => x.Slot.ProfessionalId == professional.Id && x.Status != AppointmentStatus.Atendida)
+            .Where(x => x.Slot.ProfessionalId == professional.Id)
             .Include(x => x.Patient)
             .Include(x => x.Slot)
                 .ThenInclude(x => x.Professional)

@@ -3,29 +3,17 @@ h2 { margin: 0; color: var(--primary-dark); }
 .head p { margin: 4px 0 0; color: var(--muted); }
 .date-filter { min-width: 180px; }
 .list { display: grid; gap: 10px; margin-top: 14px; }
-/* Estilo base para las citas (ideal para la vista de pacientes - 4 columnas) */
 .appointment {
   border: 1px solid var(--line);
   border-radius: 12px;
   padding: 14px;
   display: grid;
-  grid-template-columns: minmax(220px, 1.6fr) 120px 90px 120px;
+  grid-template-columns: minmax(200px, 1.4fr) 110px 80px 100px auto;
   gap: 14px;
   align-items: center;
   cursor: pointer;
 }
-
-.appointment:hover, .appointment.selected { border-color: #9dc0e4; background: #f7fbff; }
-.appointment small { display: block; color: var(--muted); margin-bottom: 4px; }
-.appointment .main b, .appointment > div > b { color: var(--primary-dark); }
-.main span, .main small { display: block; color: var(--muted); margin-top: 4px; }
-
-/* Estilo exclusivo para la agenda del profesional que incluye el botón (5 columnas) */
-.appointment.appointment-action {
-  grid-template-columns: minmax(200px, 1.4fr) 110px 80px 100px auto;
-}
-
-.appointment.appointment-action .btn {
+.appointment .btn {
   padding: 6px 14px;
   font-size: 13px;
   white-space: nowrap;

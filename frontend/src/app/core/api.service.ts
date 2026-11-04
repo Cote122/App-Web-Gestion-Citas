@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { AdminProfessional, AdminSpecialty, AdminUser, Appointment, AvailabilitySlot, MedicalRecord, Professional, ProfessionalAgendaItem, ProfessionalAppointmentDetail, RoleDefinition, Specialty, UserRole } from '../models/models';
+import { Observable } from 'rxjs';
 
 @Injectable({ providedIn: 'root' })
 export class ApiService {
@@ -94,15 +95,15 @@ export class ApiService {
     return this.http.get<ProfessionalAgendaItem[]>('/api/professional/agenda', { params: { date: date || '' } });
   }
 
-    professionalAppointmentDetail(id: string) {
+  professionalAppointmentDetail(id: string) {
     return this.http.get<ProfessionalAppointmentDetail>(`/api/professional/agenda/${id}`);
   }
 
-  createMedicalRecord(payload: Partial<MedicalRecord>) {
-    return this.http.post<MedicalRecord>('/api/medical-records', payload);
+  getMedicalRecordByAppointment(appointmentId: string): Observable<MedicalRecord> {
+    return this.http.get<MedicalRecord>(`/api/medicalrecords/appointment/${appointmentId}`);
   }
 
-  getMedicalHistory(patientId: string) {
-    return this.http.get<MedicalRecord[]>(`/api/medical-records/patient/${patientId}`);
+  createMedicalRecord(payload: any): Observable<any> {
+    return this.http.post('/api/medicalrecords', payload);
   }
 }
