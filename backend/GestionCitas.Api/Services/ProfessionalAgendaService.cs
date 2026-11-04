@@ -62,6 +62,7 @@ public class ProfessionalAgendaService(AppDbContext db)
         new(
             appointment.Id,
             appointment.Code,
+            appointment.Patient.Id,
             appointment.Patient.FullName,
             appointment.Slot.StartAt,
             appointment.Slot.EndAt,

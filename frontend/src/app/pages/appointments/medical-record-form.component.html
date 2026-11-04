@@ -1,4 +1,4 @@
-<div class="modal-container">
+<div class="modal-container" (click)="$event.stopPropagation()">
   <!-- Agregamos la etiqueta de apertura <form> con ngSubmit y #formRef -->
   <form (ngSubmit)="save()" #recordForm="ngForm">
     

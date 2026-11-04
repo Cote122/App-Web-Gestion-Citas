@@ -90,6 +90,7 @@ export interface ProfessionalPatient {
 export interface ProfessionalAgendaItem {
   id: string;
   code: string;
+  patientId: string;
   patientName: string;
   startAt: string;
   endAt: string;

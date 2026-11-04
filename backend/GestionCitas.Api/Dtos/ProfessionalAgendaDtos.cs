@@ -3,6 +3,7 @@ namespace GestionCitas.Api.Dtos;
 public record ProfessionalAgendaItemDto(
     Guid Id,
     string Code,
+    Guid PatientId,
     string PatientName,
     DateTimeOffset StartAt,
     DateTimeOffset EndAt,

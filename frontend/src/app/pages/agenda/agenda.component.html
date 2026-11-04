@@ -12,7 +12,7 @@
   <div class="list" *ngIf="!loading">
     <article
       *ngFor="let item of items"
-      class="appointment"
+      class="appointment appointment-action"
       [class.selected]="detail?.id === item.id"
       (click)="select(item)">
       <div class="main">
@@ -23,6 +23,7 @@
       <div><small>Fecha</small><b>{{ item.startAt | date:'dd/MM/yyyy' }}</b></div>
       <div><small>Hora</small><b>{{ item.startAt | date:'HH:mm' }}</b></div>
       <div><span class="badge" [ngClass]="badgeClass(item.status)">{{ item.status }}</span></div>
+      <button type="button" class="btn btn-primary" (click)="$event.stopPropagation(); openRecordForm(item.id, item.patientId)">Atender</button>
     </article>
     <div class="empty" *ngIf="!items.length">No existen citas pendientes registradas.</div>
   </div>
@@ -79,10 +80,11 @@
   </div>
 </div>
 
-<div class="modal-backdrop" *ngIf="recordAppointmentId && recordPatientId" (click)="closeRecordForm()">
+<div class="modal-backdrop" *ngIf="recordAppointmentId && recordPatientId && currentUserId" (click)="closeRecordForm()">
   <app-medical-record-form
     [appointmentId]="recordAppointmentId"
     [patientId]="recordPatientId"
+    [professionalId]="currentUserId"
     (close)="closeRecordForm()">
   </app-medical-record-form>
 </div>

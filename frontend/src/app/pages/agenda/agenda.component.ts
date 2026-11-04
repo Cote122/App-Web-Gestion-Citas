@@ -2,6 +2,7 @@
 import { CommonModule, DatePipe } from '@angular/common';
 import { finalize } from 'rxjs';
 import { ApiService } from '../../core/api.service';
+import { AuthService } from '../../core/auth.service';
 import { ProfessionalAgendaItem, ProfessionalAppointmentDetail } from '../../models/models';
 import { MedicalRecordFormComponent } from '../appointments/medical-record-form.component';
 
@@ -21,7 +22,7 @@ export class AgendaComponent implements OnInit {
   loadingDetail = false;
   error = '';
 
-  constructor(private readonly api: ApiService) {}
+  constructor(private readonly api: ApiService, private readonly auth: AuthService) {}
 
   ngOnInit(): void {
     this.load();
@@ -49,6 +50,10 @@ export class AgendaComponent implements OnInit {
   }
 
   openRecordForm(appointmentId: string, patientId: string): void {
+    console.log('ID Cita:', appointmentId);
+    console.log('ID Paciente:', patientId);
+    console.log('User ID actual:', this.currentUserId);
+    
     this.recordAppointmentId = appointmentId;
     this.recordPatientId = patientId;
   }
@@ -66,5 +71,9 @@ export class AgendaComponent implements OnInit {
     if (status === 'Confirmada') return 'badge-green';
     if (status === 'Atendida') return 'badge-blue';
     return 'badge-gray';
+  }
+
+  get currentUserId(): string {
+    return this.auth.user()?.id ?? '';
   }
 }
