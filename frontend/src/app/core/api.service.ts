@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { AdminProfessional, AdminSpecialty, AdminUser, Appointment, AvailabilitySlot, Professional, RoleDefinition, Specialty, UserRole } from '../models/models';
+import { AbsenceType, AffectedAppointment, CreateAbsenceResponse, ProfessionalAbsence, AdminProfessional, AdminSpecialty, AdminUser, Appointment, AvailabilitySlot, Professional, RoleDefinition, Specialty, UserRole, WaitlistItem, WaitlistResponse } from '../models/models';
 
 @Injectable({ providedIn: 'root' })
 export class ApiService {
@@ -36,14 +36,20 @@ export class ApiService {
     return this.http.put<Appointment>(`/api/appointments/${id}/reschedule`, { slotId });
   }
 
-  joinWaitlist(specialtyId: string, professionalId?: string) {
-    return this.http.post('/api/waitlist', {
-      specialtyId,
-      professionalId: professionalId || null,
-      preferredFrom: null,
-      preferredTo: null,
-      notes: 'Solicitud creada desde el flujo web inicial.'
-    });
+  respondAttendance(id: string, response: 'Confirmada' | 'NoAsistira') {
+    return this.http.put<Appointment>(`/api/appointments/${id}/attendance`, { response });
+  }
+
+  joinWaitlist(slotId: string) {
+    return this.http.post<WaitlistResponse>('/api/waitlist', { slotId });
+  }
+
+  myWaitlist() {
+    return this.http.get<WaitlistItem[]>('/api/waitlist/mine');
+  }
+
+  cancelWaitlist(id: string) {
+    return this.http.delete<{ message: string }>(`/api/waitlist/${id}`);
   }
 
   adminSpecialties() {
@@ -88,5 +94,22 @@ export class ApiService {
 
   updateUserRole(id: string, role: UserRole) {
     return this.http.patch<AdminUser>(`/api/admin/users/${id}/role`, { role });
+  }
+
+  // HU-14: ausencias del profesional
+  myAbsences() {
+    return this.http.get<ProfessionalAbsence[]>('/api/professional/absences');
+  }
+
+  createAbsence(payload: { type: AbsenceType; startDate: string; endDate: string; reason: string }) {
+    return this.http.post<CreateAbsenceResponse>('/api/professional/absences', payload);
+  }
+
+  absenceAffected(id: string) {
+    return this.http.get<AffectedAppointment[]>(`/api/professional/absences/${id}/affected`);
+  }
+
+  cancelAbsence(id: string) {
+    return this.http.delete<ProfessionalAbsence>(`/api/professional/absences/${id}`);
   }
 }

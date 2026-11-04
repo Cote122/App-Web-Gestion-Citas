@@ -65,16 +65,72 @@ export interface AvailabilitySlot {
   id: string;
   startAt: string;
   endAt: string;
+  isAvailable: boolean;
 }
 
-export interface Appointment {
+export interface WaitlistResponse {
   id: string;
-  code: string;
+  status: string;
+  position: number;
+  createdAt: string;
+  message: string;
+}
+
+export interface WaitlistItem {
+  id: string;
+  slotId: string;
   specialty: string;
   professional: string;
   office: string;
   startAt: string;
   endAt: string;
   status: string;
+  position: number;
+  createdAt: string;
+}
+
+// HU-14: vacaciones y licencias del profesional.
+export type AbsenceType = 'Vacaciones' | 'Licencia';
+
+export interface ProfessionalAbsence {
+  id: string;
+  type: AbsenceType;
+  startDate: string;
+  endDate: string;
+  reason: string;
+  status: 'Programada' | 'En curso' | 'Finalizada' | 'Anulada';
+  affectedCount: number;
+  canCancel: boolean;
+}
+
+export interface AffectedAppointment {
+  id: string;
+  code: string;
+  patientName: string;
+  patientEmail: string;
+  startAt: string;
+}
+
+export interface CreateAbsenceResponse {
+  absence: ProfessionalAbsence;
+  affectedAppointments: AffectedAppointment[];
+}
+
+export type AttendanceStatus = 'Pendiente' | 'Confirmada' | 'NoAsistira';
+
+export interface Appointment {
+  id: string;
+  code: string;
+  specialtyId: string;
+  specialty: string;
+  professionalId: string;
+  professional: string;
+  office: string;
+  startAt: string;
+  endAt: string;
+  status: string;
   price: number;
+  attendanceStatus: AttendanceStatus;
+  attendanceRequestedAt?: string | null;
+  attendanceRespondedAt?: string | null;
 }

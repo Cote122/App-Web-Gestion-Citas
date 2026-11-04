@@ -10,7 +10,10 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<Professional> Professionals => Set<Professional>();
     public DbSet<AvailabilitySlot> AvailabilitySlots => Set<AvailabilitySlot>();
     public DbSet<Appointment> Appointments => Set<Appointment>();
+    public DbSet<AppointmentAuditLog> AppointmentAuditLogs => Set<AppointmentAuditLog>();
     public DbSet<WaitlistEntry> WaitlistEntries => Set<WaitlistEntry>();
+    public DbSet<NotificationOutbox> NotificationOutbox => Set<NotificationOutbox>();
+    public DbSet<ProfessionalAbsence> ProfessionalAbsences => Set<ProfessionalAbsence>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -34,12 +37,58 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             .HasIndex(x => new { x.ProfessionalId, x.StartAt })
             .IsUnique();
 
-        modelBuilder.Entity<Appointment>()
-            .Property(x => x.Status)
-            .HasConversion<string>();
+        // HU-14: vacaciones y licencias del profesional.
+        modelBuilder.Entity<ProfessionalAbsence>(entity =>
+        {
+            entity.Property(x => x.Type).HasConversion<string>().HasMaxLength(20);
+            entity.HasIndex(x => new { x.ProfessionalId, x.StartAt, x.EndAt });
+        });
 
-        modelBuilder.Entity<WaitlistEntry>()
-            .Property(x => x.Status)
-            .HasConversion<string>();
+        modelBuilder.Entity<Appointment>(entity =>
+        {
+            entity.Property(x => x.Status).HasConversion<string>();
+            entity.Property(x => x.AttendanceStatus).HasConversion<string>();
+        });
+
+        modelBuilder.Entity<AppointmentAuditLog>(entity =>
+        {
+            entity.HasIndex(x => new { x.AppointmentId, x.CreatedAt });
+
+            entity.HasOne(x => x.Appointment)
+                .WithMany()
+                .HasForeignKey(x => x.AppointmentId)
+                .OnDelete(DeleteBehavior.NoAction);
+        });
+
+        modelBuilder.Entity<WaitlistEntry>(entity =>
+        {
+            entity.Property(x => x.Status).HasConversion<string>();
+
+            entity.HasIndex(x => new { x.SlotId, x.Status, x.CreatedAt });
+
+            entity.HasOne(x => x.Slot)
+                .WithMany()
+                .HasForeignKey(x => x.SlotId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(x => x.AssignedAppointment)
+                .WithMany()
+                .HasForeignKey(x => x.AssignedAppointmentId)
+                .OnDelete(DeleteBehavior.NoAction);
+        });
+
+        modelBuilder.Entity<NotificationOutbox>(entity =>
+        {
+            entity.HasIndex(x => new { x.Status, x.CreatedAt });
+
+            entity.HasIndex(x => new { x.Type, x.RelatedAppointmentId })
+                .IsUnique()
+                .HasFilter("[RelatedAppointmentId] IS NOT NULL");
+
+            entity.HasOne<Appointment>()
+                .WithMany()
+                .HasForeignKey(x => x.RelatedAppointmentId)
+                .OnDelete(DeleteBehavior.NoAction);
+        });
     }
 }

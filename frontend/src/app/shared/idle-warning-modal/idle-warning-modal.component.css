@@ -1,0 +1,29 @@
+/* Mismo fondo que los demás modales de la app; anillo rojo con la cuenta regresiva. */
+.modal-backdrop { position: fixed; inset: 0; background: #07192b99; display: grid; place-items: center; padding: 20px; z-index: 1000; }
+.modal { width: min(400px, 95vw); background: white; border-radius: 18px; padding: 36px 32px 26px; text-align: center; box-shadow: 0 24px 70px rgba(7, 25, 43, .3); -webkit-font-smoothing: antialiased; animation: pop .18s ease-out; }
+
+.ring { position: relative; width: 104px; height: 104px; margin: 0 auto 20px; }
+.ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.ring circle { fill: none; stroke-width: 7; }
+.ring .track { stroke: #fbe4e4; }
+.ring .progress { stroke: #c73939; stroke-linecap: round; transition: stroke-dashoffset 1s linear; }
+.ring .value { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.ring .number { font-size: 30px; font-weight: 800; color: #c73939; line-height: 1; font-variant-numeric: tabular-nums; }
+.ring .unit { margin-top: 3px; font-size: 12px; font-weight: 600; color: #6a7d90; }
+
+h3 { margin: 0; color: var(--primary-dark); font-size: 20px; }
+p { margin: 8px 0 24px; color: #44576b; font-size: 15px; font-weight: 500; line-height: 1.6; }
+
+.actions { display: flex; justify-content: center; gap: 10px; }
+.btn-leave { border: 0; background: transparent; color: #44576b; font-weight: 700; padding: 10px 14px; border-radius: 10px; }
+.btn-leave:hover { background: var(--bg); color: var(--primary-dark); }
+.btn-stay { background: #c73939; border-color: #c73939; color: white; min-width: 160px; }
+.btn-stay:hover { background: #b02f2f; border-color: #b02f2f; }
+
+@keyframes pop { from { transform: scale(.96); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+@media (max-width: 480px) {
+  .modal { padding: 30px 20px 22px; }
+  .actions { flex-direction: column-reverse; }
+  .btn-stay { width: 100%; }
+}

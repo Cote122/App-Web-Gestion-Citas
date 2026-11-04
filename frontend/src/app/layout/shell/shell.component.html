@@ -8,6 +8,7 @@
       <a *ngIf="isAdmin()" routerLink="/app/admin/users" routerLinkActive="active">Usuarios y permisos</a>
       <a *ngIf="isAdmin()" routerLink="/app/admin/specialties" routerLinkActive="active">Especialidades</a>
       <a *ngIf="isAdmin()" routerLink="/app/admin/professionals" routerLinkActive="active">Profesionales</a>
+      <a *ngIf="isProfessional()" routerLink="/app/professional/absences" routerLinkActive="active">Mis ausencias</a>
     </nav>
     <button class="logout" (click)="logout()">Cerrar sesión</button>
   </aside>
@@ -26,3 +27,10 @@
     <section class="content"><router-outlet /></section>
   </main>
 </div>
+
+<app-idle-warning-modal *ngIf="idle.warning()"
+  [secondsLeft]="idle.secondsLeft()"
+  [totalSeconds]="warningSeconds"
+  (stay)="idle.keepAlive()"
+  (leave)="logout()">
+</app-idle-warning-modal>

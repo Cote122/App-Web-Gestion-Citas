@@ -19,8 +19,13 @@ export class AuthService {
       .pipe(tap(response => this.saveSession(response)));
   }
 
-  register(payload: { dni: string; email: string; fullName: string; password: string }): Observable<RegisterResponse> {
+  register(payload: { dni: string; email: string; fullName: string; phone: string; password: string; confirmPassword: string }): Observable<RegisterResponse> {
     return this.http.post<RegisterResponse>('/api/auth/register', payload);
+  }
+
+  // HU-37: valida el DNI con el servicio externo (a través de la API) y devuelve el nombre.
+  lookupDni(dni: string): Observable<{ valid: boolean; fullName: string }> {
+    return this.http.get<{ valid: boolean; fullName: string }>(`/api/auth/dni/${encodeURIComponent(dni)}`);
   }
 
   logout(): void {

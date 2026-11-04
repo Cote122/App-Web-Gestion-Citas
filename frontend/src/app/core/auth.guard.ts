@@ -20,3 +20,4 @@ export function roleGuard(...roles: UserRole[]): CanActivateFn {
 
 export const patientGuard = roleGuard('Paciente');
 export const adminGuard = roleGuard('Administrador');
+export const professionalGuard = roleGuard('Profesional');
