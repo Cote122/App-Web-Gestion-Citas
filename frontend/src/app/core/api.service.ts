@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { AbsenceType, AffectedAppointment, CreateAbsenceResponse, ProfessionalAbsence, AdminProfessional, AdminSpecialty, AdminUser, Appointment, AvailabilitySlot, Professional, RoleDefinition, Specialty, UserRole, WaitlistItem, WaitlistResponse } from '../models/models';
-
+import { AbsenceType, AdminProfessional, AdminSpecialty, AdminUser, AffectedAppointment, Appointment, AvailabilitySlot, CreateAbsenceResponse, MedicalRecord, Professional, ProfessionalAbsence, ProfessionalAgendaItem, ProfessionalAppointmentDetail, RoleDefinition, Specialty, UserRole, WaitlistItem, WaitlistResponse } from '../models/models';
+import { Observable } from 'rxjs';
 @Injectable({ providedIn: 'root' })
 export class ApiService {
   constructor(private readonly http: HttpClient) {}
@@ -92,10 +92,37 @@ export class ApiService {
     return this.http.get<RoleDefinition[]>('/api/admin/users/roles');
   }
 
-  updateUserRole(id: string, role: UserRole) {
+    updateUserRole(id: string, role: UserRole) {
     return this.http.patch<AdminUser>(`/api/admin/users/${id}/role`, { role });
   }
 
+  professionalAgenda(date?: string) {
+    return this.http.get<ProfessionalAgendaItem[]>('/api/professional/agenda', { params: { date: date || '' } });
+  }
+
+  professionalAppointmentDetail(id: string) {
+    return this.http.get<ProfessionalAppointmentDetail>(`/api/professional/agenda/${id}`);
+  }
+
+  getMedicalRecordByAppointment(appointmentId: string): Observable<MedicalRecord> {
+    return this.http.get<MedicalRecord>(`/api/medicalrecords/appointment/${appointmentId}`);
+  }
+
+  createMedicalRecord(payload: any): Observable<any> {
+    return this.http.post('/api/medicalrecords', payload);
+  }
+
+  getProfessionalAvailableSlots() {
+    return this.http.get<any[]>('/api/professional/agenda/available-slots');
+  }
+
+  cancelProfessionalAppointment(appointmentId: string) {
+    return this.http.patch<any>(`/api/professional/agenda/${appointmentId}/cancel`, {});
+  }
+
+  rescheduleProfessionalAppointment(appointmentId: string, slotId: string) {
+    return this.http.patch<any>(`/api/professional/agenda/${appointmentId}/reschedule`, { slotId });
+  }
   // HU-14: ausencias del profesional
   myAbsences() {
     return this.http.get<ProfessionalAbsence[]>('/api/professional/absences');

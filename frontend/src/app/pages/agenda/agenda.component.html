@@ -1,0 +1,230 @@
+<section class="card">
+  <div class="head">
+    <div>
+      <h2>Mi agenda</h2>
+      <p>Gestión de citas médicas asignadas.</p>
+    </div>
+  </div>
+
+  <p class="error" *ngIf="error">{{ error }}</p>
+  <p class="success" *ngIf="successMessage" style="color: #10b981; font-weight: 500; margin-bottom: 1rem;">
+    {{ successMessage }}
+  </p>
+
+  <p class="muted" *ngIf="loading">Cargando agenda...</p>
+
+  <div *ngIf="!loading">
+    <!-- SECCIÓN 1: CITAS CONFIRMADAS (Con botones de acción completos) -->
+    <h3 style="font-size: 1rem; color: #1e293b; margin-bottom: 0.75rem; border-bottom: 2px solid #e2e8f0; padding-bottom: 0.35rem;">
+      Citas Confirmadas ({{ confirmedAppointments.length }})
+    </h3>
+
+    <div class="list" *ngIf="confirmedAppointments.length">
+      <article
+        *ngFor="let item of confirmedAppointments"
+        class="appointment"
+        [class.selected]="detail?.id === item.id"
+        (click)="select(item)">
+        <div class="main">
+          <b>{{ item.patientName }}</b>
+          <span>{{ item.specialty }} · {{ item.office }}</span>
+          <small>{{ item.reason || 'Sin motivo registrado' }}</small>
+        </div>
+        <div><small>Fecha</small><b>{{ item.startAt | date:'dd/MM/yyyy' }}</b></div>
+        <div><small>Hora</small><b>{{ item.startAt | date:'HH:mm' }}</b></div>
+        <div><span class="badge" [ngClass]="badgeClass(item.status)">{{ item.status }}</span></div>
+        
+        <div class="actions" style="display: flex; gap: 0.5rem; align-items: center;" (click)="$event.stopPropagation()">
+          <button type="button" class="btn btn-primary" (click)="openRecordForm(item.id, item.patientId)">Atender</button>
+          <button type="button" class="btn btn-secondary" (click)="openRescheduleModal(item)">Reprogramar</button>
+          <button type="button" class="btn btn-danger" (click)="promptCancelAppointment(item.id)">Cancelar</button>
+        </div>
+      </article>
+    </div>
+    <div class="empty" *ngIf="!confirmedAppointments.length" style="margin-bottom: 2rem;">
+      No tienes citas confirmadas pendientes.
+    </div>
+
+    <!-- SECCIÓN 2: CITAS ATENDIDAS (Con botón para ver el Registro Médico) -->
+    <div *ngIf="attendedAppointments.length" style="margin-top: 2rem;">
+      <h3 style="font-size: 1rem; color: #059669; margin-bottom: 0.75rem; border-bottom: 2px solid #d1fae5; padding-bottom: 0.35rem;">
+        Citas Atendidas ({{ attendedAppointments.length }})
+      </h3>
+
+      <div class="list">
+        <article
+          *ngFor="let item of attendedAppointments"
+          class="appointment"
+          [class.selected]="detail?.id === item.id"
+          (click)="select(item)">
+          <div class="main">
+            <b>{{ item.patientName }}</b>
+            <span>{{ item.specialty }} · {{ item.office }}</span>
+            <small>{{ item.reason || 'Sin motivo registrado' }}</small>
+          </div>
+          <div><small>Fecha</small><b>{{ item.startAt | date:'dd/MM/yyyy' }}</b></div>
+          <div><small>Hora</small><b>{{ item.startAt | date:'HH:mm' }}</b></div>
+          <div><span class="badge" [ngClass]="badgeClass(item.status)">{{ item.status }}</span></div>
+          
+          <div class="actions" style="display: flex; gap: 0.5rem; align-items: center;" (click)="$event.stopPropagation()">
+            <button type="button" class="btn btn-info" (click)="openRecordForm(item.id, item.patientId)">Ver Registro Médico</button>
+          </div>
+        </article>
+      </div>
+    </div>
+
+    <!-- SECCIÓN 3: HISTORIAL Y OTROS ESTADOS (Canceladas, Reprogramadas, etc.) -->
+    <div *ngIf="otherAppointments.length" style="margin-top: 2rem;">
+      <h3 style="font-size: 1rem; color: #64748b; margin-bottom: 0.75rem; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.35rem;">
+        Historial y otros estados ({{ otherAppointments.length }})
+      </h3>
+
+      <div class="list">
+        <article
+          *ngFor="let item of otherAppointments"
+          class="appointment"
+          [class.selected]="detail?.id === item.id"
+          (click)="select(item)"
+          style="background-color: #f8fafc; opacity: 0.85;">
+          <div class="main">
+            <b>{{ item.patientName }}</b>
+            <span>{{ item.specialty }} · {{ item.office }}</span>
+            <small>{{ item.reason || 'Sin motivo registrado' }}</small>
+          </div>
+          <div><small>Fecha</small><b>{{ item.startAt | date:'dd/MM/yyyy' }}</b></div>
+          <div><small>Hora</small><b>{{ item.startAt | date:'HH:mm' }}</b></div>
+          <div><span class="badge" [ngClass]="badgeClass(item.status)">{{ item.status }}</span></div>
+        </article>
+      </div>
+    </div>
+
+    <div class="empty" *ngIf="!items.length">No existen citas registradas.</div>
+  </div>
+</section>
+
+<!-- MODAL DE REPROGRAMACIÓN -->
+<div class="modal-backdrop" *ngIf="rescheduleAppointment" (click)="closeRescheduleModal()">
+  <div class="modal modal-lg" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
+    <div class="modal-head">
+      <div>
+        <h3>Reprogramar Cita</h3>
+        <p>Selecciona un nuevo horario disponible para <b>{{ rescheduleAppointment.patientName }}</b>.</p>
+      </div>
+      <button class="modal-close" type="button" (click)="closeRescheduleModal()">×</button>
+    </div>
+
+    <div class="modal-body">
+      <p class="muted" *ngIf="loadingSlots">Cargando horarios disponibles...</p>
+      
+      <!-- CALENDARIO / GRILLA DE HORARIOS AGRUPADOS POR DÍA -->
+      <div class="schedule-grid" *ngIf="!loadingSlots && groupedSlots.length">
+        <div class="day-column" *ngFor="let day of groupedSlots">
+          <div class="day-header">
+            <b>{{ day.dateKey | date:'EEEE dd/MM' }}</b>
+          </div>
+          
+          <div class="slots-list">
+            <button 
+              type="button" 
+              *ngFor="let slot of day.slots"
+              class="slot-chip"
+              [class.selected]="selectedNewSlotId === slot.id"
+              (click)="selectedNewSlotId = slot.id">
+              {{ slot.startAt | date:'HH:mm' }} - {{ slot.endAt | date:'HH:mm' }}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="empty" *ngIf="!loadingSlots && !availableSlots.length">
+        <p>No tienes horarios disponibles configurados en este momento.</p>
+      </div>
+    </div>
+
+    <div class="modal-footer" *ngIf="availableSlots.length">
+      <button class="btn btn-secondary" (click)="closeRescheduleModal()">Cancelar</button>
+      <button class="btn btn-primary" [disabled]="!selectedNewSlotId || savingReschedule" (click)="confirmReschedule()">
+        {{ savingReschedule ? 'Guardando...' : 'Confirmar Reprogramación' }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL DE DETALLE DEL PACIENTE -->
+<div class="modal-backdrop" *ngIf="detail || loadingDetail" (click)="closeDetail()">
+  <div class="modal modal-sm" role="dialog" aria-modal="true" aria-labelledby="patient-detail-title" (click)="$event.stopPropagation()">
+    <div class="modal-head">
+      <div>
+        <h3 id="patient-detail-title">Detalle del paciente</h3>
+        <p *ngIf="detail">Datos autorizados para la atención {{ detail.code }}.</p>
+      </div>
+      <button class="modal-close" type="button" aria-label="Cerrar" (click)="closeDetail()">×</button>
+    </div>
+
+    <div class="modal-body" *ngIf="loadingDetail && !detail">
+      <p class="muted">Cargando detalle...</p>
+    </div>
+
+    <div class="modal-body detail-grid" *ngIf="detail">
+      <div>
+        <small>Paciente</small>
+        <b>{{ detail.patient.fullName }}</b>
+      </div>
+      <div>
+        <small>DNI</small>
+        <b>{{ detail.patient.dni }}</b>
+      </div>
+      <div class="wide">
+        <small>Correo</small>
+        <b>{{ detail.patient.email }}</b>
+      </div>
+      <div>
+        <small>Especialidad</small>
+        <b>{{ detail.specialty }}</b>
+      </div>
+      <div>
+        <small>Consultorio</small>
+        <b>{{ detail.office }}</b>
+      </div>
+      <div>
+        <small>Fecha y hora</small>
+        <b>{{ detail.startAt | date:'dd/MM/yyyy HH:mm' }}</b>
+      </div>
+      <div>
+        <small>Estado</small>
+        <b>{{ detail.status }}</b>
+      </div>
+      <div class="wide">
+        <small>Motivo de consulta</small>
+        <b>{{ detail.reason || 'No registrado' }}</b>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL DE HISTORIAL / REGISTRO MÉDICO -->
+<div class="modal-backdrop" *ngIf="recordAppointmentId && recordPatientId && currentUserId" (click)="closeRecordForm()">
+  <app-medical-record-form
+    [appointmentId]="recordAppointmentId"
+    [patientId]="recordPatientId"
+    [professionalId]="currentUserId"
+    (close)="closeRecordForm()">
+  </app-medical-record-form>
+</div>
+
+<div class="modal-backdrop" *ngIf="appointmentToCancelId" (click)="appointmentToCancelId = null">
+  <div class="modal modal-sm" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
+    <div class="modal-head">
+      <div>
+        <h3>Confirmar cancelación</h3>
+        <p>¿Estás seguro de que deseas cancelar esta cita? Se liberará el cupo.</p>
+      </div>
+      <button class="modal-close" type="button" (click)="appointmentToCancelId = null">×</button>
+    </div>
+
+    <div class="modal-footer" style="display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 1.5rem;">
+      <button class="btn btn-secondary" type="button" (click)="appointmentToCancelId = null">Volver</button>
+      <button class="btn btn-danger" type="button" (click)="executeCancelAppointment()">Sí, cancelar cita</button>
+    </div>
+  </div>
+</div>

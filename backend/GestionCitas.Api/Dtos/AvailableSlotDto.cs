@@ -1,0 +1,1 @@
+public record AvailableSlotDto(Guid Id, DateTimeOffset StartAt, DateTimeOffset EndAt);

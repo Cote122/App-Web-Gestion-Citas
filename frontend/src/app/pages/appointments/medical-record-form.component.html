@@ -1,0 +1,41 @@
+<div class="modal-container" (click)="$event.stopPropagation()">
+  <h2>Registro de Atención Médica</h2>
+
+  <div class="error-banner" *ngIf="error">
+    {{ error }}
+  </div>
+
+  <form (ngSubmit)="save()" #recordForm="ngForm">
+    <div class="form-field" [class.invalid]="recordForm.submitted && !record.reason">
+      <label for="reason">Motivo de consulta *</label>
+      <textarea id="reason" [(ngModel)]="record.reason" name="reason" rows="3" required placeholder="Describa el motivo de la consulta..."></textarea>
+    </div>
+
+    <div class="form-field">
+      <label for="attentionDate">Fecha de atención *</label>
+      <input type="date" id="attentionDate" [(ngModel)]="record.attentionDate" name="attentionDate" required>
+    </div>
+
+    <div class="form-field">
+      <label for="diagnosis">Diagnóstico *</label>
+      <textarea id="diagnosis" [(ngModel)]="record.diagnosis" name="diagnosis" rows="3" required placeholder="Describa el diagnóstico..."></textarea>
+    </div>
+
+    <div class="form-field">
+      <label for="observations">Observaciones</label>
+      <textarea id="observations" [(ngModel)]="record.observations" name="observations" rows="3" placeholder="Observaciones adicionales..."></textarea>
+    </div>
+
+    <div class="form-field">
+      <label for="recommendations">Recomendaciones</label>
+      <textarea id="recommendations" [(ngModel)]="record.recommendations" name="recommendations" rows="3" placeholder="Recomendaciones para el paciente..."></textarea>
+    </div>
+
+    <div class="modal-actions">
+      <button type="button" class="btn btn-secondary" (click)="close.emit()">Cancelar</button>
+      <button type="submit" class="btn btn-primary" [disabled]="loading">
+        {{ loading ? 'Guardando...' : 'Guardar Atención' }}
+      </button>
+    </div>
+  </form>
+</div>

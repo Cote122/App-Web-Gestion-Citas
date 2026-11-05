@@ -9,6 +9,7 @@ import { AppointmentsComponent } from './pages/appointments/appointments.compone
 import { AdminSpecialtiesComponent } from './pages/admin/specialties/admin-specialties.component';
 import { AdminProfessionalsComponent } from './pages/admin/professionals/admin-professionals.component';
 import { AdminUsersComponent } from './pages/admin/users/admin-users.component';
+import { AgendaComponent } from './pages/agenda/agenda.component';
 import { ProfessionalAbsencesComponent } from './pages/professional/absences/professional-absences.component';
 
 export const routes: Routes = [
@@ -25,6 +26,7 @@ export const routes: Routes = [
       { path: 'admin/users', component: AdminUsersComponent, canActivate: [adminGuard] },
       { path: 'admin/specialties', component: AdminSpecialtiesComponent, canActivate: [adminGuard] },
       { path: 'admin/professionals', component: AdminProfessionalsComponent, canActivate: [adminGuard] },
+      { path: 'agenda', component: AgendaComponent, canActivate: [professionalGuard] },
       { path: 'professional/absences', component: ProfessionalAbsencesComponent, canActivate: [professionalGuard] },
       { path: '', pathMatch: 'full', redirectTo: 'home' }
     ]
