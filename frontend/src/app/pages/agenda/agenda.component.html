@@ -7,6 +7,10 @@
   </div>
 
   <p class="error" *ngIf="error">{{ error }}</p>
+  <p class="success" *ngIf="successMessage" style="color: #10b981; font-weight: 500; margin-bottom: 1rem;">
+    {{ successMessage }}
+  </p>
+
   <p class="muted" *ngIf="loading">Cargando agenda...</p>
 
   <div class="list" *ngIf="!loading">
@@ -23,11 +27,63 @@
       <div><small>Fecha</small><b>{{ item.startAt | date:'dd/MM/yyyy' }}</b></div>
       <div><small>Hora</small><b>{{ item.startAt | date:'HH:mm' }}</b></div>
       <div><span class="badge" [ngClass]="badgeClass(item.status)">{{ item.status }}</span></div>
-      <button type="button" class="btn btn-primary" (click)="$event.stopPropagation(); openRecordForm(item.id, item.patientId)">Atender</button>
+      
+      <div class="actions" (click)="$event.stopPropagation()">
+        <button type="button" class="btn btn-primary" (click)="openRecordForm(item.id, item.patientId)">Atender</button>
+        <button type="button" class="btn btn-secondary" (click)="openRescheduleModal(item)">Reprogramar</button>
+        <button type="button" class="btn btn-danger" (click)="cancelAppointment(item.id)">Cancelar</button>
+      </div>
     </article>
     <div class="empty" *ngIf="!items.length">No existen citas pendientes registradas.</div>
   </div>
 </section>
+
+<div class="modal-backdrop" *ngIf="rescheduleAppointment" (click)="closeRescheduleModal()">
+  <div class="modal modal-lg" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
+    <div class="modal-head">
+      <div>
+        <h3>Reprogramar Cita</h3>
+        <p>Selecciona un nuevo horario disponible para <b>{{ rescheduleAppointment.patientName }}</b>.</p>
+      </div>
+      <button class="modal-close" type="button" (click)="closeRescheduleModal()">×</button>
+    </div>
+
+    <div class="modal-body">
+      <p class="muted" *ngIf="loadingSlots">Cargando horarios disponibles...</p>
+      
+      <!-- CALENDARIO / GRILLA DE HORARIOS AGRUPADOS POR DÍA -->
+      <div class="schedule-grid" *ngIf="!loadingSlots && groupedSlots.length">
+        <div class="day-column" *ngFor="let day of groupedSlots">
+          <div class="day-header">
+            <b>{{ day.dateKey | date:'EEEE dd/MM' }}</b>
+          </div>
+          
+          <div class="slots-list">
+            <button 
+              type="button" 
+              *ngFor="let slot of day.slots"
+              class="slot-chip"
+              [class.selected]="selectedNewSlotId === slot.id"
+              (click)="selectedNewSlotId = slot.id">
+              {{ slot.startAt | date:'HH:mm' }} - {{ slot.endAt | date:'HH:mm' }}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="empty" *ngIf="!loadingSlots && !availableSlots.length">
+        <p>No tienes horarios disponibles configurados en este momento.</p>
+      </div>
+    </div>
+
+    <div class="modal-footer" *ngIf="availableSlots.length">
+      <button class="btn btn-secondary" (click)="closeRescheduleModal()">Cancelar</button>
+      <button class="btn btn-primary" [disabled]="!selectedNewSlotId || savingReschedule" (click)="confirmReschedule()">
+        {{ savingReschedule ? 'Guardando...' : 'Confirmar Reprogramación' }}
+      </button>
+    </div>
+  </div>
+</div>
 
 <div class="modal-backdrop" *ngIf="detail || loadingDetail" (click)="closeDetail()">
   <div class="modal modal-sm" role="dialog" aria-modal="true" aria-labelledby="patient-detail-title" (click)="$event.stopPropagation()">

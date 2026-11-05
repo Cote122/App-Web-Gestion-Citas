@@ -106,4 +106,16 @@ export class ApiService {
   createMedicalRecord(payload: any): Observable<any> {
     return this.http.post('/api/medicalrecords', payload);
   }
+
+  getProfessionalAvailableSlots() {
+    return this.http.get<any[]>('/api/professional/agenda/available-slots');
+  }
+
+  cancelProfessionalAppointment(appointmentId: string) {
+    return this.http.patch<any>(`/api/professional/agenda/${appointmentId}/cancel`, {});
+  }
+
+  rescheduleProfessionalAppointment(appointmentId: string, slotId: string) {
+    return this.http.patch<any>(`/api/professional/agenda/${appointmentId}/reschedule`, { slotId });
+  }
 }

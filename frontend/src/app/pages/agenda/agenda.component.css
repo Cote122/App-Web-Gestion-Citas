@@ -37,6 +37,83 @@ h2 { margin: 0; color: var(--primary-dark); }
 .detail-grid .wide { grid-column: 1 / -1; }
 .detail-grid small { display: block; color: var(--muted); margin-bottom: 4px; }
 .detail-grid b { color: var(--primary-dark); }
+.appointment .actions {display: flex; gap: 0.5rem; align-items: center; }
+
+.modal.modal-lg {
+  max-width: 750px;
+  width: 90%;
+}
+
+.schedule-grid {
+  display: flex;
+  gap: 1rem;
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+}
+
+.day-column {
+  flex: 1;
+  min-width: 150px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.day-header {
+  font-size: 0.85rem;
+  color: #475569;
+  text-align: center;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #e2e8f0;
+  text-transform: capitalize;
+}
+
+.slots-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.slot-chip {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 0.5rem;
+  font-size: 0.85rem;
+  color: #1e293b;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.2s ease;
+}
+
+.slot-chip:hover {
+  border-color: #3b82f6;
+  background: #eff6ff;
+}
+
+.slot-chip.selected {
+  background: #2563eb !important;
+  color: #ffffff !important;
+  border-color: #1d4ed8 !important;
+  font-weight: 600;
+  box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+  border-top: 1px solid #e2e8f0;
+  background-color: #f8fafc;
+  border-bottom-left-radius: 8px;
+  border-bottom-right-radius: 8px;
+}
 
 @media (max-width: 900px) {
   .appointment { 
