@@ -1,0 +1,39 @@
+name: API Health Monitor
+
+on:
+  schedule:
+    # Cada 15 minutos, desplazado del inicio de hora para reducir retrasos.
+    - cron: "7,22,37,52 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: api-health-monitor
+  cancel-in-progress: true
+
+jobs:
+  health-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+
+    steps:
+      - name: Consultar API health
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          URL="https://app-web-gestion-citas.runasp.net/api/health"
+
+          RESPONSE="$(curl             --fail             --silent             --show-error             --max-time 20             --retry 2             --retry-delay 3             --header "Cache-Control: no-cache"             --user-agent "GestionCitas-GitHubActions-HealthMonitor"             "$URL")"
+
+          echo "Respuesta de la API:"
+          echo "$RESPONSE"
+
+          if ! echo "$RESPONSE" | grep -Eq '"status"[[:space:]]*:[[:space:]]*"ok"'; then
+            echo "La API respondió, pero no devolvió status=ok."
+            exit 1
+          fi
+
+          echo "API saludable."

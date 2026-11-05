@@ -4,6 +4,8 @@
     <h1>App Web Gestión de Citas</h1>
     <p>Primer incremento conectado a una API y SQL Server.</p>
 
+    <div class="session-notice" *ngIf="sessionNotice" role="status">{{ sessionNotice }}</div>
+
     <form [formGroup]="form" (ngSubmit)="submit()">
       <div class="form-field">
         <label>DNI o correo</label>

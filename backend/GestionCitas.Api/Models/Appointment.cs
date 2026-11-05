@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using GestionCitas.Api.Common;
 
 namespace GestionCitas.Api.Models;
 
@@ -21,6 +22,13 @@ public class Appointment
     public string? Reason { get; set; }
 
     public Guid? PreviousAppointmentId { get; set; }
-    public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+
+    public AttendanceConfirmationStatus AttendanceStatus { get; set; } =
+        AttendanceConfirmationStatus.Pendiente;
+
+    public DateTimeOffset? AttendanceRequestedAt { get; set; }
+    public DateTimeOffset? AttendanceRespondedAt { get; set; }
+
+    public DateTimeOffset CreatedAt { get; set; } = PeruClock.Now;
     public DateTimeOffset? UpdatedAt { get; set; }
 }

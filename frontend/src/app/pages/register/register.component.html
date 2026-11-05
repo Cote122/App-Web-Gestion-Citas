@@ -3,33 +3,84 @@
     <a routerLink="/login">← Volver al inicio de sesión</a>
     <h1>Registro de paciente</h1>
     <p class="muted">Los datos de esta versión son de prueba. No utilices información clínica real.</p>
-    <form [formGroup]="form" (ngSubmit)="submit()">
+
+    <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
       <div class="form-field">
-        <label>Nombre completo</label>
-        <input formControlName="fullName" maxlength="200">
-        <small class="error" *ngIf="form.controls.fullName.touched && form.controls.fullName.hasError('required')">El nombre completo es obligatorio.</small>
-        <small class="error" *ngIf="form.controls.fullName.touched && form.controls.fullName.hasError('minlength')">Ingresa al menos 3 caracteres.</small>
+        <label for="dni">DNI</label>
+        <input id="dni" formControlName="dni" maxlength="8" inputmode="numeric" autocomplete="off" placeholder="12345678"
+               [class.invalid]="errorFor('dni') || dniNotice?.kind === 'error'" [class.valid]="dniStatus === 'valid'"
+               (input)="onlyDigits('dni', 8)" (focus)="onFocus('dni')" (blur)="onBlur('dni')">
+        <small class="field-error" *ngIf="!dniNotice">{{ errorFor('dni') }}</small>
+        <small class="field-error" *ngIf="dniNotice as notice" [class.ok]="notice.kind === 'ok'" [class.info]="notice.kind === 'info'" aria-live="polite">
+          {{ notice.text }}
+          <button *ngIf="dniStatus === 'error'" type="button" class="link" (click)="retryDni()">Reintentar</button>
+        </small>
       </div>
+
       <div class="form-field">
-        <label>DNI</label>
-        <input formControlName="dni" maxlength="8" inputmode="numeric">
-        <small class="error" *ngIf="form.controls.dni.touched && form.controls.dni.hasError('required')">El DNI es obligatorio.</small>
-        <small class="error" *ngIf="form.controls.dni.touched && form.controls.dni.hasError('pattern')">El DNI debe contener exactamente 8 dígitos.</small>
+        <label for="fullName">Nombre completo</label>
+        <input id="fullName" formControlName="fullName" readonly tabindex="-1" class="readonly" placeholder="Se completa con tu DNI"
+               [class.invalid]="errorFor('fullName')" (focus)="onFocus('fullName')" (blur)="onBlur('fullName')">
+        <small class="field-error">{{ errorFor('fullName') }}</small>
       </div>
+
       <div class="form-field">
-        <label>Correo</label>
-        <input formControlName="email" type="email" maxlength="200">
-        <small class="error" *ngIf="form.controls.email.touched && form.controls.email.hasError('required')">El correo es obligatorio.</small>
-        <small class="error" *ngIf="form.controls.email.touched && form.controls.email.hasError('email')">Ingresa un correo válido.</small>
+        <label for="email">Correo</label>
+        <input id="email" formControlName="email" type="email" maxlength="100" autocomplete="email" placeholder="ana@correo.com"
+               [class.invalid]="errorFor('email')" (input)="noSpaces()" (focus)="onFocus('email')" (blur)="onBlur('email')">
+        <small class="field-error">{{ errorFor('email') }}</small>
       </div>
+
       <div class="form-field">
-        <label>Contraseña</label>
-        <input formControlName="password" type="password" maxlength="100" autocomplete="new-password">
-        <small class="error" *ngIf="form.controls.password.touched && form.controls.password.hasError('required')">La contraseña es obligatoria.</small>
-        <small class="error" *ngIf="form.controls.password.touched && form.controls.password.hasError('minlength')">La contraseña debe tener al menos 8 caracteres.</small>
+        <label for="phone">Celular</label>
+        <input id="phone" formControlName="phone" type="tel" maxlength="9" inputmode="numeric" autocomplete="tel-national" placeholder="987654321"
+               [class.invalid]="errorFor('phone')" (input)="onlyDigits('phone', 9)" (focus)="onFocus('phone')" (blur)="onBlur('phone')">
+        <small class="field-error">{{ errorFor('phone') }}</small>
       </div>
-      <p class="error" *ngIf="error">{{ error }}</p>
+
+      <div class="form-field">
+        <label for="password">Contraseña</label>
+        <div class="password-wrap">
+          <input id="password" formControlName="password" [type]="showPasswords ? 'text' : 'password'" maxlength="64" autocomplete="new-password"
+                 [class.invalid]="errorFor('password')" (focus)="onFocus('password')" (blur)="onBlur('password')">
+          <ng-container *ngTemplateOutlet="eye; context: { shown: showPasswords }"></ng-container>
+        </div>
+        <small class="field-error">{{ errorFor('password') }}</small>
+      </div>
+
+      <div class="form-field">
+        <label for="confirmPassword">Confirmar contraseña</label>
+        <div class="password-wrap">
+          <input id="confirmPassword" formControlName="confirmPassword" [type]="showPasswords ? 'text' : 'password'" maxlength="64" autocomplete="new-password"
+                 [class.invalid]="errorFor('confirmPassword')" (focus)="onFocus('confirmPassword')" (blur)="onBlur('confirmPassword')">
+          <ng-container *ngTemplateOutlet="eye; context: { shown: showPasswords }"></ng-container>
+        </div>
+        <small class="field-error">{{ errorFor('confirmPassword') }}</small>
+      </div>
+
+      <!-- Botón "ojito" para mostrar u ocultar la contraseña -->
+      <ng-template #eye let-shown="shown">
+        <button type="button" class="eye" (click)="toggleVisibility()"
+                [attr.aria-label]="shown ? 'Ocultar contraseñas' : 'Mostrar contraseñas'" [attr.aria-pressed]="shown">
+          <svg *ngIf="!shown" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"></path><circle cx="12" cy="12" r="3"></circle>
+          </svg>
+          <svg *ngIf="shown" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M3 3l18 18"></path><path d="M10.6 5.1A10.6 10.6 0 0 1 12 5c6.5 0 10 7 10 7a17.6 17.6 0 0 1-3.2 4.2"></path>
+            <path d="M6.6 6.6C3.9 8.4 2 12 2 12s3.5 7 10 7a9.9 9.9 0 0 0 5.4-1.6"></path><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"></path>
+          </svg>
+        </button>
+      </ng-template>
+
+      <p class="error form-error" *ngIf="error">{{ error }}</p>
       <button class="btn btn-primary" type="submit" [disabled]="loading">{{ loading ? 'Creando...' : 'Crear cuenta' }}</button>
     </form>
   </div>
 </section>
+
+<app-alert-modal *ngIf="successMessage"
+  title="Cuenta creada"
+  [message]="successMessage"
+  buttonText="Ir a iniciar sesión"
+  (closed)="goToLogin()">
+</app-alert-modal>

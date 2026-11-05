@@ -19,7 +19,11 @@
     <a class="card" routerLink="/app/admin/professionals"><b>Profesionales</b><span>Registra profesionales y asígnales su especialidad.</span></a>
   </section>
 
-  <section class="card" *ngIf="current.role !== 'Paciente' && current.role !== 'Administrador'">
+  <section class="quick" *ngIf="current.role === 'Profesional'">
+    <a class="card" routerLink="/app/professional/absences"><b>Mis ausencias</b><span>Registra tus vacaciones o licencias y revisa las citas afectadas.</span></a>
+  </section>
+
+  <section class="card" *ngIf="current.role !== 'Paciente' && current.role !== 'Administrador' && current.role !== 'Profesional'">
     <h3>Base técnica lista</h3>
     <p class="muted">El starter ya identifica tu rol como <b>{{ current.role }}</b>. El siguiente Sprint puede incorporar el menú y las funciones específicas para este perfil.</p>
   </section>
