@@ -12,6 +12,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<Appointment> Appointments => Set<Appointment>();
     public DbSet<AppointmentAuditLog> AppointmentAuditLogs => Set<AppointmentAuditLog>();
     public DbSet<WaitlistEntry> WaitlistEntries => Set<WaitlistEntry>();
+    public DbSet<MedicalRecord> MedicalRecords => Set<MedicalRecord>();
     public DbSet<NotificationOutbox> NotificationOutbox => Set<NotificationOutbox>();
     public DbSet<ProfessionalAbsence> ProfessionalAbsences => Set<ProfessionalAbsence>();
 
@@ -44,6 +45,19 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             entity.HasIndex(x => new { x.ProfessionalId, x.StartAt, x.EndAt });
         });
 
+        modelBuilder.Entity<MedicalRecord>(entity =>
+        {
+            entity.HasOne(x => x.Patient)
+                .WithMany()
+                .HasForeignKey(x => x.PatientId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(x => x.Professional)
+                .WithMany()
+                .HasForeignKey(x => x.ProfessionalId)
+                .OnDelete(DeleteBehavior.Restrict);
+        }); // <-- Llave faltante agregada aquí
+
         modelBuilder.Entity<Appointment>(entity =>
         {
             entity.Property(x => x.Status).HasConversion<string>();
@@ -57,7 +71,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             entity.HasOne(x => x.Appointment)
                 .WithMany()
                 .HasForeignKey(x => x.AppointmentId)
-                .OnDelete(DeleteBehavior.NoAction);
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasIndex(x => x.AppointmentId).IsUnique();
         });
 
         modelBuilder.Entity<WaitlistEntry>(entity =>
