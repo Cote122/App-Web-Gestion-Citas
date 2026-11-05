@@ -162,4 +162,12 @@ export class AgendaComponent implements OnInit {
   get currentUserId(): string {
     return this.auth.user()?.id ?? '';
   }
+
+  get confirmedAppointments(): ProfessionalAgendaItem[] {
+    return this.items.filter(item => item.status === 'Confirmada');
+  }
+
+  get otherAppointments(): ProfessionalAgendaItem[] {
+    return this.items.filter(item => item.status !== 'Confirmada');
+  }
 }

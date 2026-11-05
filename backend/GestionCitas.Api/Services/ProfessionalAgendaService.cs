@@ -1,3 +1,4 @@
+using System.Data;
 using GestionCitas.Api.Data;
 using GestionCitas.Api.Dtos;
 using GestionCitas.Api.Models;
@@ -48,9 +49,6 @@ public class ProfessionalAgendaService(AppDbContext db)
         return (ToDetail(appointment), null);
     }
 
-    // --- NUEVOS MÉTODOS PARA RESOLVER EL ERROR ---
-
-    /// HU-41: Obtiene los slots disponibles únicamente del profesional autenticado.
     public async Task<(List<AvailableSlotDto>? Slots, string? Error)> GetAvailableSlotsAsync(Guid userId)
     {
         var professional = await LinkedProfessionalAsync(userId);
@@ -68,67 +66,127 @@ public class ProfessionalAgendaService(AppDbContext db)
         return (dtos, null);
     }
 
-    /// HU-41: Cancela una cita del profesional y libera su slot.
     public async Task<(bool Success, string? Error)> CancelAppointmentAsync(Guid userId, Guid appointmentId)
     {
         var professional = await LinkedProfessionalAsync(userId);
         if (professional is null)
             return (false, "Tu usuario no está vinculado a un profesional.");
 
+        await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+
         var appointment = await db.Appointments
+            .Include(x => x.Patient)
             .Include(x => x.Slot)
+                .ThenInclude(x => x.Professional)
             .FirstOrDefaultAsync(x => x.Id == appointmentId && x.Slot.ProfessionalId == professional.Id);
 
         if (appointment is null)
             return (false, "Cita no encontrada o no te pertenece.");
 
-        if (appointment.Status == AppointmentStatus.Cancelada)
-            return (false, "La cita ya se encuentra cancelada.");
+        if (appointment.Status != AppointmentStatus.Confirmada)
+            return (false, "La cita ya no puede cancelarse.");
 
-        appointment.Slot.IsAvailable = true;
+        if (appointment.Slot.StartAt <= DateTimeOffset.UtcNow)
+            return (false, "No se puede cancelar una cita cuyo horario ya inició.");
+
         appointment.Status = AppointmentStatus.Cancelada;
         appointment.UpdatedAt = DateTimeOffset.UtcNow;
+        appointment.Slot.IsAvailable = true;
 
         await db.SaveChangesAsync();
+        await tx.CommitAsync();
 
         return (true, null);
     }
 
-    /// HU-41: Reprograma una cita a un nuevo slot disponible del profesional.
-    public async Task<(bool Success, string? Error)> RescheduleAppointmentAsync(Guid userId, Guid appointmentId, Guid newSlotId)
+    public async Task<(AppointmentDto? Appointment, string? Error)> RescheduleAppointmentAsync(Guid userId, Guid appointmentId, Guid newSlotId)
     {
         var professional = await LinkedProfessionalAsync(userId);
         if (professional is null)
-            return (false, "Tu usuario no está vinculado a un profesional.");
+            return (null, "Tu usuario no está vinculado a un profesional.");
 
-        var appointment = await db.Appointments
+        await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+
+        var current = await db.Appointments
+            .Include(x => x.Patient)
             .Include(x => x.Slot)
+                .ThenInclude(x => x.Professional)
+                .ThenInclude(x => x.Specialty)
             .FirstOrDefaultAsync(x => x.Id == appointmentId && x.Slot.ProfessionalId == professional.Id);
 
-        if (appointment is null)
-            return (false, "Cita no encontrada o no te pertenece.");
+        if (current is null)
+            return (null, "Cita no encontrada o no te pertenece.");
+
+        if (current.Status != AppointmentStatus.Confirmada)
+            return (null, "La cita ya no puede reprogramarse.");
+
+        if (current.Slot.StartAt <= DateTimeOffset.UtcNow)
+            return (null, "No se puede reprogramar una cita cuyo horario ya inició.");
+
+        if (current.SlotId == newSlotId)
+            return (null, "Selecciona un horario diferente al de tu cita actual.");
 
         var newSlot = await db.AvailabilitySlots
-            .FirstOrDefaultAsync(s => s.Id == newSlotId && s.ProfessionalId == professional.Id);
+            .Include(x => x.Professional)
+            .ThenInclude(x => x.Specialty)
+            .FirstOrDefaultAsync(x => x.Id == newSlotId && x.ProfessionalId == professional.Id);
 
-        if (newSlot is null || !newSlot.IsAvailable)
-            return (false, "El horario seleccionado no está disponible o no te pertenece.");
+        if (newSlot is null || !newSlot.IsAvailable || newSlot.StartAt <= DateTimeOffset.UtcNow)
+            return (null, "El nuevo horario seleccionado no está disponible o no te pertenece.");
 
-        appointment.Slot.IsAvailable = true;
+        var now = DateTimeOffset.UtcNow;
+
+        // 1. Marcar la actual como Reprogramada
+        current.Status = AppointmentStatus.Reprogramada;
+        current.UpdatedAt = now;
+
+        // 2. Ocupar el nuevo slot
         newSlot.IsAvailable = false;
-        appointment.SlotId = newSlot.Id;
-        appointment.UpdatedAt = DateTimeOffset.UtcNow;
 
-        await db.SaveChangesAsync();
+        // 3. Crear la nueva cita ligada a la anterior
+        var replacement = new Appointment
+        {
+            Code = $"CIT-{now:yyyy}-{Guid.NewGuid().ToString("N")[..6].ToUpperInvariant()}",
+            PatientId = current.PatientId,
+            SlotId = newSlot.Id,
+            Status = AppointmentStatus.Confirmada,
+            PreviousAppointmentId = current.Id
+        };
 
-        return (true, null);
+        db.Appointments.Add(replacement);
+
+        // 4. Liberar el slot anterior de la cita original
+        current.Slot.IsAvailable = true;
+
+        try
+        {
+            await db.SaveChangesAsync();
+            await tx.CommitAsync();
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            await tx.RollbackAsync();
+            return (null, "El horario seleccionado acaba de ser tomado por otro usuario. Selecciona otro.");
+        }
+
+        return (ToAppointmentDto(replacement, newSlot), null);
     }
 
     private Task<Professional?> LinkedProfessionalAsync(Guid userId) =>
         db.Professionals.AsNoTracking().FirstOrDefaultAsync(x => x.UserId == userId);
 
-    public static DateOnly TodayInClinic() =>
-        DateOnly.FromDateTime(DateTimeOffset.UtcNow.ToOffset(ClinicOffset).DateTime);
+    private static AppointmentDto ToAppointmentDto(Appointment appointment, AvailabilitySlot slot) =>
+        new(
+            appointment.Id,
+            appointment.Code,
+            slot.Professional.Specialty.Name,
+            slot.Professional.FullName,
+            slot.Professional.Office,
+            slot.StartAt,
+            slot.EndAt,
+            appointment.Status.ToString(),
+            slot.Professional.Specialty.Price
+        );
 
     private static ProfessionalAgendaItemDto ToItem(Appointment appointment) =>
         new(
