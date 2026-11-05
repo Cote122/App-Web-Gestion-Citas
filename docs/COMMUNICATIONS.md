@@ -78,6 +78,21 @@ Consultar estado operativo:
 GET /api/admin/communications/attendance
 ```
 
-## Canal de correo
+## Canal de correo compartido
 
-Hasta integrar Brevo/Resend/Mailjet, las comunicaciones quedan en `NotificationOutbox` con estado `Pendiente`. La lógica de elegibilidad, deduplicación y respuesta ya funciona independientemente del proveedor.
+Los recordatorios y solicitudes de confirmación generados por `AppointmentCommunicationService` se guardan en `NotificationOutbox` con estado `Pendiente`.
+
+Los avisos del profesional de HU-22/HU-41, incorporados en el PR #13, también usan esa tabla:
+
+| Acción | Productor | Type |
+| --- | --- | --- |
+| Cancelación por el profesional | `ProfessionalAgendaService.CancelAppointmentAsync` | `AppointmentCancelled` |
+| Reprogramación por el profesional | `ProfessionalAgendaService.RescheduleAppointmentAsync` | `AppointmentRescheduled` |
+
+Ambos métodos crean la notificación en la misma transacción que modifica la cita. No envían correo directamente ni usan otro proveedor.
+
+`EmailOutboxWorker` llama a `EmailOutboxService.ProcessPendingAsync`, que selecciona las filas `Pendiente` sin filtrar por `Type`. Por eso procesa los avisos del profesional junto con las demás comunicaciones. El envío usa `SmtpEmailSender` (MailKit) y la configuración SMTP existente. El estado cambia a `Enviado` o `Error`, con `SentAt` y `LastError` según el resultado.
+
+Para despacho automático se necesitan `Email:Enabled=true` y `Email:AutomaticDispatchEnabled=true`, además de credenciales SMTP válidas. No se deben publicar las credenciales ni activar el envío de filas históricas de prueba sin revisarlas. Ver [EMAIL_SMTP.md](EMAIL_SMTP.md).
+
+El PR #13 reutiliza la cola y el envío existentes, aunque construye los mensajes dentro de `ProfessionalAgendaService`. La extracción de esa construcción a un servicio común sigue pendiente; la rama `refactor/notification-service` es actualmente un punto de partida, sin esa refactorización aplicada.

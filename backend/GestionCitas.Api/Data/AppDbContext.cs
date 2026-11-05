@@ -73,7 +73,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
                 .HasForeignKey(x => x.AppointmentId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            entity.HasIndex(x => x.AppointmentId).IsUnique();
+            entity.HasIndex(x => x.AppointmentId);
         });
 
         modelBuilder.Entity<WaitlistEntry>(entity =>

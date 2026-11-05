@@ -2,6 +2,7 @@ using GestionCitas.Api.Data;
 using GestionCitas.Api.Models;
 using GestionCitas.Api.Services;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Xunit;
 
 namespace GestionCitas.Api.Tests;
@@ -31,9 +32,12 @@ public class ProfessionalAgendaServiceTests
     public async Task ListAsync_WhenNoAppointments_ReturnsEmptyList()
     {
         await using var db = CreateDb();
+        var data = Seed(db);
+        db.Appointments.RemoveRange(db.Appointments.Where(x => x.Slot.Professional.UserId == data.RosaUserId));
+        await db.SaveChangesAsync();
         var service = new ProfessionalAgendaService(db);
 
-        var (items, error) = await service.ListAsync(Guid.NewGuid());
+        var (items, error) = await service.ListAsync(data.RosaUserId);
 
         Assert.Null(error);
         Assert.NotNull(items);
@@ -84,17 +88,67 @@ public class ProfessionalAgendaServiceTests
         Assert.Equal("Tu usuario no está vinculado a un profesional.", error);
     }
 
+    [Theory]
+    [InlineData(false, "AppointmentCancelled")]
+    [InlineData(true, "AppointmentRescheduled")]
+    public async Task ProfessionalChanges_EnqueueOnePendingEmailForTheExistingOutbox(bool reschedule, string type)
+    {
+        await using var db = CreateDb();
+        var data = Seed(db, DateOnly.FromDateTime(DateTime.UtcNow.AddDays(3)));
+        var service = new ProfessionalAgendaService(db);
+
+        if (reschedule)
+        {
+            var current = await db.Appointments.Include(x => x.Slot).SingleAsync(x => x.Id == data.RosaMorningId);
+            var slot = new AvailabilitySlot
+            {
+                ProfessionalId = current.Slot.ProfessionalId,
+                StartAt = current.Slot.StartAt.AddDays(1),
+                EndAt = current.Slot.EndAt.AddDays(1)
+            };
+            db.AvailabilitySlots.Add(slot);
+            await db.SaveChangesAsync();
+            var (replacement, error) = await service.RescheduleAppointmentAsync(data.RosaUserId, data.RosaMorningId, slot.Id);
+            Assert.Null(error);
+            Assert.NotNull(replacement);
+            var (retry, _) = await service.RescheduleAppointmentAsync(data.RosaUserId, data.RosaMorningId, slot.Id);
+            Assert.Null(retry);
+        }
+        else
+        {
+            var (success, error) = await service.CancelAppointmentAsync(data.RosaUserId, data.RosaMorningId);
+            Assert.Null(error);
+            Assert.True(success);
+            var (retry, _) = await service.CancelAppointmentAsync(data.RosaUserId, data.RosaMorningId);
+            Assert.False(retry);
+        }
+
+        db.ChangeTracker.Clear();
+        var notification = Assert.Single(await db.NotificationOutbox.ToListAsync());
+        var appointment = await db.Appointments.SingleAsync(x => x.Id == data.RosaMorningId);
+        Assert.Equal(type, notification.Type);
+        Assert.Equal("Pendiente", notification.Status);
+        Assert.Equal(appointment.PatientId, notification.RecipientUserId);
+        Assert.Equal(data.RosaMorningId, notification.RelatedAppointmentId);
+        Assert.Equal("paciente@demo.local", notification.RecipientEmail);
+        Assert.Null(notification.SentAt);
+        Assert.Null(notification.LastError);
+        Assert.False(string.IsNullOrWhiteSpace(notification.Subject));
+        Assert.False(string.IsNullOrWhiteSpace(notification.Body));
+    }
+
     private static AppDbContext CreateDb()
     {
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
         return new AppDbContext(options);
     }
 
-    private static SeedData Seed(AppDbContext db)
+    private static SeedData Seed(AppDbContext db, DateOnly? day = null)
     {
-        var today = new DateOnly(2026, 10, 30);
+        var today = day ?? new DateOnly(2026, 10, 30);
         var offset = ProfessionalAgendaService.ClinicOffset;
 
         var specialty = new Specialty { Name = "Obstetricia", Description = "Controles", Price = 25 };
