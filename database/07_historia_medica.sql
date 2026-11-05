@@ -20,7 +20,7 @@ CREATE TABLE [MedicalRecords] (
     CONSTRAINT [FK_MedicalRecords_Users_PatientId] FOREIGN KEY ([PatientId]) REFERENCES [Users] ([Id]) ON DELETE NO ACTION
 );
 
-CREATE UNIQUE INDEX [IX_AppointmentAuditLogs_AppointmentId] ON [AppointmentAuditLogs] ([AppointmentId]);
+CREATE INDEX [IX_AppointmentAuditLogs_AppointmentId] ON [AppointmentAuditLogs] ([AppointmentId]);
 
 CREATE INDEX [IX_MedicalRecords_AppointmentId] ON [MedicalRecords] ([AppointmentId]);
 

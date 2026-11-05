@@ -15,6 +15,7 @@ jobs:
           dotnet-version: '10.0.x'
       - run: dotnet restore backend/GestionCitas.Api/GestionCitas.Api.csproj
       - run: dotnet build backend/GestionCitas.Api/GestionCitas.Api.csproj --configuration Release --no-restore
+      - run: dotnet test backend/GestionCitas.Api.Tests/GestionCitas.Api.Tests.csproj --configuration Release
 
   frontend:
     runs-on: ubuntu-latest

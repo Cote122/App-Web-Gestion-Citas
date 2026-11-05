@@ -1,6 +1,8 @@
+using System.Security.Claims;
 using GestionCitas.Api.Data;
 using GestionCitas.Api.Dtos;
 using GestionCitas.Api.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -8,33 +10,37 @@ namespace GestionCitas.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize(Roles = "Profesional")]
 public class MedicalRecordsController(AppDbContext context) : ControllerBase
 {
     [HttpGet("appointment/{appointmentId:guid}")]
     public async Task<ActionResult<MedicalRecordDto>> GetByAppointment(Guid appointmentId)
     {
+        if (!Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId))
+            return Unauthorized();
+
+        // Verificar la propiedad antes de consultar cualquier dato clínico.
+        var appointment = await context.Appointments
+            .AsNoTracking()
+            .Where(x => x.Id == appointmentId && x.Slot.Professional.UserId == userId)
+            .Select(x => new { x.PatientId, x.Reason, x.Slot.ProfessionalId })
+            .FirstOrDefaultAsync();
+
+        if (appointment is null)
+            return NotFound(new { message = "Cita no encontrada." });
+
         var record = await context.MedicalRecords
             .AsNoTracking()
-            .Include(x => x.Appointment) // <--- Incluimos la cita para leer su Reason
             .FirstOrDefaultAsync(x => x.AppointmentId == appointmentId);
 
         if (record is null)
         {
-            var appointment = await context.Appointments
-                .AsNoTracking()
-                .FirstOrDefaultAsync(x => x.Id == appointmentId);
-
-            if (appointment is null)
-            {
-                return NotFound(new { message = "No se encontró la cita." });
-            }
-
             return Ok(new MedicalRecordDto(
                 Guid.Empty,
                 appointmentId,
                 appointment.PatientId,
-                Guid.Empty,
-                appointment.Reason, // <--- Motivo de la cita
+                appointment.ProfessionalId,
+                appointment.Reason,
                 null,
                 null,
                 null,
@@ -47,7 +53,7 @@ public class MedicalRecordsController(AppDbContext context) : ControllerBase
             record.AppointmentId,
             record.PatientId,
             record.ProfessionalId,
-            record.Appointment?.Reason,
+            appointment.Reason,
             record.Observations,
             record.Diagnosis,
             record.Recommendations,
@@ -58,9 +64,12 @@ public class MedicalRecordsController(AppDbContext context) : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Upsert([FromBody] CreateMedicalRecordDto dto)
     {
+        if (!Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId))
+            return Unauthorized();
+
         var appointment = await context.Appointments
             .Include(x => x.Slot)
-            .FirstOrDefaultAsync(x => x.Id == dto.AppointmentId);
+            .FirstOrDefaultAsync(x => x.Id == dto.AppointmentId && x.Slot.Professional.UserId == userId);
 
         if (appointment is null)
         {
