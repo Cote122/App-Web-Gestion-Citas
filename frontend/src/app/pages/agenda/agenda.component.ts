@@ -17,6 +17,7 @@ export class AgendaComponent implements OnInit {
   detail: ProfessionalAppointmentDetail | null = null;
   recordAppointmentId: string | null = null;
   recordPatientId: string | null = null;
+  appointmentToCancelId: string | null = null;
   
   // Nuevas variables para la reprogramación
   rescheduleAppointment: ProfessionalAgendaItem | null = null;
@@ -112,10 +113,15 @@ export class AgendaComponent implements OnInit {
       });
   }
 
-  cancelAppointment(appointmentId: string): void {
-    // Si prefieres quitar el confirm nativo, puedes cambiarlo después por un modal tuyo, 
-    // pero por ahora limpiamos los alerts.
-    if (!confirm('¿Estás seguro de que deseas cancelar esta cita? Se liberará el cupo.')) return;
+  promptCancelAppointment(appointmentId: string): void {
+    this.appointmentToCancelId = appointmentId;
+  }
+
+  executeCancelAppointment(): void {
+    if (!this.appointmentToCancelId) return;
+
+    const appointmentId = this.appointmentToCancelId;
+    this.appointmentToCancelId = null;
 
     this.error = '';
     this.successMessage = '';
@@ -167,7 +173,11 @@ export class AgendaComponent implements OnInit {
     return this.items.filter(item => item.status === 'Confirmada');
   }
 
+  get attendedAppointments(): ProfessionalAgendaItem[] {
+    return this.items.filter(item => item.status === 'Atendida');
+  }
+
   get otherAppointments(): ProfessionalAgendaItem[] {
-    return this.items.filter(item => item.status !== 'Confirmada');
+    return this.items.filter(item => item.status !== 'Confirmada' && item.status !== 'Atendida');
   }
 }

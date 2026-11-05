@@ -93,6 +93,17 @@ public class ProfessionalAgendaService(AppDbContext db)
         appointment.UpdatedAt = DateTimeOffset.UtcNow;
         appointment.Slot.IsAvailable = true;
 
+        // --- REGISTRO DE NOTIFICACIÓN (HU-22) ---
+        db.NotificationOutbox.Add(new NotificationOutbox
+        {
+            RecipientUserId = appointment.PatientId,
+            RelatedAppointmentId = appointment.Id,
+            RecipientEmail = appointment.Patient.Email,
+            Type = "AppointmentCancelled",
+            Subject = "Tu cita fue cancelada",
+            Body = $"Hola {appointment.Patient.FullName}, te informamos que tu cita {appointment.Code} programada para el {appointment.Slot.StartAt:dd/MM/yyyy} a las {appointment.Slot.StartAt:HH:mm} ha sido cancelada."
+        });
+
         await db.SaveChangesAsync();
         await tx.CommitAsync();
 
@@ -158,6 +169,17 @@ public class ProfessionalAgendaService(AppDbContext db)
         // 4. Liberar el slot anterior de la cita original
         current.Slot.IsAvailable = true;
 
+        // --- REGISTRO DE NOTIFICACIÓN (HU-22) ---
+        db.NotificationOutbox.Add(new NotificationOutbox
+        {
+            RecipientUserId = current.PatientId,
+            RelatedAppointmentId = current.Id, // O el replacement.Id según prefieras asociarlo
+            RecipientEmail = current.Patient.Email,
+            Type = "AppointmentRescheduled",
+            Subject = "Tu cita fue reprogramada",
+            Body = $"Hola {current.Patient.FullName}, tu cita fue reprogramada correctamente. Nuevo horario: {newSlot.StartAt:dd/MM/yyyy} a las {newSlot.StartAt:HH:mm}. Nuevo código: {replacement.Code}."
+        });
+
         try
         {
             await db.SaveChangesAsync();
@@ -179,14 +201,18 @@ public class ProfessionalAgendaService(AppDbContext db)
         new(
             appointment.Id,
             appointment.Code,
+            slot.Professional.SpecialtyId,
             slot.Professional.Specialty.Name,
+            slot.ProfessionalId,
             slot.Professional.FullName,
             slot.Professional.Office,
             slot.StartAt,
             slot.EndAt,
             appointment.Status.ToString(),
-            slot.Professional.Specialty.Price
-        );
+            slot.Professional.Specialty.Price,
+            appointment.AttendanceStatus.ToString(),
+            appointment.AttendanceRequestedAt,
+            appointment.AttendanceRespondedAt);
 
     private static ProfessionalAgendaItemDto ToItem(Appointment appointment) =>
         new(
