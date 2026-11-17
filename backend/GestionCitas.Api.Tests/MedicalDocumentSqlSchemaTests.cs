@@ -116,6 +116,24 @@ public class MedicalDocumentSqlSchemaTests
         Assert.Equal(0, await database.Scalar("SELECT COUNT(*) FROM sys.indexes WHERE object_id=OBJECT_ID('dbo.MedicalDocuments') AND name LIKE 'IX_MedicalDocuments_%'"));
     }
 
+    [SqlServerFact]
+    public async Task ContainedDatabase_WithDifferentDataAndCatalogCollations_CanRunScriptTwice()
+    {
+        await using var database = await TestDatabase.Create(contained: true);
+        await database.Execute(BaseTables + ExistingTable);
+        var dataCollation = await database.TextScalar("SELECT CONVERT(nvarchar(128), DATABASEPROPERTYEX(DB_NAME(), 'Collation'))");
+        var catalogCollation = await database.TextScalar("SELECT CONVERT(nvarchar(128), SQL_VARIANT_PROPERTY(name, 'Collation')) FROM sys.columns WHERE object_id=OBJECT_ID('dbo.Users') AND name=N'Id'");
+        Assert.Equal("SQL_Latin1_General_CP1_CI_AS", dataCollation);
+        Assert.NotEqual(dataCollation, catalogCollation);
+
+        await database.RunScript();
+        await database.RunScript();
+
+        Assert.Equal(13, await database.Scalar("SELECT COUNT(*) FROM sys.columns WHERE object_id=OBJECT_ID('dbo.MedicalDocuments')"));
+        Assert.Equal(3, await database.Scalar("SELECT COUNT(*) FROM sys.indexes WHERE object_id=OBJECT_ID('dbo.MedicalDocuments') AND name LIKE 'IX_MedicalDocuments_%'"));
+        Assert.Equal(0, database.LastScriptTransactionCount);
+    }
+
     private sealed class TestDatabase : IAsyncDisposable
     {
         private readonly string name = "GestionCitas_HU18_Test_" + Guid.NewGuid().ToString("N");
@@ -131,12 +149,13 @@ public class MedicalDocumentSqlSchemaTests
             ConnectionString = builder.ConnectionString;
         }
 
-        public static async Task<TestDatabase> Create()
+        public static async Task<TestDatabase> Create(bool contained = false)
         {
             var database = new TestDatabase(Environment.GetEnvironmentVariable("CI_SQLSERVER_CONNECTION")!);
             await using var connection = new SqlConnection(database.masterConnection);
             await connection.OpenAsync();
-            await using var command = new SqlCommand($"CREATE DATABASE [{database.name}]", connection);
+            var containment = contained ? " CONTAINMENT = PARTIAL COLLATE SQL_Latin1_General_CP1_CI_AS" : "";
+            await using var command = new SqlCommand($"CREATE DATABASE [{database.name}]" + containment, connection);
             await command.ExecuteNonQueryAsync();
             return database;
         }
@@ -155,6 +174,14 @@ public class MedicalDocumentSqlSchemaTests
             await connection.OpenAsync();
             await using var command = new SqlCommand(sql, connection);
             return Convert.ToInt32(await command.ExecuteScalarAsync());
+        }
+
+        public async Task<string> TextScalar(string sql)
+        {
+            await using var connection = new SqlConnection(ConnectionString);
+            await connection.OpenAsync();
+            await using var command = new SqlCommand(sql, connection);
+            return Convert.ToString(await command.ExecuteScalarAsync()) ?? string.Empty;
         }
 
         public async Task RunScript()

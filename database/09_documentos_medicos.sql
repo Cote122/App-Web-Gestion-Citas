@@ -47,8 +47,8 @@ BEGIN TRY
 
     DECLARE @Required TABLE
     (
-        Name SYSNAME NOT NULL,
-        TypeName SYSNAME NOT NULL,
+        Name SYSNAME COLLATE CATALOG_DEFAULT NOT NULL,
+        TypeName SYSNAME COLLATE CATALOG_DEFAULT NOT NULL,
         MinLengthBytes INT NULL,
         IsNullable BIT NOT NULL
     );
@@ -71,7 +71,8 @@ BEGIN TRY
     SELECT @Incompatible = STRING_AGG(CONVERT(NVARCHAR(MAX), QUOTENAME(r.Name)), ', ')
     FROM @Required AS r
     LEFT JOIN sys.columns AS c
-      ON c.object_id = OBJECT_ID('dbo.MedicalDocuments', 'U') AND c.name = r.Name
+      ON c.object_id = OBJECT_ID('dbo.MedicalDocuments', 'U')
+     AND c.name COLLATE CATALOG_DEFAULT = r.Name COLLATE CATALOG_DEFAULT
     WHERE c.column_id IS NULL OR c.system_type_id <> TYPE_ID(r.TypeName)
        OR c.is_nullable <> r.IsNullable OR c.is_computed = 1 OR c.is_identity = 1
        OR (r.MinLengthBytes IS NOT NULL AND c.max_length <> -1 AND c.max_length < r.MinLengthBytes);
