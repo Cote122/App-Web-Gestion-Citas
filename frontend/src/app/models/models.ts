@@ -8,6 +8,7 @@ export interface MedicalDocument {
   sizeBytes: number | null;
   createdAt: string;
   isVisibleToPatient: boolean;
+  canChangeVisibility: boolean;
 }
 
 export interface MedicalDocumentLimits {

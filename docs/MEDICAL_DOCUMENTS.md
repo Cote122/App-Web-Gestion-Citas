@@ -10,8 +10,10 @@ Pacientes y profesionales pueden adjuntar y descargar documentos de una cita aut
 - Se permite adjuntar a citas Confirmada o Atendida. Los documentos existentes de citas Cancelada/Reprogramada se conservan y pueden descargarse por sus participantes.
 - Cada documento se vincula a una cita; no queda compartido automáticamente con otros profesionales ni se copia al reprogramar. La vinculación únicamente al paciente queda fuera de esta entrega.
 - Los documentos son compartidos entre el paciente y el profesional de la cita. Usar archivos ficticios en la demostración académica.
-- Las cargas nuevas de este flujo se guardan con `DocumentType = Documento`, título derivado del nombre y `IsVisibleToPatient = 1`. Los registros previos con visibilidad desactivada no se listan ni descargan para el paciente; el profesional asignado mantiene acceso.
-- No se agrega eliminación o edición de documentos en esta HU.
+- Las cargas nuevas se guardan con `DocumentType = Documento` y título derivado del nombre. El profesional puede marcar/desmarcar **Visible para el paciente** al adjuntar (marcado inicialmente); la API guarda esa selección. Los archivos que adjunta el paciente son visibles para él; un intento de enviar `isVisibleToPatient=false` como paciente se rechaza.
+- En los documentos que él mismo adjuntó a una cita que sigue teniendo asignada, el profesional dispone de **Ocultar al paciente / Mostrar al paciente**. La API verifica autor y pertenencia; el paciente, Caja, Administrador y otros profesionales no pueden cambiar esta opción. Los documentos adjuntados por el paciente conservan su visibilidad.
+- Los documentos ocultos no se listan ni descargan para el paciente, incluso mediante la API. El profesional asignado mantiene acceso. Cambiar la visibilidad no modifica el archivo, su clave ni su fecha original.
+- La eliminación y la edición del contenido permanecen fuera de esta HU. El ajuste de visibilidad se realiza sobre la columna existente; no necesita cambios SQL adicionales después de ejecutar el script 09 actualizado.
 
 ## Almacenamiento y permisos
 
@@ -62,7 +64,10 @@ El límite configurable admite de 1 byte a 10 MiB; cada petición multipart tien
 | GET | `/api/medical-documents/limits` | Extensiones y tamaño máximo configurado. |
 | GET | `/api/medical-documents/appointments/{appointmentId}` | Documentos de la cita autorizada. |
 | POST | `/api/medical-documents/appointments/{appointmentId}` | Multipart con un campo `file`; devuelve 201 y metadatos. |
+| PATCH | `/api/medical-documents/{documentId}/visibility` | Solo el autor profesional de una cita asignada; JSON `{"isVisibleToPatient": true/false}` obligatorio. |
 | GET | `/api/medical-documents/{documentId}/download` | Archivo adjunto después de validar la pertenencia. |
+
+El POST admite además el campo multipart opcional `isVisibleToPatient` para el profesional; al omitirlo conserva el valor predeterminado true. La respuesta de listado/carga incluye `isVisibleToPatient` y `canChangeVisibility`, calculado por el servidor para el usuario autenticado. El PATCH cambia únicamente la visibilidad; no requiere volver a subir el archivo.
 
 401 sin sesión válida; 403 para roles no autorizados; 404 para citas/documentos inexistentes o ajenos; 400 para archivos inválidos o citas que no admiten cargas; 413 para peticiones mayores al límite HTTP; 503 para fallos de almacenamiento o persistencia.
 
@@ -80,6 +85,8 @@ Pruebas automatizadas: acceso por rol y pertenencia, rechazos de archivo vacío/
 CI ejecuta además pruebas sobre un contenedor SQL Server 2025: tabla nueva, repetición del script, tabla existente con las 13 columnas reportadas, conservación de datos e índices, lectura/escritura EF contra ese esquema, rechazo controlado de esquemas incompatibles y una base parcialmente contenida con intercalaciones distintas para datos y catálogo. La validación de nombres usa `COLLATE CATALOG_DEFAULT`, sin cambiar las intercalaciones de la base o de sus columnas. Cada caso crea su propia base temporal. Estas cuatro pruebas SQL se omiten localmente si no se configura `CI_SQLSERVER_CONNECTION` con una instancia de pruebas que permita crear bases; la prueba de contención requiere tener habilitada esa función en la instancia de pruebas. El resto de la suite se ejecuta normalmente. CI habilita la función únicamente dentro de su contenedor efímero.
 
 Comprobación manual: subir un PDF de prueba como paciente, descargarlo como profesional asignado, intentar acceder como otro paciente/profesional y repetir tras publicar. En móviles, verificar la selección del archivo y la descarga desde el modal.
+
+Visibilidad: subir un documento como profesional desmarcando la casilla; comprobar que aparece para el profesional y no para el paciente de la cita. Presionar Mostrar al paciente sobre ese documento, recargar como paciente y descargarlo. Volver a ocultarlo y comprobar que desaparece y se rechaza una nueva descarga por API. En una carga realizada por el paciente no debe aparecer el botón para cambiar visibilidad. Las pruebas automatizadas cubren ambas transiciones, roles no autorizados, otros autores, parámetros manipulados y fallos al guardar.
 
 ## Evolución
 

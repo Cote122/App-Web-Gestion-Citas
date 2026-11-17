@@ -294,6 +294,150 @@ public class MedicalDocumentsTests
         Assert.DoesNotContain("C:\\legacy", await response.Content.ReadAsStringAsync());
     }
 
+    [Theory]
+    [InlineData(null, true)]
+    [InlineData(true, true)]
+    [InlineData(false, false)]
+    public async Task Professional_CanChooseVisibilityWhenUploading(bool? visibility, bool expected)
+    {
+        using var app = new TestApplication();
+        app.SignIn(app.Data.OwnerUserId, "Profesional");
+        using var response = await app.Upload(isVisibleToPatient: visibility);
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        var document = await response.Content.ReadFromJsonAsync<MedicalDocumentDto>();
+        Assert.NotNull(document);
+        Assert.Equal(expected, document.IsVisibleToPatient);
+        Assert.True(document.CanChangeVisibility);
+
+        app.SignIn(app.Data.PatientId, "Paciente");
+        var list = await app.Client.GetFromJsonAsync<MedicalDocumentDto[]>(app.ListUrl);
+        Assert.Equal(expected, list!.Any(x => x.Id == document.Id));
+        Assert.All(list, item => Assert.False(item.CanChangeVisibility));
+        using var download = await app.Client.GetAsync($"/api/medical-documents/{document.Id}/download");
+        Assert.Equal(expected ? HttpStatusCode.OK : HttpStatusCode.NotFound, download.StatusCode);
+    }
+
+    [Fact]
+    public async Task Patient_CannotForgeHiddenVisibilityWhenUploading()
+    {
+        using var app = new TestApplication();
+        app.SignIn(app.Data.PatientId, "Paciente");
+        using var response = await app.Upload(isVisibleToPatient: false);
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Equal(1, await app.DocumentCount());
+        Assert.Single(app.Storage.Files);
+    }
+
+    [Fact]
+    public async Task AuthorProfessional_CanHideAndPublishExistingDocument_WithoutReuploading()
+    {
+        using var app = new TestApplication();
+        app.SignIn(app.Data.OwnerUserId, "Profesional");
+        using var hidden = await app.Client.PatchAsJsonAsync(app.VisibilityUrl, new { isVisibleToPatient = false });
+        Assert.Equal(HttpStatusCode.OK, hidden.StatusCode);
+        var hiddenDto = await hidden.Content.ReadFromJsonAsync<MedicalDocumentDto>();
+        Assert.False(hiddenDto!.IsVisibleToPatient);
+        Assert.True(hiddenDto.CanChangeVisibility);
+
+        using var professionalDownload = await app.Client.GetAsync(app.DownloadUrl);
+        Assert.Equal(HttpStatusCode.OK, professionalDownload.StatusCode);
+        app.SignIn(app.Data.PatientId, "Paciente");
+        using var blocked = await app.Client.GetAsync(app.DownloadUrl);
+        Assert.Equal(HttpStatusCode.NotFound, blocked.StatusCode);
+        Assert.Empty((await app.Client.GetFromJsonAsync<MedicalDocumentDto[]>(app.ListUrl))!);
+
+        app.SignIn(app.Data.OwnerUserId, "Profesional");
+        using var published = await app.Client.PatchAsJsonAsync(app.VisibilityUrl, new { isVisibleToPatient = true });
+        Assert.Equal(HttpStatusCode.OK, published.StatusCode);
+        app.SignIn(app.Data.PatientId, "Paciente");
+        using var allowed = await app.Client.GetAsync(app.DownloadUrl);
+        Assert.Equal(HttpStatusCode.OK, allowed.StatusCode);
+        Assert.Equal(Pdf, await allowed.Content.ReadAsByteArrayAsync());
+        Assert.Single((await app.Client.GetFromJsonAsync<MedicalDocumentDto[]>(app.ListUrl))!);
+        Assert.Single(app.Storage.Files);
+        Assert.Equal(1, await app.DocumentCount());
+    }
+
+    [Theory]
+    [InlineData(null, HttpStatusCode.Unauthorized)]
+    [InlineData("Paciente", HttpStatusCode.Forbidden)]
+    [InlineData("Caja", HttpStatusCode.Forbidden)]
+    [InlineData("Administrador", HttpStatusCode.Forbidden)]
+    public async Task OtherRoles_CannotChangeVisibility(string? role, HttpStatusCode expected)
+    {
+        using var app = new TestApplication();
+        if (role is not null) app.SignIn(app.Data.PatientId, role);
+        using var response = await app.Client.PatchAsJsonAsync(app.VisibilityUrl, new { isVisibleToPatient = false });
+        Assert.Equal(expected, response.StatusCode);
+        using var scope = app.Host.Services.CreateScope();
+        Assert.True((await scope.ServiceProvider.GetRequiredService<AppDbContext>().MedicalDocuments.SingleAsync()).IsVisibleToPatient);
+    }
+
+    [Fact]
+    public async Task OtherProfessional_CannotChangeVisibility()
+    {
+        using var app = new TestApplication();
+        app.SignIn(app.Data.OtherUserId, "Profesional");
+        using var response = await app.Client.PatchAsJsonAsync(app.VisibilityUrl, new { isVisibleToPatient = false });
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        using var scope = app.Host.Services.CreateScope();
+        Assert.True((await scope.ServiceProvider.GetRequiredService<AppDbContext>().MedicalDocuments.SingleAsync()).IsVisibleToPatient);
+    }
+
+    [Fact]
+    public async Task AssignedProfessional_CannotHideAPatientsOwnUpload()
+    {
+        using var app = new TestApplication();
+        using (var scope = app.Host.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            (await db.MedicalDocuments.SingleAsync()).UploadedByUserId = app.Data.PatientId;
+            await db.SaveChangesAsync();
+        }
+        app.SignIn(app.Data.OwnerUserId, "Profesional");
+        var list = await app.Client.GetFromJsonAsync<MedicalDocumentDto[]>(app.ListUrl);
+        Assert.False(Assert.Single(list!).CanChangeVisibility);
+        using var response = await app.Client.PatchAsJsonAsync(app.VisibilityUrl, new { isVisibleToPatient = false });
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        app.SignIn(app.Data.PatientId, "Paciente");
+        using var download = await app.Client.GetAsync(app.DownloadUrl);
+        Assert.Equal(HttpStatusCode.OK, download.StatusCode);
+    }
+
+    [Fact]
+    public async Task MissingVisibility_IsRejected_InsteadOfHidingByDefault()
+    {
+        using var app = new TestApplication();
+        app.SignIn(app.Data.OwnerUserId, "Profesional");
+        using var response = await app.Client.PatchAsJsonAsync(app.VisibilityUrl, new { });
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        using var scope = app.Host.Services.CreateScope();
+        Assert.True((await scope.ServiceProvider.GetRequiredService<AppDbContext>().MedicalDocuments.SingleAsync()).IsVisibleToPatient);
+    }
+
+    [Fact]
+    public async Task FailedVisibilitySave_DoesNotChangePersistedFlagOrFile()
+    {
+        using var app = new TestApplication();
+        app.SignIn(app.Data.OwnerUserId, "Profesional");
+        app.Failures.FailWrites = true;
+        using var response = await app.Client.PatchAsJsonAsync(app.VisibilityUrl, new { isVisibleToPatient = false });
+        Assert.Equal(HttpStatusCode.ServiceUnavailable, response.StatusCode);
+        using var scope = app.Host.Services.CreateScope();
+        Assert.True((await scope.ServiceProvider.GetRequiredService<AppDbContext>().MedicalDocuments.SingleAsync()).IsVisibleToPatient);
+        Assert.Equal(Pdf, app.Storage.Files[app.InitialKey]);
+    }
+
+    [Fact]
+    public async Task InvalidProfessionalIdentifier_CannotChangeVisibility()
+    {
+        using var app = new TestApplication();
+        app.Client.DefaultRequestHeaders.Add("X-Test-UserId", "invalid-guid");
+        app.Client.DefaultRequestHeaders.Add("X-Test-Role", "Profesional");
+        using var response = await app.Client.PatchAsJsonAsync(app.VisibilityUrl, new { isVisibleToPatient = false });
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
     private sealed class TestApplication : IDisposable
     {
         public IHost Host { get; }
@@ -305,6 +449,7 @@ public class MedicalDocumentsTests
         public string InitialKey { get; } = Guid.NewGuid().ToString("N");
         public string ListUrl => $"/api/medical-documents/appointments/{Data.AppointmentId}";
         public string DownloadUrl => $"/api/medical-documents/{InitialDocumentId}/download";
+        public string VisibilityUrl => $"/api/medical-documents/{InitialDocumentId}/visibility";
 
         public TestApplication()
         {
@@ -349,12 +494,14 @@ public class MedicalDocumentsTests
             Client.DefaultRequestHeaders.Add("X-Test-Role", role);
         }
 
-        public async Task<HttpResponseMessage> Upload(string name = "informe.pdf", byte[]? bytes = null, string mime = "application/pdf")
+        public async Task<HttpResponseMessage> Upload(string name = "informe.pdf", byte[]? bytes = null, string mime = "application/pdf", bool? isVisibleToPatient = null)
         {
             using var form = new MultipartFormDataContent();
             var file = new ByteArrayContent(bytes ?? Pdf);
             file.Headers.ContentType = new(mime);
             form.Add(file, "file", name);
+            if (isVisibleToPatient.HasValue)
+                form.Add(new StringContent(isVisibleToPatient.Value ? "true" : "false"), "isVisibleToPatient");
             return await Client.PostAsync(ListUrl, form);
         }
 

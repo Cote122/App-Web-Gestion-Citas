@@ -43,11 +43,13 @@ public class MedicalDocumentsController(
         if (!await AuthorizedAppointments(userId).AnyAsync(x => x.Id == appointmentId, cancellationToken))
             return NotFound(new { message = "Cita no encontrada." });
 
+        var isProfessional = User.IsInRole("Profesional");
         var documents = await AuthorizedDocuments(userId).AsNoTracking()
             .Where(x => x.AppointmentId == appointmentId)
             .OrderByDescending(x => x.CreatedAt)
             .Select(x => new MedicalDocumentDto(x.Id, appointmentId, x.FileName,
-                x.ContentType ?? "application/octet-stream", x.SizeBytes, x.CreatedAt, x.IsVisibleToPatient))
+                x.ContentType ?? "application/octet-stream", x.SizeBytes, x.CreatedAt, x.IsVisibleToPatient,
+                isProfessional && x.UploadedByUserId == userId))
             .ToListAsync(cancellationToken);
         Response.Headers.CacheControl = "private, no-store";
         return Ok(documents);
@@ -57,7 +59,7 @@ public class MedicalDocumentsController(
     [RequestSizeLimit(11 * 1024 * 1024)]
     [RequestFormLimits(MultipartBodyLengthLimit = 11 * 1024 * 1024)]
     public async Task<ActionResult<MedicalDocumentDto>> Upload(
-        Guid appointmentId, [FromForm] IFormFile? file, CancellationToken cancellationToken)
+        Guid appointmentId, [FromForm] IFormFile? file, [FromForm] bool? isVisibleToPatient, CancellationToken cancellationToken)
     {
         if (!Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId)) return Unauthorized();
         var appointment = await AuthorizedAppointments(userId).AsNoTracking()
@@ -66,6 +68,9 @@ public class MedicalDocumentsController(
         if (appointment.Status is not (AppointmentStatus.Confirmada or AppointmentStatus.Atendida))
             return BadRequest(new { message = "Solo puedes adjuntar documentos a citas confirmadas o atendidas." });
         if (file is null) return BadRequest(new { message = "Selecciona un archivo." });
+        var isProfessional = User.IsInRole("Profesional");
+        if (!isProfessional && isVisibleToPatient == false)
+            return BadRequest(new { message = "Los documentos que adjunta el paciente deben ser visibles para él." });
 
         try
         {
@@ -78,7 +83,7 @@ public class MedicalDocumentsController(
                 DocumentType = "Documento",
                 Title = Path.GetFileNameWithoutExtension(validated.FileName)[..Math.Min(
                     200, Path.GetFileNameWithoutExtension(validated.FileName).Length)],
-                IsVisibleToPatient = true,
+                IsVisibleToPatient = isProfessional ? isVisibleToPatient ?? true : true,
                 FileName = validated.FileName,
                 ContentType = validated.ContentType,
                 SizeBytes = file.Length,
@@ -103,7 +108,7 @@ public class MedicalDocumentsController(
             Response.Headers.CacheControl = "private, no-store";
             return StatusCode(StatusCodes.Status201Created, new MedicalDocumentDto(
                 document.Id, appointmentId, document.FileName, document.ContentType ?? "application/octet-stream",
-                document.SizeBytes, document.CreatedAt, document.IsVisibleToPatient));
+                document.SizeBytes, document.CreatedAt, document.IsVisibleToPatient, isProfessional));
         }
         catch (DocumentValidationException error) { return BadRequest(new { message = error.Message }); }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException or DbUpdateException)
@@ -111,6 +116,36 @@ public class MedicalDocumentsController(
             logger.LogError(error, "No se pudo guardar un documento de la cita {AppointmentId}.", appointmentId);
             return StatusCode(StatusCodes.Status503ServiceUnavailable,
                 new { message = "No se pudo guardar el documento. Intenta nuevamente más tarde." });
+        }
+    }
+
+    [HttpPatch("{documentId:guid}/visibility")]
+    [Authorize(Roles = "Profesional")]
+    public async Task<ActionResult<MedicalDocumentDto>> UpdateVisibility(
+        Guid documentId, [FromBody] UpdateMedicalDocumentVisibilityDto dto, CancellationToken cancellationToken)
+    {
+        if (!Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId)) return Unauthorized();
+        if (dto.IsVisibleToPatient is not bool visibility)
+            return BadRequest(new { message = "Indica si el documento será visible para el paciente." });
+        // Solo el autor profesional de una cita que sigue teniendo asignada puede publicar u ocultar su documento.
+        var document = await AuthorizedDocuments(userId)
+            .FirstOrDefaultAsync(x => x.Id == documentId && x.UploadedByUserId == userId, cancellationToken);
+        if (document is null) return NotFound(new { message = "Documento no encontrado o sin permiso para cambiar su visibilidad." });
+
+        document.IsVisibleToPatient = visibility;
+        try
+        {
+            await db.SaveChangesAsync(cancellationToken);
+            Response.Headers.CacheControl = "private, no-store";
+            return Ok(new MedicalDocumentDto(document.Id, document.AppointmentId!.Value, document.FileName,
+                document.ContentType ?? "application/octet-stream", document.SizeBytes, document.CreatedAt,
+                document.IsVisibleToPatient, true));
+        }
+        catch (DbUpdateException error)
+        {
+            logger.LogError(error, "No se pudo cambiar la visibilidad del documento {DocumentId}.", documentId);
+            return StatusCode(StatusCodes.Status503ServiceUnavailable,
+                new { message = "No se pudo cambiar la visibilidad del documento. Intenta nuevamente más tarde." });
         }
     }
 

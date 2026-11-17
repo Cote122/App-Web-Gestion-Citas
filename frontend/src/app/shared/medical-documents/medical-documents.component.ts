@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { finalize, forkJoin } from 'rxjs';
 import { ApiService } from '../../core/api.service';
+import { AuthService } from '../../core/auth.service';
 import { MedicalDocument, MedicalDocumentLimits } from '../../models/models';
 
 @Component({
@@ -22,6 +23,7 @@ export class MedicalDocumentsComponent implements OnInit, AfterViewInit, OnDestr
   private readonly returnFocus = window.document.activeElement as HTMLElement | null;
 
   private readonly api = inject(ApiService);
+  private readonly auth = inject(AuthService);
   private readonly destroyRef = inject(DestroyRef);
   documents: MedicalDocument[] = [];
   limits?: MedicalDocumentLimits;
@@ -29,10 +31,19 @@ export class MedicalDocumentsComponent implements OnInit, AfterViewInit, OnDestr
   loading = false;
   uploading = false;
   downloadingId = '';
+  changingVisibilityId = '';
+  visibleToPatient = true;
   error = '';
   success = '';
 
   ngOnInit(): void { this.load(); }
+
+  get isProfessional(): boolean { return this.auth.user()?.role === 'Profesional'; }
+  get saving(): boolean { return this.uploading || !!this.changingVisibilityId; }
+
+  selectVisibility(event: Event): void {
+    this.visibleToPatient = (event.target as HTMLInputElement).checked;
+  }
 
   ngAfterViewInit(): void { this.dialog.nativeElement.focus(); }
   ngOnDestroy(): void { this.returnFocus?.focus(); }
@@ -81,11 +92,11 @@ export class MedicalDocumentsComponent implements OnInit, AfterViewInit, OnDestr
   }
 
   upload(): void {
-    if (!this.file || !this.canUpload || this.uploading) return;
+    if (!this.file || !this.canUpload || this.saving) return;
     this.uploading = true;
     this.error = '';
     this.success = '';
-    this.api.uploadMedicalDocument(this.appointmentId, this.file)
+    this.api.uploadMedicalDocument(this.appointmentId, this.file, this.isProfessional ? this.visibleToPatient : undefined)
       .pipe(takeUntilDestroyed(this.destroyRef), finalize(() => this.uploading = false))
       .subscribe({
         next: document => {
@@ -99,7 +110,7 @@ export class MedicalDocumentsComponent implements OnInit, AfterViewInit, OnDestr
   }
 
   download(document: MedicalDocument): void {
-    if (this.downloadingId) return;
+    if (this.downloadingId || this.saving) return;
     this.downloadingId = document.id;
     this.error = '';
     this.success = '';
@@ -121,11 +132,29 @@ export class MedicalDocumentsComponent implements OnInit, AfterViewInit, OnDestr
       });
   }
 
+  changeVisibility(document: MedicalDocument): void {
+    if (!document.canChangeVisibility || this.saving || this.downloadingId) return;
+    this.changingVisibilityId = document.id;
+    this.error = '';
+    this.success = '';
+    this.api.updateMedicalDocumentVisibility(document.id, !document.isVisibleToPatient)
+      .pipe(takeUntilDestroyed(this.destroyRef), finalize(() => this.changingVisibilityId = ''))
+      .subscribe({
+        next: updated => {
+          this.documents = this.documents.map(item => item.id === updated.id ? updated : item);
+          this.success = updated.isVisibleToPatient
+            ? 'El documento ahora es visible para el paciente.'
+            : 'El documento quedó oculto para el paciente.';
+        },
+        error: error => { void this.showError(error, 'No se pudo cambiar la visibilidad del documento.'); }
+      });
+  }
+
   get maxSizeMb(): number { return (this.limits?.maxFileSizeBytes ?? 0) / 1024 / 1024; }
   get acceptedExtensions(): string { return this.limits?.extensions.join(',') ?? ''; }
 
   @HostListener('document:keydown.escape')
-  close(): void { if (!this.uploading) this.closed.emit(); }
+  close(): void { if (!this.saving) this.closed.emit(); }
 
   private async showError(error: any, fallback: string): Promise<void> {
     if (error?.status === 413) {

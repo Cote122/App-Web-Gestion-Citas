@@ -15,14 +15,19 @@ export class ApiService {
     return this.http.get<MedicalDocument[]>(`/api/medical-documents/appointments/${appointmentId}`);
   }
 
-  uploadMedicalDocument(appointmentId: string, file: File) {
+  uploadMedicalDocument(appointmentId: string, file: File, isVisibleToPatient?: boolean) {
     const payload = new FormData();
     payload.append('file', file);
+    if (isVisibleToPatient !== undefined) payload.append('isVisibleToPatient', String(isVisibleToPatient));
     return this.http.post<MedicalDocument>(`/api/medical-documents/appointments/${appointmentId}`, payload);
   }
 
   downloadMedicalDocument(id: string) {
     return this.http.get(`/api/medical-documents/${id}/download`, { responseType: 'blob' });
+  }
+
+  updateMedicalDocumentVisibility(id: string, isVisibleToPatient: boolean) {
+    return this.http.patch<MedicalDocument>(`/api/medical-documents/${id}/visibility`, { isVisibleToPatient });
   }
 
   specialties() {
