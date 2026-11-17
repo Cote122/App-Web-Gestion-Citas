@@ -47,6 +47,7 @@
           </div>
 
           <div class="row-actions" *ngIf="isActive(item)">
+            <button class="btn btn-secondary" type="button" (click)="documentsAppointment = item">Documentos</button>
             <button class="btn btn-secondary" (click)="reschedule(item)">
               Reprogramar
             </button>
@@ -166,6 +167,9 @@
               {{ item.status }}
             </span>
           </div>
+          <div class="row-actions">
+            <button class="btn btn-secondary" type="button" (click)="documentsAppointment = item">Documentos</button>
+          </div>
         </article>
       </div>
 
@@ -175,6 +179,13 @@
     </section>
   </ng-container>
 </section>
+
+<app-medical-documents *ngIf="documentsAppointment as appointment"
+  [appointmentId]="appointment.id"
+  [appointmentLabel]="appointment.code + ' · ' + appointment.professional"
+  [canUpload]="appointment.status === 'Confirmada' || appointment.status === 'Atendida'"
+  (closed)="documentsAppointment = undefined">
+</app-medical-documents>
 
 <app-confirm-modal
   *ngIf="appointmentToCancel"

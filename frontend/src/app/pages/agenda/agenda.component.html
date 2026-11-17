@@ -36,6 +36,7 @@
         
         <div class="actions" style="display: flex; gap: 0.5rem; align-items: center;" (click)="$event.stopPropagation()">
           <button type="button" class="btn btn-primary" (click)="openRecordForm(item.id, item.patientId)">Atender</button>
+          <button type="button" class="btn btn-secondary" (click)="documentsAppointment = item">Documentos</button>
           <button type="button" class="btn btn-secondary" (click)="openRescheduleModal(item)">Reprogramar</button>
           <button type="button" class="btn btn-danger" (click)="promptCancelAppointment(item.id)">Cancelar</button>
         </div>
@@ -68,6 +69,7 @@
           
           <div class="actions" style="display: flex; gap: 0.5rem; align-items: center;" (click)="$event.stopPropagation()">
             <button type="button" class="btn btn-info" (click)="openRecordForm(item.id, item.patientId)">Ver Registro Médico</button>
+            <button type="button" class="btn btn-secondary" (click)="documentsAppointment = item">Documentos</button>
           </div>
         </article>
       </div>
@@ -94,6 +96,9 @@
           <div><small>Fecha</small><b>{{ item.startAt | date:'dd/MM/yyyy' }}</b></div>
           <div><small>Hora</small><b>{{ item.startAt | date:'HH:mm' }}</b></div>
           <div><span class="badge" [ngClass]="badgeClass(item.status)">{{ item.status }}</span></div>
+          <div class="actions" (click)="$event.stopPropagation()">
+            <button type="button" class="btn btn-secondary" (click)="documentsAppointment = item">Documentos</button>
+          </div>
         </article>
       </div>
     </div>
@@ -101,6 +106,13 @@
     <div class="empty" *ngIf="!items.length">No existen citas registradas.</div>
   </div>
 </section>
+
+<app-medical-documents *ngIf="documentsAppointment as appointment"
+  [appointmentId]="appointment.id"
+  [appointmentLabel]="appointment.code + ' · ' + appointment.patientName"
+  [canUpload]="appointment.status === 'Confirmada' || appointment.status === 'Atendida'"
+  (closed)="documentsAppointment = undefined">
+</app-medical-documents>
 
 <!-- MODAL DE REPROGRAMACIÓN -->
 <div class="modal-backdrop" *ngIf="rescheduleAppointment" (click)="closeRescheduleModal()">

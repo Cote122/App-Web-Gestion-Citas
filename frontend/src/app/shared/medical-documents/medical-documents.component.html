@@ -1,0 +1,48 @@
+<div class="documents-backdrop" (click)="close()">
+  <section #dialog class="documents-modal" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="documents-title"
+           [attr.aria-busy]="loading || uploading" (keydown.tab)="trapFocus($event)" (click)="$event.stopPropagation()">
+    <header>
+      <div>
+        <h2 id="documents-title">Documentos médicos</h2>
+        <p>{{ appointmentLabel }}</p>
+      </div>
+      <button type="button" class="close" aria-label="Cerrar documentos" [disabled]="uploading" (click)="close()">×</button>
+    </header>
+
+    <div class="documents-body">
+      <p class="message error" role="alert" *ngIf="error">{{ error }}</p>
+      <p class="message success" role="status" *ngIf="success">{{ success }}</p>
+      <p *ngIf="loading" role="status">Cargando documentos...</p>
+      <button class="btn btn-secondary" type="button" *ngIf="!loading && !limits" (click)="load()">Reintentar</button>
+
+      <form *ngIf="!loading && limits && canUpload" class="upload" (submit)="$event.preventDefault(); upload()">
+        <label for="medical-document-file">Adjuntar un documento a esta cita</label>
+        <p id="file-help">PDF, JPG o PNG, hasta {{ maxSizeMb | number:'1.0-2' }} MB por archivo.</p>
+        <input #fileInput id="medical-document-file" type="file" [accept]="acceptedExtensions"
+               aria-describedby="file-help" [disabled]="uploading" (change)="selectFile($event)">
+        <button class="btn btn-primary" type="submit" [disabled]="!file || uploading">
+          {{ uploading ? 'Guardando...' : 'Guardar documento' }}
+        </button>
+      </form>
+      <p class="muted" *ngIf="!canUpload">Puedes consultar los documentos de esta cita. Para adjuntar archivos, la cita debe estar confirmada o atendida.</p>
+
+      <ng-container *ngIf="!loading && limits">
+        <h3>Documentos de la cita <span>({{ documents.length }})</span></h3>
+        <p class="empty" *ngIf="!documents.length">Todavía no hay documentos adjuntos a esta cita.</p>
+        <ul class="document-list" *ngIf="documents.length">
+          <li *ngFor="let document of documents">
+            <div>
+              <b>{{ document.fileName }}</b>
+              <small>{{ document.createdAt | date:'dd/MM/yyyy HH:mm' }} · {{ document.sizeBytes / 1024 | number:'1.0-1' }} KB</small>
+            </div>
+            <button class="btn btn-secondary" type="button" [disabled]="!!downloadingId"
+                    [attr.aria-label]="'Descargar ' + document.fileName" (click)="download(document)">
+              {{ downloadingId === document.id ? 'Descargando...' : 'Descargar' }}
+            </button>
+          </li>
+        </ul>
+      </ng-container>
+    </div>
+    <footer><button class="btn btn-secondary" type="button" [disabled]="uploading" (click)="close()">Cerrar</button></footer>
+  </section>
+</div>

@@ -5,15 +5,17 @@ import { ApiService } from '../../core/api.service';
 import { AuthService } from '../../core/auth.service';
 import { ProfessionalAgendaItem, ProfessionalAppointmentDetail } from '../../models/models';
 import { MedicalRecordFormComponent } from '../appointments/medical-record-form.component';
+import { MedicalDocumentsComponent } from '../../shared/medical-documents/medical-documents.component';
 @Component({
   selector: 'app-agenda',
   standalone: true,
-  imports: [CommonModule, DatePipe, MedicalRecordFormComponent],
+  imports: [CommonModule, DatePipe, MedicalRecordFormComponent, MedicalDocumentsComponent],
   templateUrl: './agenda.component.html',
   styleUrls: ['./agenda.component.css']
 })
 export class AgendaComponent implements OnInit {
   items: ProfessionalAgendaItem[] = [];
+  documentsAppointment?: ProfessionalAgendaItem;
   detail: ProfessionalAppointmentDetail | null = null;
   recordAppointmentId: string | null = null;
   recordPatientId: string | null = null;

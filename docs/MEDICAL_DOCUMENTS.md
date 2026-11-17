@@ -1,0 +1,72 @@
+# HU-18 — Documentos médicos
+
+Pacientes y profesionales pueden adjuntar y descargar documentos de una cita autorizada desde **Mis citas → Documentos** o **Mi agenda → Documentos**.
+
+## Reglas de esta entrega
+
+- PDF, JPG/JPEG y PNG; máximo predeterminado **5 MiB (5 242 880 bytes)** por archivo.
+- Extensión, tamaño y firma inicial del contenido se validan en el backend; el MIME del navegador no se considera confiable. Esta validación de formato no sustituye un análisis antivirus.
+- Solo el paciente propietario y el profesional asignado a esa cita pueden listar, subir y descargar. Administrador y Caja no obtienen acceso clínico por su rol.
+- Se permite adjuntar a citas Confirmada o Atendida. Los documentos existentes de citas Cancelada/Reprogramada se conservan y pueden descargarse por sus participantes.
+- Cada documento se vincula a una cita; no queda compartido automáticamente con otros profesionales ni se copia al reprogramar. La vinculación únicamente al paciente queda fuera de esta entrega.
+- Los documentos son compartidos entre el paciente y el profesional de la cita. Usar archivos ficticios en la demostración académica.
+- No se agrega eliminación o edición de documentos en esta HU.
+
+## Almacenamiento y permisos
+
+SQL Server almacena los metadatos en `MedicalDocuments`: identificador, cita, usuario que adjuntó, nombre original, MIME validado, tamaño, fecha UTC y clave interna. El paciente y el profesional se resuelven desde la cita en el servidor, nunca desde identificadores enviados por el cliente.
+
+`IDocumentStorage` separa el almacenamiento de la API y sus permisos. La implementación inicial `LocalDocumentStorage` guarda los bytes usando una clave GUID generada en el servidor (sin el nombre original), crea archivos sin sobrescribir y elimina cargas parciales. Si falla la persistencia de metadatos, intenta retirar el archivo creado y registra cualquier fallo de limpieza para su revisión.
+
+Las descargas usan JWT en el encabezado Authorization, devuelven `Content-Disposition: attachment`, `X-Content-Type-Options: nosniff` y `Cache-Control: private, no-store`. La API no devuelve rutas físicas ni claves de almacenamiento. La carpeta nunca se sirve como contenido estático.
+
+## Configuración y publicación en MonsterASP
+
+1. Ejecutar **`database/09_documentos_medicos.sql`** sobre `GestionCitasDb` antes de publicar el backend. Es repetible y no borra datos. En una base nueva, `EnsureCreated` también incluye la entidad; en una base existente **no** agrega la tabla automáticamente.
+2. Publicar backend y frontend de esta rama siguiendo el flujo habitual. Este cambio no actualiza el hosting automáticamente.
+3. Mantener una carpeta **fuera del directorio de publicación y de toda carpeta pública**. Configuración predeterminada:
+
+   ```json
+   "MedicalDocuments": {
+     "RootPath": "../private-medical-documents",
+     "MaxFileSizeBytes": 5242880
+   }
+   ```
+
+   `RootPath` se resuelve respecto a `ContentRootPath` del backend. Si el backend se publica en la carpeta `/wwwroot` del sitio de MonsterASP, el resultado es una carpeta hermana `/private-medical-documents`, dentro del espacio del mismo sitio. Si la publicación usa otro subdirectorio, configurar la ruta privada correcta mediante `MedicalDocuments__RootPath` o `appsettings.Production.json`. La aplicación rechaza rutas dentro de su directorio de publicación o del directorio público.
+4. Dar a la identidad de la aplicación permisos de lectura/escritura sobre esa carpeta privada, sin permisos de ejecución. Se crea al subir el primer archivo si el proceso tiene permisos. No habilitar acceso HTTP ni agregar `UseStaticFiles` para esa ruta.
+5. Conservar la carpeta al volver a publicar: no eliminarla al limpiar el sitio. Está fuera de `/wwwroot`; en Git Deploy, los archivos/carpetas que queden dentro del directorio desplegado requieren **Protected files**, pero esa opción no reemplaza la carpeta privada externa que exige esta implementación.
+6. Probar una subida y descarga, reiniciar el sitio y publicar una nueva versión; verificar que el mismo archivo sigue disponible. Este paso debe realizarse en el hosting real para confirmar permisos y persistencia de su configuración concreta.
+7. Mantener copias propias tanto de la carpeta como de la base de datos. El plan Free no incluye respaldos automáticos.
+
+El límite configurable admite de 1 byte a 10 MiB; cada petición multipart tiene un límite HTTP adicional de 11 MiB. Si IIS impone un límite menor, ajustarlo en el hosting o reducir el tamaño de la aplicación. Los datos de configuración de almacenamiento no son secretos.
+
+## API
+
+| Método | Ruta | Resultado |
+| --- | --- | --- |
+| GET | `/api/medical-documents/limits` | Extensiones y tamaño máximo configurado. |
+| GET | `/api/medical-documents/appointments/{appointmentId}` | Documentos de la cita autorizada. |
+| POST | `/api/medical-documents/appointments/{appointmentId}` | Multipart con un campo `file`; devuelve 201 y metadatos. |
+| GET | `/api/medical-documents/{documentId}/download` | Archivo adjunto después de validar la pertenencia. |
+
+401 sin sesión válida; 403 para roles no autorizados; 404 para citas/documentos inexistentes o ajenos; 400 para archivos inválidos o citas que no admiten cargas; 413 para peticiones mayores al límite HTTP; 503 para fallos de almacenamiento o persistencia.
+
+## Comprobación
+
+```bash
+dotnet test backend/GestionCitas.Api.Tests/GestionCitas.Api.Tests.csproj --configuration Release
+cd frontend
+npm ci
+npm run build
+```
+
+Pruebas automatizadas: acceso por rol y pertenencia, rechazos de archivo vacío/extensión/tamaño/firma, normalización de nombres, descargas sin rutas públicas, archivos faltantes, cargas en citas canceladas, conservación de archivos con nombres repetidos y limpieza si falla la base de datos. Las pruebas del almacenamiento local cubren directorios privados, claves inválidas, colisiones y cargas interrumpidas.
+
+Comprobación manual: subir un PDF de prueba como paciente, descargarlo como profesional asignado, intentar acceder como otro paciente/profesional y repetir tras publicar. En móviles, verificar la selección del archivo y la descarga desde el modal.
+
+## Evolución
+
+Para migrar a almacenamiento privado en nube, implementar `IDocumentStorage`, copiar los objetos conservando su `StorageKey` y cambiar el registro de dependencia. No hace falta reemplazar las pantallas ni los permisos. El hosting gratuito se utiliza para aprendizaje con documentos ficticios; el uso clínico real requiere evaluar el servicio, respaldos, cifrado, análisis de archivos y obligaciones sobre datos personales.
+
+Referencias: [carpetas privadas en MonsterASP](https://help.monsterasp.net/websites/manage/backups), [Git Deploy](https://help.monsterasp.net/websites/git-deploy/github-repository), [cargas de archivos ASP.NET Core](https://learn.microsoft.com/en-us/aspnet/core/mvc/models/file-uploads?view=aspnetcore-10.0).

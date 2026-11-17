@@ -37,7 +37,7 @@ h2 { margin: 0; color: var(--primary-dark); }
 .detail-grid .wide { grid-column: 1 / -1; }
 .detail-grid small { display: block; color: var(--muted); margin-bottom: 4px; }
 .detail-grid b { color: var(--primary-dark); }
-.appointment .actions {display: flex; gap: 0.5rem; align-items: center; }
+.appointment .actions { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
 
 .modal.modal-lg {
   max-width: 750px;
@@ -125,4 +125,9 @@ h2 { margin: 0; color: var(--primary-dark); }
   }
   .head { align-items: flex-start; flex-direction: column; }
   .detail-grid { grid-template-columns: 1fr; }
+}
+
+@media (min-width: 901px) and (max-width: 1200px) {
+  .appointment { grid-template-columns: minmax(0, 1fr) auto; }
+  .appointment .actions { grid-column: 1 / -1; }
 }

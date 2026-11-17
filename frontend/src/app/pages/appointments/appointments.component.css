@@ -91,9 +91,11 @@ h3 { margin: 0; color: var(--primary-dark); }
 
 .row-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 7px;
   justify-content: flex-end;
 }
+.appointment.history .row-actions { grid-column: 1 / -1; justify-content: flex-start; }
 .row-actions .btn,
 .attendance-actions .btn {
   min-height: 36px;
@@ -150,7 +152,7 @@ h3 { margin: 0; color: var(--primary-dark); }
   background: #fbfcfd;
 }
 
-@media (max-width: 1050px) {
+@media (max-width: 1200px) {
   .appointment,
   .appointment.history,
   .appointment.waitlist-item {
