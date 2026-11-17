@@ -5,8 +5,9 @@ export interface MedicalDocument {
   appointmentId: string;
   fileName: string;
   contentType: string;
-  sizeBytes: number;
+  sizeBytes: number | null;
   createdAt: string;
+  isVisibleToPatient: boolean;
 }
 
 export interface MedicalDocumentLimits {

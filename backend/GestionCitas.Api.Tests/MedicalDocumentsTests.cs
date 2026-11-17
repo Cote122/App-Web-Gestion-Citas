@@ -89,6 +89,10 @@ public class MedicalDocumentsTests
         using var scope = app.Host.Services.CreateScope();
         var saved = await scope.ServiceProvider.GetRequiredService<AppDbContext>().MedicalDocuments.SingleAsync(x => x.Id == document.Id);
         Assert.Equal(app.Data.PatientId, saved.UploadedByUserId);
+        Assert.Equal(app.Data.PatientId, saved.PatientId);
+        Assert.Equal("Documento", saved.DocumentType);
+        Assert.Equal("resultado", saved.Title);
+        Assert.True(saved.IsVisibleToPatient);
         Assert.True(Guid.TryParseExact(saved.StorageKey, "N", out _));
 
         app.SignIn(app.Data.OwnerUserId, "Profesional");
@@ -217,6 +221,79 @@ public class MedicalDocumentsTests
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
+    [Theory]
+    [InlineData("Paciente", false)]
+    [InlineData("Profesional", true)]
+    public async Task HiddenDocuments_RespectExistingVisibility(string role, bool canRead)
+    {
+        using var app = new TestApplication();
+        using (var scope = app.Host.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            (await db.MedicalDocuments.SingleAsync()).IsVisibleToPatient = false;
+            await db.SaveChangesAsync();
+        }
+        app.SignIn(role == "Paciente" ? app.Data.PatientId : app.Data.OwnerUserId, role);
+        using var response = await app.Client.GetAsync(app.DownloadUrl);
+        Assert.Equal(canRead ? HttpStatusCode.OK : HttpStatusCode.NotFound, response.StatusCode);
+        var list = await app.Client.GetFromJsonAsync<MedicalDocumentDto[]>(app.ListUrl);
+        Assert.Equal(canRead ? 1 : 0, list!.Length);
+    }
+
+    [Theory]
+    [InlineData("Paciente")]
+    [InlineData("Profesional")]
+    public async Task DocumentWithDifferentPatient_CannotBeReadThroughAnAuthorizedAppointment(string role)
+    {
+        using var app = new TestApplication();
+        using (var scope = app.Host.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            (await db.MedicalDocuments.SingleAsync()).PatientId = app.Data.OtherUserId;
+            await db.SaveChangesAsync();
+        }
+        app.SignIn(role == "Paciente" ? app.Data.PatientId : app.Data.OwnerUserId, role);
+        using var response = await app.Client.GetAsync(app.DownloadUrl);
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        Assert.Empty((await app.Client.GetFromJsonAsync<MedicalDocumentDto[]>(app.ListUrl))!);
+    }
+
+    [Theory]
+    [InlineData("Paciente")]
+    [InlineData("Profesional")]
+    public async Task EncounterOnlyDocuments_AreNotExposedByTheAppointmentApi(string role)
+    {
+        using var app = new TestApplication();
+        using (var scope = app.Host.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var document = await db.MedicalDocuments.SingleAsync();
+            document.AppointmentId = null;
+            document.EncounterId = Guid.NewGuid();
+            await db.SaveChangesAsync();
+        }
+        app.SignIn(role == "Paciente" ? app.Data.PatientId : app.Data.OwnerUserId, role);
+        using var response = await app.Client.GetAsync(app.DownloadUrl);
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        Assert.Empty((await app.Client.GetFromJsonAsync<MedicalDocumentDto[]>(app.ListUrl))!);
+    }
+
+    [Fact]
+    public async Task LegacyPhysicalPath_IsNotPassedToTheLocalStorageProvider()
+    {
+        using var app = new TestApplication();
+        using (var scope = app.Host.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            (await db.MedicalDocuments.SingleAsync()).StorageKey = "C:\\legacy\\informe.pdf";
+            await db.SaveChangesAsync();
+        }
+        app.SignIn(app.Data.PatientId, "Paciente");
+        using var response = await app.Client.GetAsync(app.DownloadUrl);
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        Assert.DoesNotContain("C:\\legacy", await response.Content.ReadAsStringAsync());
+    }
+
     private sealed class TestApplication : IDisposable
     {
         public IHost Host { get; }
@@ -255,8 +332,9 @@ public class MedicalDocumentsTests
             Data = TestAppointments.Seed(db);
             db.MedicalDocuments.Add(new MedicalDocument
             {
-                Id = InitialDocumentId, AppointmentId = Data.AppointmentId,
+                Id = InitialDocumentId, AppointmentId = Data.AppointmentId, PatientId = Data.PatientId,
                 UploadedByUserId = Data.OwnerUserId, FileName = "informe.pdf",
+                Title = "Informe", DocumentType = "Documento", IsVisibleToPatient = true,
                 StorageKey = InitialKey, ContentType = "application/pdf", SizeBytes = Pdf.Length
             });
             db.SaveChanges();

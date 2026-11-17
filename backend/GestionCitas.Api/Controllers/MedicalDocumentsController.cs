@@ -21,6 +21,14 @@ public class MedicalDocumentsController(
         ? db.Appointments.Where(x => x.PatientId == userId)
         : db.Appointments.Where(x => x.Slot.Professional.UserId == userId);
 
+    private IQueryable<MedicalDocument> AuthorizedDocuments(Guid userId)
+    {
+        var appointments = AuthorizedAppointments(userId);
+        var documents = db.MedicalDocuments.Where(x => x.AppointmentId != null &&
+            appointments.Any(a => a.Id == x.AppointmentId && a.PatientId == x.PatientId));
+        return User.IsInRole("Paciente") ? documents.Where(x => x.IsVisibleToPatient) : documents;
+    }
+
     [HttpGet("limits")]
     public IActionResult Limits() => Ok(new
     {
@@ -35,10 +43,11 @@ public class MedicalDocumentsController(
         if (!await AuthorizedAppointments(userId).AnyAsync(x => x.Id == appointmentId, cancellationToken))
             return NotFound(new { message = "Cita no encontrada." });
 
-        var documents = await db.MedicalDocuments.AsNoTracking()
+        var documents = await AuthorizedDocuments(userId).AsNoTracking()
             .Where(x => x.AppointmentId == appointmentId)
             .OrderByDescending(x => x.CreatedAt)
-            .Select(x => new MedicalDocumentDto(x.Id, x.AppointmentId, x.FileName, x.ContentType, x.SizeBytes, x.CreatedAt))
+            .Select(x => new MedicalDocumentDto(x.Id, appointmentId, x.FileName,
+                x.ContentType ?? "application/octet-stream", x.SizeBytes, x.CreatedAt, x.IsVisibleToPatient))
             .ToListAsync(cancellationToken);
         Response.Headers.CacheControl = "private, no-store";
         return Ok(documents);
@@ -64,7 +73,12 @@ public class MedicalDocumentsController(
             var document = new MedicalDocument
             {
                 AppointmentId = appointmentId,
+                PatientId = appointment.PatientId,
                 UploadedByUserId = userId,
+                DocumentType = "Documento",
+                Title = Path.GetFileNameWithoutExtension(validated.FileName)[..Math.Min(
+                    200, Path.GetFileNameWithoutExtension(validated.FileName).Length)],
+                IsVisibleToPatient = true,
                 FileName = validated.FileName,
                 ContentType = validated.ContentType,
                 SizeBytes = file.Length,
@@ -88,7 +102,8 @@ public class MedicalDocumentsController(
 
             Response.Headers.CacheControl = "private, no-store";
             return StatusCode(StatusCodes.Status201Created, new MedicalDocumentDto(
-                document.Id, document.AppointmentId, document.FileName, document.ContentType, document.SizeBytes, document.CreatedAt));
+                document.Id, appointmentId, document.FileName, document.ContentType ?? "application/octet-stream",
+                document.SizeBytes, document.CreatedAt, document.IsVisibleToPatient));
         }
         catch (DocumentValidationException error) { return BadRequest(new { message = error.Message }); }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException or DbUpdateException)
@@ -103,10 +118,13 @@ public class MedicalDocumentsController(
     public async Task<IActionResult> Download(Guid documentId, CancellationToken cancellationToken)
     {
         if (!Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId)) return Unauthorized();
-        var appointments = AuthorizedAppointments(userId);
-        var document = await db.MedicalDocuments.AsNoTracking()
-            .FirstOrDefaultAsync(x => x.Id == documentId && appointments.Any(a => a.Id == x.AppointmentId), cancellationToken);
+        var document = await AuthorizedDocuments(userId).AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == documentId, cancellationToken);
         if (document is null) return NotFound(new { message = "Documento no encontrado." });
+
+        // No interpretar rutas físicas de registros previos como claves de este proveedor.
+        if (!Guid.TryParseExact(document.StorageKey, "N", out _))
+            return NotFound(new { message = "Este archivo requiere revisar su ubicación de almacenamiento. Contacta al administrador." });
 
         try
         {
@@ -114,7 +132,9 @@ public class MedicalDocumentsController(
             if (content is null) return NotFound(new { message = "El archivo no está disponible. Contacta al administrador." });
             Response.Headers.CacheControl = "private, no-store";
             Response.Headers.XContentTypeOptions = "nosniff";
-            return File(content, document.ContentType, document.FileName);
+            var contentType = document.ContentType is "application/pdf" or "image/jpeg" or "image/png"
+                ? document.ContentType : "application/octet-stream";
+            return File(content, contentType, document.FileName);
         }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException)
         {

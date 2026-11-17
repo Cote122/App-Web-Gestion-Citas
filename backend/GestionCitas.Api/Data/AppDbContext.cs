@@ -22,7 +22,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         modelBuilder.Entity<MedicalDocument>(entity =>
         {
             entity.HasIndex(x => new { x.AppointmentId, x.CreatedAt });
-            entity.HasIndex(x => x.StorageKey).IsUnique();
+            entity.HasIndex(x => new { x.PatientId, x.CreatedAt });
+            entity.HasOne(x => x.Patient).WithMany().HasForeignKey(x => x.PatientId)
+                .OnDelete(DeleteBehavior.Restrict);
             entity.HasOne(x => x.Appointment).WithMany().HasForeignKey(x => x.AppointmentId)
                 .OnDelete(DeleteBehavior.Restrict);
             entity.HasOne(x => x.UploadedByUser).WithMany().HasForeignKey(x => x.UploadedByUserId)

@@ -10,11 +10,25 @@ Pacientes y profesionales pueden adjuntar y descargar documentos de una cita aut
 - Se permite adjuntar a citas Confirmada o Atendida. Los documentos existentes de citas Cancelada/Reprogramada se conservan y pueden descargarse por sus participantes.
 - Cada documento se vincula a una cita; no queda compartido automáticamente con otros profesionales ni se copia al reprogramar. La vinculación únicamente al paciente queda fuera de esta entrega.
 - Los documentos son compartidos entre el paciente y el profesional de la cita. Usar archivos ficticios en la demostración académica.
+- Las cargas nuevas de este flujo se guardan con `DocumentType = Documento`, título derivado del nombre y `IsVisibleToPatient = 1`. Los registros previos con visibilidad desactivada no se listan ni descargan para el paciente; el profesional asignado mantiene acceso.
 - No se agrega eliminación o edición de documentos en esta HU.
 
 ## Almacenamiento y permisos
 
 SQL Server almacena los metadatos en `MedicalDocuments`: identificador, cita, usuario que adjuntó, nombre original, MIME validado, tamaño, fecha UTC y clave interna. El paciente y el profesional se resuelven desde la cita en el servidor, nunca desde identificadores enviados por el cliente.
+
+Se utiliza el catálogo clínico existente de 13 columnas. El modelo EF conserva los nombres internos del servicio mediante este mapeo:
+
+| Propiedad del servicio | Columna existente |
+| --- | --- |
+| `CreatedAt` | `UploadedAt` |
+| `UploadedByUserId` | `UploadedBy` |
+| `SizeBytes` (nullable) | `FileSizeBytes` |
+| `StorageKey` | `StoragePath` |
+
+Se conservan `PatientId`, `EncounterId`, `AppointmentId` nullable, `DocumentType`, `Title` e `IsVisibleToPatient`. El paciente del documento debe coincidir con el de la cita para autorizar el acceso. Los registros vinculados únicamente a un encuentro clínico permanecen fuera de esta API de citas. Tamaños no registrados se muestran como tales.
+
+Para archivos nuevos, `StoragePath` contiene la clave GUID privada. Los registros anteriores con rutas físicas u otras referencias no se reinterpretan como claves: si existen, requieren una migración de archivos específica. No se borran ni se cambian sus metadatos.
 
 `IDocumentStorage` separa el almacenamiento de la API y sus permisos. La implementación inicial `LocalDocumentStorage` guarda los bytes usando una clave GUID generada en el servidor (sin el nombre original), crea archivos sin sobrescribir y elimina cargas parciales. Si falla la persistencia de metadatos, intenta retirar el archivo creado y registra cualquier fallo de limpieza para su revisión.
 
@@ -22,7 +36,7 @@ Las descargas usan JWT en el encabezado Authorization, devuelven `Content-Dispos
 
 ## Configuración y publicación en MonsterASP
 
-1. Ejecutar **`database/09_documentos_medicos.sql`** sobre `GestionCitasDb` antes de publicar el backend. Es repetible y no borra datos. En una base nueva, `EnsureCreated` también incluye la entidad; en una base existente **no** agrega la tabla automáticamente.
+1. Ejecutar **`database/09_documentos_medicos.sql`** sobre `GestionCitasDb` antes de publicar el backend. Es repetible: crea el catálogo de 13 columnas si falta; si existe, valida nombres, tipos, longitudes y nulabilidad, y agrega índices no únicos. Conserva columnas, documentos, índices y restricciones anteriores. Un esquema diferente produce un error explícito con las columnas incompatibles; no agrega campos duplicados. En una base nueva, `EnsureCreated` también incluye la entidad; en una base existente **no** agrega la tabla automáticamente. Si se creó la tabla simplificada de la primera versión de esta rama, revisar su migración antes de continuar; el script no la transforma automáticamente.
 2. Publicar backend y frontend de esta rama siguiendo el flujo habitual. Este cambio no actualiza el hosting automáticamente.
 3. Mantener una carpeta **fuera del directorio de publicación y de toda carpeta pública**. Configuración predeterminada:
 
@@ -62,6 +76,8 @@ npm run build
 ```
 
 Pruebas automatizadas: acceso por rol y pertenencia, rechazos de archivo vacío/extensión/tamaño/firma, normalización de nombres, descargas sin rutas públicas, archivos faltantes, cargas en citas canceladas, conservación de archivos con nombres repetidos y limpieza si falla la base de datos. Las pruebas del almacenamiento local cubren directorios privados, claves inválidas, colisiones y cargas interrumpidas.
+
+CI ejecuta además pruebas sobre un contenedor SQL Server 2025: tabla nueva, repetición del script, tabla existente con las 13 columnas reportadas, conservación de datos e índices, lectura/escritura EF contra ese esquema y rechazo controlado de esquemas incompatibles. Cada caso crea su propia base temporal. Estas tres pruebas SQL se omiten localmente si no se configura `CI_SQLSERVER_CONNECTION` con una instancia de pruebas que permita crear bases; el resto de la suite se ejecuta normalmente.
 
 Comprobación manual: subir un PDF de prueba como paciente, descargarlo como profesional asignado, intentar acceder como otro paciente/profesional y repetir tras publicar. En móviles, verificar la selección del archivo y la descarga desde el modal.
 

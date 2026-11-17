@@ -33,7 +33,11 @@
           <li *ngFor="let document of documents">
             <div>
               <b>{{ document.fileName }}</b>
-              <small>{{ document.createdAt | date:'dd/MM/yyyy HH:mm' }} · {{ document.sizeBytes / 1024 | number:'1.0-1' }} KB</small>
+              <small>{{ document.createdAt | date:'dd/MM/yyyy HH:mm' }}
+                <ng-container *ngIf="document.sizeBytes !== null; else unknownSize"> · {{ document.sizeBytes / 1024 | number:'1.0-1' }} KB</ng-container>
+                <ng-template #unknownSize> · Tamaño no registrado</ng-template>
+              </small>
+              <small *ngIf="!document.isVisibleToPatient">Visible solo para el profesional</small>
             </div>
             <button class="btn btn-secondary" type="button" [disabled]="!!downloadingId"
                     [attr.aria-label]="'Descargar ' + document.fileName" (click)="download(document)">
