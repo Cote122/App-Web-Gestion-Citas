@@ -6,4 +6,8 @@ public record MedicalDocumentDto(
     Guid Id, Guid AppointmentId, string FileName, string ContentType,
     long? SizeBytes, DateTimeOffset CreatedAt, bool IsVisibleToPatient, bool CanChangeVisibility);
 
-public record UpdateMedicalDocumentVisibilityDto([property: Required] bool? IsVisibleToPatient);
+public sealed class UpdateMedicalDocumentVisibilityDto
+{
+    [Required]
+    public bool? IsVisibleToPatient { get; init; }
+}
