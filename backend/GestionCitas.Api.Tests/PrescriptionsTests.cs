@@ -123,6 +123,7 @@ public class PrescriptionsTests
     {
         using var app = new TestApp(); await app.Mutate(db => db.ClinicalEncounters.Add(new ClinicalEncounter { AppointmentId = app.Data.AppointmentId, PatientId = app.Data.PatientId, ProfessionalId = app.Data.ProfessionalId, Status = "Abierta", Notes = "Nota original" }));
         await app.Create(); using var scope = app.Host.Services.CreateScope(); var row = await scope.ServiceProvider.GetRequiredService<AppDbContext>().ClinicalEncounters.SingleAsync(); Assert.Equal("Nota original", row.Notes); Assert.Equal("Abierta", row.Status);
+        app.SignIn(app.Data.PatientId, "Paciente");
         app.Client.DefaultRequestHeaders.Remove("X-Test-UserId"); app.Client.DefaultRequestHeaders.Add("X-Test-UserId", "invalid"); using var response = await app.Client.GetAsync("/api/prescriptions/mine"); Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 
