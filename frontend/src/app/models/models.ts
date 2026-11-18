@@ -147,6 +147,7 @@ export interface CreateAbsenceResponse {
 export type AttendanceStatus = 'Pendiente' | 'Confirmada' | 'NoAsistira';
 
 export interface Appointment {
+  rescheduling: { maximum: number; used: number; remaining: number; canReschedule: boolean; historyComplete: boolean } | null;
   id: string;
   code: string;
   specialtyId: string;
