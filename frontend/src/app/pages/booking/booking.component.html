@@ -19,6 +19,7 @@
 
   <section class="card" *ngIf="appointmentId && currentAppointment && specialty && professional">
     <h3>Cita actual</h3>
+    <p *ngIf="currentAppointment.rescheduling as allowance">Límite: {{ allowance.maximum }} reprogramaciones · Realizadas: {{ allowance.used }} · Disponibles: {{ allowance.remaining }}</p>
     <div class="summary">
       <span>{{ specialty.name }}</span>
       <span>{{ professional.fullName }}</span>
@@ -171,3 +172,4 @@
   buttonText="Aceptar"
   (closed)="closeAlert()">
 </app-alert-modal>
+

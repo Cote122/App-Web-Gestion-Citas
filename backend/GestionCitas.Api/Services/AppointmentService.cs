@@ -4,11 +4,14 @@ using GestionCitas.Api.Data;
 using GestionCitas.Api.Dtos;
 using GestionCitas.Api.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.Options;
 
 namespace GestionCitas.Api.Services;
 
-public class AppointmentService(AppDbContext db)
+public class AppointmentService(AppDbContext db, IOptions<AppointmentPolicyOptions>? options = null)
 {
+    private readonly PatientReschedulingPolicy policy = new(db, options ?? Options.Create(new AppointmentPolicyOptions()));
     public async Task<(AppointmentDto? Appointment, string? Error)> CreateAsync(Guid patientId, Guid slotId)
     {
         await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable);
@@ -47,7 +50,7 @@ public class AppointmentService(AppDbContext db)
             return (null, "Otro usuario tomó el horario. Selecciona otro cupo.");
         }
 
-        return (ToDto(appointment, slot), null);
+        return (await WithPolicyAsync(appointment, slot), null);
     }
 
     public async Task<List<AppointmentDto>> MineAsync(Guid patientId)
@@ -61,7 +64,8 @@ public class AppointmentService(AppDbContext db)
             .OrderByDescending(x => x.Slot.StartAt)
             .ToListAsync();
 
-        return rows.Select(x => ToDto(x, x.Slot)).ToList();
+        var policies = await policy.BuildAsync(patientId, rows);
+        return rows.Select(x => ToDto(x, x.Slot) with { Rescheduling = policies[x.Id] }).ToList();
     }
 
     public async Task<(bool Ok, string? Error)> CancelAsync(Guid patientId, Guid appointmentId)
@@ -120,9 +124,21 @@ public class AppointmentService(AppDbContext db)
 
     public async Task<(AppointmentDto? Appointment, string? Error)> RescheduleAsync(Guid patientId, Guid appointmentId, Guid newSlotId)
     {
+        try { return await RescheduleCoreAsync(patientId, appointmentId, newSlotId); }
+        catch (SqlException error) when (error.Number == 1205) { return (null, "La cita cambió durante la operación. Actualiza e intenta nuevamente."); }
+        catch (DbUpdateException error) when (error.InnerException is SqlException { Number: 1205 })
+        { return (null, "La cita cambió durante la operación. Actualiza e intenta nuevamente."); }
+    }
+
+    private async Task<(AppointmentDto? Appointment, string? Error)> RescheduleCoreAsync(Guid patientId, Guid appointmentId, Guid newSlotId)
+    {
         await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable);
 
-        var current = await db.Appointments
+        // Serializar cambios de la misma cita antes de contar y ocupar otro cupo.
+        IQueryable<Appointment> query = db.Appointments;
+        if (db.Database.IsSqlServer())
+            query = db.Appointments.FromSqlInterpolated($"SELECT * FROM dbo.Appointments WITH (UPDLOCK, HOLDLOCK) WHERE Id = {appointmentId} AND PatientId = {patientId}");
+        var current = await query
             .Include(x => x.Patient)
             .Include(x => x.Slot)
                 .ThenInclude(x => x.Professional)
@@ -134,6 +150,10 @@ public class AppointmentService(AppDbContext db)
             return (null, "La cita ya no puede reprogramarse.");
         if (current.Slot.StartAt <= DateTimeOffset.UtcNow)
             return (null, "No se puede reprogramar una cita cuyo horario ya inició.");
+        var allowance = (await policy.BuildAsync(patientId))[current.Id];
+        if (!allowance.HistoryComplete) return (null, PatientReschedulingPolicy.IncompleteHistoryMessage);
+        if (allowance.Remaining == 0)
+            return (null, $"Alcanzaste el límite de {allowance.Maximum} reprogramaciones permitidas para esta cita.");
         if (current.SlotId == newSlotId)
             return (null, "Selecciona un horario diferente al de tu cita actual.");
 
@@ -211,7 +231,7 @@ public class AppointmentService(AppDbContext db)
             return (null, "Otro usuario tomó el nuevo horario. Selecciona otro cupo.");
         }
 
-        return (ToDto(replacement, newSlot), null);
+        return (await WithPolicyAsync(replacement, newSlot), null);
     }
 
     public async Task<(AppointmentDto? Appointment, string? Error)> RespondAttendanceAsync(
@@ -265,8 +285,11 @@ public class AppointmentService(AppDbContext db)
         });
 
         await db.SaveChangesAsync();
-        return (ToDto(appointment, appointment.Slot), null);
+        return (await WithPolicyAsync(appointment, appointment.Slot), null);
     }
+
+    private async Task<AppointmentDto> WithPolicyAsync(Appointment appointment, AvailabilitySlot slot) =>
+        ToDto(appointment, slot) with { Rescheduling = (await policy.BuildAsync(appointment.PatientId))[appointment.Id] };
 
     private async Task AssignReleasedSlotOrMakeAvailableAsync(AvailabilitySlot slot)
     {
@@ -339,3 +362,4 @@ public class AppointmentService(AppDbContext db)
             appointment.AttendanceRequestedAt,
             appointment.AttendanceRespondedAt);
 }
+

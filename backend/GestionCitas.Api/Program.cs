@@ -24,6 +24,9 @@ builder.Services.Configure<EmailSettings>(
 
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<AppointmentService>();
+builder.Services.AddOptions<AppointmentPolicyOptions>()
+    .Bind(builder.Configuration.GetSection("AppointmentPolicy"))
+    .ValidateDataAnnotations().ValidateOnStart();
 builder.Services.AddScoped<ProfessionalAgendaService>();
 builder.Services.AddScoped<AppointmentCommunicationService>();
 builder.Services.AddScoped<SmtpEmailSender>();

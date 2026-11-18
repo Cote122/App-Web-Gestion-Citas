@@ -181,6 +181,12 @@ export class AppointmentsComponent implements OnInit {
   }
 
   reschedule(item: Appointment): void {
+    if (!item.rescheduling?.canReschedule) {
+      this.showAlert('No se puede reprogramar', item.rescheduling?.historyComplete
+        ? `Alcanzaste el límite de ${item.rescheduling.maximum} reprogramaciones permitidas para esta cita.`
+        : 'No se pudo validar el historial de reprogramaciones. Actualiza la información.');
+      return;
+    }
     this.router.navigate(['/app/book'], {
       queryParams: { appointmentId: item.id }
     });
