@@ -2,9 +2,33 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { AbsenceType, AdminProfessional, AdminSpecialty, AdminUser, AffectedAppointment, Appointment, AvailabilitySlot, CreateAbsenceResponse, MedicalRecord, Professional, ProfessionalAbsence, ProfessionalAgendaItem, ProfessionalAppointmentDetail, RoleDefinition, Specialty, UserRole, WaitlistItem, WaitlistResponse } from '../models/models';
 import { Observable } from 'rxjs';
+import { MedicalDocument, MedicalDocumentLimits } from '../models/models';
 @Injectable({ providedIn: 'root' })
 export class ApiService {
   constructor(private readonly http: HttpClient) {}
+
+  medicalDocumentLimits() {
+    return this.http.get<MedicalDocumentLimits>('/api/medical-documents/limits');
+  }
+
+  medicalDocuments(appointmentId: string) {
+    return this.http.get<MedicalDocument[]>(`/api/medical-documents/appointments/${appointmentId}`);
+  }
+
+  uploadMedicalDocument(appointmentId: string, file: File, isVisibleToPatient?: boolean) {
+    const payload = new FormData();
+    payload.append('file', file);
+    if (isVisibleToPatient !== undefined) payload.append('isVisibleToPatient', String(isVisibleToPatient));
+    return this.http.post<MedicalDocument>(`/api/medical-documents/appointments/${appointmentId}`, payload);
+  }
+
+  downloadMedicalDocument(id: string) {
+    return this.http.get(`/api/medical-documents/${id}/download`, { responseType: 'blob' });
+  }
+
+  updateMedicalDocumentVisibility(id: string, isVisibleToPatient: boolean) {
+    return this.http.patch<MedicalDocument>(`/api/medical-documents/${id}/visibility`, { isVisibleToPatient });
+  }
 
   specialties() {
     return this.http.get<Specialty[]>('/api/specialties');
