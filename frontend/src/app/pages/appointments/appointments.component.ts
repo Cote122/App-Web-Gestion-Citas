@@ -6,17 +6,19 @@ import { ApiService } from '../../core/api.service';
 import { Appointment, WaitlistItem } from '../../models/models';
 import { AlertModalComponent } from '../../shared/alert-modal/alert-modal.component';
 import { ConfirmModalComponent } from '../../shared/confirm-modal/confirm-modal.component';
+import { MedicalDocumentsComponent } from '../../shared/medical-documents/medical-documents.component';
 
 @Component({
   selector: 'app-appointments',
   standalone: true,
-  imports: [CommonModule, DatePipe, AlertModalComponent, ConfirmModalComponent],
+  imports: [CommonModule, DatePipe, AlertModalComponent, ConfirmModalComponent, MedicalDocumentsComponent],
   templateUrl: './appointments.component.html',
   styleUrl: './appointments.component.css'
 })
 export class AppointmentsComponent implements OnInit {
   items: Appointment[] = [];
   waitlist: WaitlistItem[] = [];
+  documentsAppointment?: Appointment;
 
   loading = false;
 

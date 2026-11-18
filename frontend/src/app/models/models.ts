@@ -1,5 +1,21 @@
 export type UserRole = 'Paciente' | 'Profesional' | 'Administrador' | 'Caja';
 
+export interface MedicalDocument {
+  id: string;
+  appointmentId: string;
+  fileName: string;
+  contentType: string;
+  sizeBytes: number | null;
+  createdAt: string;
+  isVisibleToPatient: boolean;
+  canChangeVisibility: boolean;
+}
+
+export interface MedicalDocumentLimits {
+  maxFileSizeBytes: number;
+  extensions: string[];
+}
+
 export interface User {
   id: string;
   dni: string;
@@ -181,4 +197,3 @@ export interface MedicalRecord {
   createdAt: string;
   updatedAt?: string;
 }
-

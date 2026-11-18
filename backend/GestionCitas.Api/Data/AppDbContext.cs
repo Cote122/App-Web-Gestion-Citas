@@ -13,11 +13,24 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<AppointmentAuditLog> AppointmentAuditLogs => Set<AppointmentAuditLog>();
     public DbSet<WaitlistEntry> WaitlistEntries => Set<WaitlistEntry>();
     public DbSet<MedicalRecord> MedicalRecords => Set<MedicalRecord>();
+    public DbSet<MedicalDocument> MedicalDocuments => Set<MedicalDocument>();
     public DbSet<NotificationOutbox> NotificationOutbox => Set<NotificationOutbox>();
     public DbSet<ProfessionalAbsence> ProfessionalAbsences => Set<ProfessionalAbsence>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<MedicalDocument>(entity =>
+        {
+            entity.HasIndex(x => new { x.AppointmentId, x.CreatedAt });
+            entity.HasIndex(x => new { x.PatientId, x.CreatedAt });
+            entity.HasOne(x => x.Patient).WithMany().HasForeignKey(x => x.PatientId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(x => x.Appointment).WithMany().HasForeignKey(x => x.AppointmentId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(x => x.UploadedByUser).WithMany().HasForeignKey(x => x.UploadedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
         modelBuilder.Entity<User>(entity =>
         {
             entity.HasIndex(x => x.Dni).IsUnique();

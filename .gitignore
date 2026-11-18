@@ -30,3 +30,6 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Documentos privados cargados en ejecución
+**/private-medical-documents/
