@@ -37,6 +37,7 @@
         <div class="actions" style="display: flex; gap: 0.5rem; align-items: center;" (click)="$event.stopPropagation()">
           <button type="button" class="btn btn-primary" (click)="openRecordForm(item.id, item.patientId)">Atender</button>
           <button type="button" class="btn btn-secondary" (click)="documentsAppointment = item">Documentos</button>
+          <a class="btn btn-secondary" [routerLink]="['/app/results/appointments', item.id]">Resultados</a>
           <button type="button" class="btn btn-secondary" (click)="openRescheduleModal(item)">Reprogramar</button>
           <button type="button" class="btn btn-danger" (click)="promptCancelAppointment(item.id)">Cancelar</button>
         </div>
@@ -70,6 +71,7 @@
           <div class="actions" style="display: flex; gap: 0.5rem; align-items: center;" (click)="$event.stopPropagation()">
             <button type="button" class="btn btn-info" (click)="openRecordForm(item.id, item.patientId)">Ver Registro Médico</button>
             <button type="button" class="btn btn-secondary" (click)="documentsAppointment = item">Documentos</button>
+          <a class="btn btn-secondary" [routerLink]="['/app/results/appointments', item.id]">Resultados</a>
           </div>
         </article>
       </div>
@@ -98,6 +100,7 @@
           <div><span class="badge" [ngClass]="badgeClass(item.status)">{{ item.status }}</span></div>
           <div class="actions" (click)="$event.stopPropagation()">
             <button type="button" class="btn btn-secondary" (click)="documentsAppointment = item">Documentos</button>
+          <a class="btn btn-secondary" [routerLink]="['/app/results/appointments', item.id]">Resultados</a>
           </div>
         </article>
       </div>

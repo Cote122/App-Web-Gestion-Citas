@@ -9,6 +9,7 @@ La API utiliza Entity Framework Core. En el entorno compartido del equipo ya exi
 - `07_historia_medica.sql`: actualización idempotente de historial médico y motivo de consulta. Crea los objetos que faltan, conserva las claves foráneas existentes de auditoría sin depender de sus nombres y asegura un índice no único en la auditoría.
 - `08_corregir_indice_auditoria.sql`: reparación idempotente para bases donde ya se ejecutó la versión anterior de `07_historia_medica.sql`. Sustituye el índice único por uno no único, sin eliminar datos.
 - `09_documentos_medicos.sql`: valida el catálogo clínico de 13 columnas de HU-18 y agrega índices no únicos; crea la tabla si falta. Conserva columnas y registros existentes. Ejecutar antes de publicar el manejo de documentos; ver [configuración y pruebas](../docs/MEDICAL_DOCUMENTS.md).
+- `10_resultados_clinicos.sql`: valida las tres tablas clínicas existentes de HU-15 y agrega índices no únicos sin alterar datos, estados ni defaults. Requiere el catálogo clínico instalado; ver [resultados clínicos](../docs/CLINICAL_RESULTS.md).
 
 Si ya están creados el historial y el motivo y solo falta reparar el índice, ejecutar `08_corregir_indice_auditoria.sql` y comprobar que `IsUnique = 0`. Para instalar el historial o completar una ejecución parcial, ejecutar el `07_historia_medica.sql` actualizado; su resultado debe mostrar `Reason = OK`, `MedicalRecords = OK` y `AuditIndexIsUnique = 0`. Este 07 ya incluye la reparación del índice y no necesita ejecutar el 08 a continuación.
 
