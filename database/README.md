@@ -10,6 +10,7 @@ La API utiliza Entity Framework Core. En el entorno compartido del equipo ya exi
 - `08_corregir_indice_auditoria.sql`: reparación idempotente para bases donde ya se ejecutó la versión anterior de `07_historia_medica.sql`. Sustituye el índice único por uno no único, sin eliminar datos.
 - `09_documentos_medicos.sql`: valida el catálogo clínico de 13 columnas de HU-18 y agrega índices no únicos; crea la tabla si falta. Conserva columnas y registros existentes. Ejecutar antes de publicar el manejo de documentos; ver [configuración y pruebas](../docs/MEDICAL_DOCUMENTS.md).
 - `10_resultados_clinicos.sql`: valida las tres tablas clínicas existentes de HU-15 y agrega índices no únicos sin alterar datos, estados ni defaults. Requiere el catálogo clínico instalado; ver [resultados clínicos](../docs/CLINICAL_RESULTS.md).
+- `11_recetas_indicaciones.sql`: valida el catálogo existente de recetas/indicaciones y agrega índices no únicos, conservando defaults y datos. Ver [HU-16](../docs/PRESCRIPTIONS.md).
 
 Si ya están creados el historial y el motivo y solo falta reparar el índice, ejecutar `08_corregir_indice_auditoria.sql` y comprobar que `IsUnique = 0`. Para instalar el historial o completar una ejecución parcial, ejecutar el `07_historia_medica.sql` actualizado; su resultado debe mostrar `Reason = OK`, `MedicalRecords = OK` y `AuditIndexIsUnique = 0`. Este 07 ya incluye la reparación del índice y no necesita ejecutar el 08 a continuación.
 
@@ -38,3 +39,5 @@ dotnet ef database update
 ```
 
 No ejecutar migraciones de forma independiente sobre una base compartida sin coordinación del equipo.
+
+- `12_correcciones_recetas.sql`: crea y valida el historial independiente de correcciones de recetas por administrador, sin modificar columnas ni contenido de las recetas existentes. Ejecutar después del 11.

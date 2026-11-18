@@ -17,7 +17,7 @@ public class AdminUsersController(AppDbContext db) : ControllerBase
             ["Paciente"] = ["Citas.VerPropias", "Citas.Crear", "Citas.Cancelar", "Citas.Reprogramar", "Disponibilidad.Consultar"],
             ["Profesional"] = ["Pacientes.VerAsignados", "Atenciones.Registrar", "Historial.VerAutorizado"],
             ["Caja"] = ["Citas.Ver", "Citas.Registrar", "Pagos.Gestionar", "Disponibilidad.Gestionar"],
-            ["Administrador"] = ["Usuarios.Gestionar", "Roles.Gestionar", "Especialidades.Gestionar", "Profesionales.Gestionar", "Auditoria.Ver"]
+            ["Administrador"] = ["Usuarios.Gestionar", "Roles.Gestionar", "Especialidades.Gestionar", "Profesionales.Gestionar", "Auditoria.Ver", "Recetas.Corregir"]
         };
 
     [HttpGet]
@@ -60,3 +60,4 @@ public class AdminUsersController(AppDbContext db) : ControllerBase
         return Ok(new AdminUserDto(user.Id, user.Dni, user.Email, user.FullName, user.Role, user.IsActive));
     }
 }
+

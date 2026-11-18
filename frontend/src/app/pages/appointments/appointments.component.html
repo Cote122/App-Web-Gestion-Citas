@@ -48,12 +48,20 @@
 
           <div class="row-actions" *ngIf="isActive(item)">
             <button class="btn btn-secondary" type="button" (click)="documentsAppointment = item">Documentos</button>
-            <button class="btn btn-secondary" (click)="reschedule(item)">
+            <button class="btn btn-secondary" (click)="reschedule(item)" [disabled]="!item.rescheduling?.canReschedule">
               Reprogramar
             </button>
             <button class="btn btn-danger" (click)="requestCancelAppointment(item)">
               Cancelar
             </button>
+          </div>
+
+          <div class="attendance-panel" *ngIf="item.rescheduling as allowance">
+            <div *ngIf="allowance.historyComplete; else unavailableHistory">
+              <small>Reprogramaciones: {{ allowance.used }} de {{ allowance.maximum }}</small>
+              <b>{{ allowance.remaining ? allowance.remaining + ' disponibles' : 'Límite alcanzado' }}</b>
+            </div>
+            <ng-template #unavailableHistory><small>No se pudo validar el historial de reprogramaciones.</small></ng-template>
           </div>
 
           <div class="attendance-panel" *ngIf="item.attendanceRequestedAt">
