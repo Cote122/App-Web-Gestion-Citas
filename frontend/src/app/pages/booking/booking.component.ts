@@ -85,6 +85,10 @@ export class BookingComponent implements OnInit {
           }
 
           this.currentAppointment = current;
+          if (new Date(current.startAt).getTime() <= Date.now()) {
+            this.showAlert('No se puede reprogramar', 'El horario de la cita ya inició.', true);
+            return;
+          }
           if (!current.rescheduling?.canReschedule) {
             this.showAlert('No se puede reprogramar', current.rescheduling?.historyComplete
               ? `Alcanzaste el límite de ${current.rescheduling.maximum} reprogramaciones permitidas para esta cita.`
