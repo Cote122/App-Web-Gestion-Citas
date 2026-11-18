@@ -27,4 +27,6 @@ public record ProfessionalAppointmentDetailDto(
     string Office,
     string? Reason,
     string Status,
-    ProfessionalPatientDto Patient);
+    ProfessionalPatientDto Patient,
+    string Professional = "");
+

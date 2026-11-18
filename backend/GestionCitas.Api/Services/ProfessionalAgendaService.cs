@@ -241,5 +241,6 @@ public class ProfessionalAgendaService(AppDbContext db)
                 appointment.Patient.Id,
                 appointment.Patient.Dni,
                 appointment.Patient.FullName,
-                appointment.Patient.Email));
+                appointment.Patient.Email),
+            appointment.Slot.Professional.FullName);
 }

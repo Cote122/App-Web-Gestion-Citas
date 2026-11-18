@@ -4,9 +4,22 @@ import { AbsenceType, AdminProfessional, AdminSpecialty, AdminUser, AffectedAppo
 import { Observable } from 'rxjs';
 import { MedicalDocument, MedicalDocumentLimits } from '../models/models';
 import { ClinicalResult, ClinicalResultFile, SaveClinicalResult } from '../models/models';
+import { Prescription, PrescriptionItem, PatientIndication } from '../models/models';
+import { AdminPrescription, CorrectPrescription, PrescriptionCorrection } from '../models/models';
 @Injectable({ providedIn: 'root' })
 export class ApiService {
   constructor(private readonly http: HttpClient) {}
+  adminPrescriptions(patientDni: string) { return this.http.get<AdminPrescription[]>('/api/admin/prescriptions', { params: { patientDni } }); }
+  adminPrescription(id: string) { return this.http.get<AdminPrescription>(`/api/admin/prescriptions/${id}`); }
+  prescriptionCorrections(id: string) { return this.http.get<PrescriptionCorrection[]>(`/api/admin/prescriptions/${id}/corrections`); }
+  correctPrescription(id: string, request: CorrectPrescription) { return this.http.put<AdminPrescription>(`/api/admin/prescriptions/${id}`, request); }
+  myPrescriptions() { return this.http.get<Prescription[]>('/api/prescriptions/mine'); }
+  myIndications() { return this.http.get<PatientIndication[]>('/api/prescriptions/indications/mine'); }
+  prescription(id: string) { return this.http.get<Prescription>(`/api/prescriptions/${id}`); }
+  indication(id: string) { return this.http.get<PatientIndication>(`/api/prescriptions/indications/${id}`); }
+  appointmentPrescriptions(id: string) { return this.http.get<Prescription[]>(`/api/prescriptions/appointments/${id}`); }
+  issuePrescription(id: string, payload: { generalIndications: string | null; items: PrescriptionItem[] }) { return this.http.post<Prescription>(`/api/prescriptions/appointments/${id}`, payload); }
+  deactivatePrescription(id: string) { return this.http.delete<Prescription>(`/api/prescriptions/${id}`); }
 
   myClinicalResults() { return this.http.get<ClinicalResult[]>('/api/clinical-results/mine'); }
   appointmentResults(id: string) { return this.http.get<ClinicalResult[]>(`/api/clinical-results/appointments/${id}`); }

@@ -46,7 +46,7 @@ public class ClinicalEncounter
     public string? Notes { get; set; }
     public string? DiagnosisSummary { get; set; }
     public string? Indications { get; set; }
-    [MaxLength(30)] public string Status { get; set; } = "Pendiente";
+    [MaxLength(30)] public string Status { get; set; } = "Abierta";
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset? UpdatedAt { get; set; }
 }

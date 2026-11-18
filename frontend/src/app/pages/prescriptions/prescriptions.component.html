@@ -1,0 +1,57 @@
+<section class="card">
+  <div class="heading">
+    <div><a *ngIf="appointmentId" routerLink="/app/agenda">← Volver a mi agenda</a><h2>Recetas e indicaciones</h2>
+      <p class="muted">{{ appointmentId ? 'Atención de ' + patientName : 'Consulta lo indicado por el profesional en tus atenciones.' }}</p></div>
+    <div class="buttons"><button class="btn btn-secondary" type="button" (click)="load()" [disabled]="loading || busy || detailLoading">Actualizar</button>
+      <button *ngIf="appointmentId && canIssue" class="btn btn-primary" type="button" (click)="startNew()" [disabled]="loading || busy || detailLoading">Nueva receta</button></div>
+  </div>
+  <p class="success" role="status" *ngIf="success">{{ success }}</p>
+  <p class="muted" role="status" *ngIf="loading">Consultando recetas...</p>
+  <p *ngIf="appointmentId && !loading && !canIssue" class="muted">Registra la atención médica desde Mi agenda para emitir una receta.</p>
+  <div class="table-scroll" *ngIf="!loading && prescriptions.length">
+    <table><thead><tr><th scope="col">Fecha de emisión</th><th scope="col">Profesional</th><th scope="col">Estado</th><th scope="col">Detalle</th></tr></thead>
+      <tbody><tr *ngFor="let value of prescriptions"><td>{{ value.issuedAt | date:'dd/MM/yyyy HH:mm' }}</td><td>{{ value.professional }}</td>
+        <td><span class="badge" [class.badge-green]="value.isActive" [class.badge-gray]="!value.isActive">{{ value.isActive ? 'Activa' : 'Anulada' }}</span></td>
+        <td><button class="btn btn-secondary" type="button" (click)="open(value.id)" [disabled]="busy || detailLoading">Ver receta</button></td></tr></tbody></table>
+  </div>
+  <p class="muted" *ngIf="!loading && !prescriptions.length">No hay recetas disponibles.</p>
+</section>
+<section class="card" *ngIf="!appointmentId && !loading">
+  <h3>Indicaciones de tus atenciones</h3>
+  <p class="muted" *ngIf="!indications.length">No hay indicaciones registradas para consultar.</p>
+  <div class="indications"><article *ngFor="let value of indications"><div><b>{{ value.professional }}</b><small>{{ value.attentionDate | date:'dd/MM/yyyy' }}</small></div>
+    <button class="btn btn-secondary" type="button" (click)="openIndication(value.id)" [disabled]="detailLoading">Ver indicaciones</button></article></div>
+</section>
+<section class="card" *ngIf="detailLoading"><p role="status">Consultando detalle...</p></section>
+<section class="card" *ngIf="selected as value">
+  <h3>Receta médica</h3><p class="muted">{{ value.professional }} · {{ value.issuedAt | date:'dd/MM/yyyy HH:mm' }}</p>
+  <div class="table-scroll" *ngIf="value.items.length"><table><thead><tr><th scope="col">Medicamento</th><th scope="col">Dosis</th><th scope="col">Frecuencia</th><th scope="col">Duración</th><th scope="col">Instrucciones</th></tr></thead>
+    <tbody><tr *ngFor="let item of value.items"><td>{{ item.medication }}</td><td>{{ item.dose || 'No registrada' }}</td><td>{{ item.frequency || 'No registrada' }}</td><td>{{ item.duration || 'No registrada' }}</td><td>{{ item.instructions || 'Sin instrucciones adicionales' }}</td></tr></tbody></table></div>
+  <h4 *ngIf="value.generalIndications">Indicaciones generales</h4><p class="content" *ngIf="value.generalIndications">{{ value.generalIndications }}</p>
+  <p *ngIf="appointmentId" class="muted">El contenido emitido solo puede corregirlo un administrador.</p>
+  <button *ngIf="value.canDeactivate" class="btn btn-danger" type="button" (click)="deactivate(value)" [disabled]="busy">Anular receta</button>
+</section>
+<section class="card" *ngIf="selectedIndication as value"><h3>Indicaciones de la atención</h3><p class="muted">{{ value.professional }} · {{ value.attentionDate | date:'dd/MM/yyyy' }}</p><p class="content">{{ value.content }}</p></section>
+<section class="card" *ngIf="creating">
+  <form #prescriptionForm="ngForm" (ngSubmit)="issue()">
+    <h3>Nueva receta</h3><p class="muted">Registra el tratamiento y revisa su contenido antes de emitirlo. La receta emitida estará disponible para el paciente.</p>
+    <fieldset *ngFor="let item of items; let i = index" [disabled]="busy"><legend>Medicamento {{ i + 1 }}</legend>
+      <div class="fields"><label>Medicamento *<input [name]="'medication' + i" [(ngModel)]="item.medication" maxlength="200" required></label>
+        <label>Dosis<input [name]="'dose' + i" [(ngModel)]="item.dose" maxlength="100"></label>
+        <label>Frecuencia<input [name]="'frequency' + i" [(ngModel)]="item.frequency" maxlength="100"></label>
+        <label>Duración<input [name]="'duration' + i" [(ngModel)]="item.duration" maxlength="100"></label>
+        <label class="wide">Instrucciones<textarea [name]="'instructions' + i" [(ngModel)]="item.instructions" maxlength="500" rows="2"></textarea></label></div>
+      <button class="btn btn-secondary" type="button" (click)="items.splice(i, 1)">Quitar medicamento</button>
+    </fieldset>
+    <button class="btn btn-secondary" type="button" (click)="addItem()" [disabled]="busy || items.length >= 20">Agregar medicamento</button>
+    <label class="general">Indicaciones generales<textarea name="generalIndications" [(ngModel)]="generalIndications" maxlength="10000" rows="5" [disabled]="busy"></textarea></label>
+    <div class="buttons"><button class="btn btn-secondary" type="button" (click)="creating = false" [disabled]="busy">Cancelar</button>
+      <button class="btn btn-primary" type="submit" [disabled]="busy || prescriptionForm.invalid">{{ busy ? 'Emitiendo...' : 'Emitir receta' }}</button></div>
+  </form>
+</section>
+<app-alert-modal *ngIf="alertMessage" title="Recetas e indicaciones" [message]="alertMessage" buttonText="Aceptar" (closed)="alertMessage = ''"></app-alert-modal>
+<app-prescription-review *ngIf="pendingIssue as draft"
+  [patient]="patientName + ' · DNI ' + patientDni" [professional]="professionalName"
+  [items]="draft.items" [generalIndications]="draft.generalIndications" [busy]="busy"
+  (cancelled)="pendingIssue = undefined" (confirmed)="confirmIssue()">
+</app-prescription-review>
