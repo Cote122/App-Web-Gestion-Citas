@@ -23,6 +23,7 @@
     <ProjectReference Include="..\GestionCitas.Api\GestionCitas.Api.csproj" />
     <None Include="../../database/09_documentos_medicos.sql" Link="SqlScripts/09_documentos_medicos.sql" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../../database/10_resultados_clinicos.sql" Link="SqlScripts/10_resultados_clinicos.sql" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../../database/11_recetas_indicaciones.sql" Link="SqlScripts/11_recetas_indicaciones.sql" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>
 

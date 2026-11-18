@@ -17,11 +17,23 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<ClinicalResult> ClinicalResults => Set<ClinicalResult>();
     public DbSet<ClinicalResultFile> ClinicalResultFiles => Set<ClinicalResultFile>();
     public DbSet<ClinicalEncounter> ClinicalEncounters => Set<ClinicalEncounter>();
+    public DbSet<Prescription> Prescriptions => Set<Prescription>();
+    public DbSet<PrescriptionItem> PrescriptionItems => Set<PrescriptionItem>();
     public DbSet<NotificationOutbox> NotificationOutbox => Set<NotificationOutbox>();
     public DbSet<ProfessionalAbsence> ProfessionalAbsences => Set<ProfessionalAbsence>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<Prescription>(entity =>
+        {
+            entity.HasOne(x => x.Encounter).WithMany().HasForeignKey(x => x.EncounterId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(x => x.Professional).WithMany().HasForeignKey(x => x.ProfessionalId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasMany(x => x.Items).WithOne().HasForeignKey(x => x.PrescriptionId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasIndex(x => new { x.PatientId, x.IssuedAt });
+            entity.Property(x => x.IsActive).IsConcurrencyToken();
+        });
+        modelBuilder.Entity<PrescriptionItem>().HasIndex(x => new { x.PrescriptionId, x.SortOrder });
+
         modelBuilder.Entity<ClinicalResult>(entity =>
         {
             entity.HasIndex(x => new { x.PatientId, x.PublishedAt });

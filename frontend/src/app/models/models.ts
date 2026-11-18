@@ -1,5 +1,9 @@
 export type UserRole = 'Paciente' | 'Profesional' | 'Administrador' | 'Caja';
 
+export interface PrescriptionItem { medication: string; dose: string | null; frequency: string | null; duration: string | null; instructions: string | null; }
+export interface Prescription { id: string; issuedAt: string; professional: string; generalIndications: string | null; isActive: boolean; canDeactivate: boolean; items: PrescriptionItem[]; }
+export interface PatientIndication { id: string; attentionDate: string; professional: string; content: string; }
+
 export interface ClinicalResultFile {
   id: string; fileName: string; contentType: string; sizeBytes: number | null; uploadedAt: string;
 }

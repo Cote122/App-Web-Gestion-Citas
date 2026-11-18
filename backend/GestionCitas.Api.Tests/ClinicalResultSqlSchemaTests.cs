@@ -83,7 +83,7 @@ public class ClinicalResultSqlSchemaTests
         await using var database = await MedicalDocumentSqlSchemaTests.TestDatabase.Create();
         await using var db = Context(database.ConnectionString);
         await db.Database.EnsureCreatedAsync();
-        await database.Execute("DROP TABLE dbo.ClinicalResultFiles; DROP TABLE dbo.ClinicalResults; DROP TABLE dbo.ClinicalEncounters;" + NativeSchema);
+        await database.Execute("DROP TABLE dbo.PrescriptionItems; DROP TABLE dbo.Prescriptions; DROP TABLE dbo.ClinicalResultFiles; DROP TABLE dbo.ClinicalResults; DROP TABLE dbo.ClinicalEncounters;" + NativeSchema);
         var data = TestAppointments.Seed(db);
         var encounter = new ClinicalEncounter { AppointmentId = data.AppointmentId, PatientId = data.PatientId, ProfessionalId = data.ProfessionalId };
         var storage = new ClinicalResultsTests.TestStorage(); var key = Guid.NewGuid().ToString("N"); storage.Files[key] = ClinicalResultsTests.Pdf;
