@@ -4,6 +4,7 @@ public record CreateAppointmentRequest(Guid SlotId);
 public record RescheduleAppointmentRequest(Guid SlotId);
 public record CreateWaitlistRequest(Guid SlotId);
 public record AttendanceResponseRequest(string Response);
+public record ReschedulingDto(int Maximum, int Used, int Remaining, bool CanReschedule, bool HistoryComplete);
 
 public record AppointmentDto(
     Guid Id,
@@ -19,7 +20,8 @@ public record AppointmentDto(
     decimal Price,
     string AttendanceStatus,
     DateTimeOffset? AttendanceRequestedAt,
-    DateTimeOffset? AttendanceRespondedAt);
+    DateTimeOffset? AttendanceRespondedAt,
+    ReschedulingDto? Rescheduling = null);
 
 public record WaitlistItemDto(
     Guid Id,
@@ -49,3 +51,4 @@ public record AdminAttendanceDto(
     string AttendanceStatus,
     DateTimeOffset? AttendanceRequestedAt,
     DateTimeOffset? AttendanceRespondedAt);
+
