@@ -34,6 +34,14 @@
   </div>
 </section>
 
+<app-alert-modal
+  *ngIf="downloadError"
+  title="No se pudo descargar el informe"
+  [message]="downloadError"
+  buttonText="Aceptar"
+  (closed)="downloadError = ''">
+</app-alert-modal>
+
 <section class="card detail" *ngIf="selected || creating || detailLoading" [attr.aria-busy]="detailLoading || busy">
   <p class="muted" role="status" *ngIf="detailLoading">Consultando detalle...</p>
   <ng-container *ngIf="selected as result">
