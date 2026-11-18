@@ -1,5 +1,6 @@
-﻿import { Component, OnInit } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
+import { RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
 import { ApiService } from '../../core/api.service';
 import { AuthService } from '../../core/auth.service';
@@ -9,7 +10,7 @@ import { MedicalDocumentsComponent } from '../../shared/medical-documents/medica
 @Component({
   selector: 'app-agenda',
   standalone: true,
-  imports: [CommonModule, DatePipe, MedicalRecordFormComponent, MedicalDocumentsComponent],
+  imports: [CommonModule, DatePipe, RouterLink, MedicalRecordFormComponent, MedicalDocumentsComponent],
   templateUrl: './agenda.component.html',
   styleUrls: ['./agenda.component.css']
 })

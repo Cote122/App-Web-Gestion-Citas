@@ -1,0 +1,70 @@
+<section class="card">
+  <div class="heading">
+    <div>
+      <a *ngIf="appointmentId" routerLink="/app/agenda">← Volver a mi agenda</a>
+      <h2>Resultados clínicos</h2>
+      <p class="muted">{{ appointmentId ? 'Resultados de la cita de ' + patientName : 'Consulta los resultados publicados de tus atenciones.' }}</p>
+    </div>
+    <div class="buttons">
+      <button class="btn btn-secondary" type="button" (click)="load()" [disabled]="loading || busy || detailLoading || !!downloadingId">Actualizar</button>
+      <button *ngIf="appointmentId && canCreate" class="btn btn-primary" type="button" (click)="startNew()" [disabled]="loading || busy || detailLoading">Nuevo resultado</button>
+    </div>
+  </div>
+  <p class="error" role="alert" *ngIf="error">{{ error }}</p>
+  <p class="success" role="status" *ngIf="success">{{ success }}</p>
+  <p class="muted" role="status" *ngIf="loading">Consultando resultados...</p>
+  <div class="filters" *ngIf="!loading && results.length">
+    <label>Buscar examen<input [(ngModel)]="search" placeholder="Nombre o tipo de resultado" maxlength="200"></label>
+    <label>Tipo de resultado<select [(ngModel)]="type"><option value="">Todos los tipos</option><option *ngFor="let value of types" [value]="value">{{ value }}</option></select></label>
+  </div>
+  <p class="muted empty" *ngIf="!loading && !results.length">{{ appointmentId ? 'No hay resultados registrados para esta cita.' : 'Aún no tienes resultados publicados disponibles.' }}</p>
+  <div class="table-scroll" *ngIf="!loading && results.length">
+    <table>
+      <thead><tr><th scope="col">Examen</th><th scope="col">Tipo</th><th scope="col">Fecha</th><th scope="col">Disponibilidad</th><th scope="col">Detalle</th></tr></thead>
+      <tbody>
+        <tr *ngFor="let result of filtered" [class.selected]="selected?.id === result.id">
+          <td>{{ result.title }}</td><td>{{ result.resultType }}</td>
+          <td>{{ (result.resultDate || result.publishedAt) ? ((result.resultDate || result.publishedAt) | date:'dd/MM/yyyy') : 'Sin fecha registrada' }}</td>
+          <td><span class="badge" [class.badge-green]="result.status === 'Publicado' && result.isVisibleToPatient" [class.badge-gray]="result.status !== 'Publicado' || !result.isVisibleToPatient">{{ result.status === 'Publicado' && result.isVisibleToPatient ? 'Disponible' : result.status }}</span></td>
+          <td><button class="btn btn-secondary" type="button" (click)="open(result.id)" [disabled]="busy || detailLoading">Ver resultado</button></td>
+        </tr>
+      </tbody>
+    </table>
+    <p class="muted" *ngIf="!filtered.length">No hay resultados que coincidan con la búsqueda.</p>
+  </div>
+</section>
+
+<section class="card detail" *ngIf="selected || creating || detailLoading" [attr.aria-busy]="detailLoading || busy">
+  <p class="muted" role="status" *ngIf="detailLoading">Consultando detalle...</p>
+  <ng-container *ngIf="selected as result">
+    <h3>{{ result.title }}</h3>
+    <p class="muted">{{ result.resultType }} · {{ (result.resultDate || result.publishedAt) ? ((result.resultDate || result.publishedAt) | date:'dd/MM/yyyy') : 'Sin fecha registrada' }}</p>
+    <p class="summary" *ngIf="result.summary">{{ result.summary }}</p>
+    <p *ngIf="!result.summary" class="muted">Consulta el informe adjunto para ver el contenido del resultado.</p>
+    <ul class="files" *ngIf="result.files.length">
+      <li *ngFor="let file of result.files">
+        <div><b>{{ file.fileName }}</b><small class="muted">{{ file.sizeBytes === null ? 'Tamaño no registrado' : ((file.sizeBytes / 1024) | number:'1.0-0') + ' KB' }}</small></div>
+        <button class="btn btn-secondary" type="button" (click)="download(file)" [disabled]="busy || !!downloadingId">{{ downloadingId === file.id ? 'Descargando...' : 'Descargar informe' }}</button>
+      </li>
+    </ul>
+    <p class="muted" *ngIf="!result.files.length">Este resultado no tiene informes adjuntos.</p>
+    <div *ngIf="result.canManage" class="publication">
+      <p>{{ result.status === 'Publicado' ? 'Publicado para el paciente. Retira la publicación para modificarlo o adjuntar archivos.' : 'Pendiente: el paciente todavía no puede consultar este resultado.' }}</p>
+      <label *ngIf="result.status === 'Pendiente'" class="file-label">Adjuntar informe (PDF, JPG o PNG; hasta {{ (limits?.maxFileSizeBytes || 0) / 1024 / 1024 }} MB)
+        <input type="file" [accept]="limits?.extensions?.join(',') || ''" (change)="upload($event)" [disabled]="busy || !!downloadingId || !limits || hasUnsavedChanges">
+      </label>
+      <p class="muted" *ngIf="hasUnsavedChanges">Guarda los cambios antes de adjuntar un informe o publicar.</p>
+      <button *ngIf="result.status === 'Publicado' || result.status === 'Pendiente'" class="btn btn-primary" type="button" (click)="publication()" [disabled]="busy || !!downloadingId || hasUnsavedChanges">{{ result.status === 'Publicado' ? 'Retirar publicación' : 'Publicar para el paciente' }}</button>
+    </div>
+  </ng-container>
+  <form *ngIf="creating || (selected?.canManage && selected?.status === 'Pendiente')" #resultForm="ngForm" (ngSubmit)="save()" class="result-form">
+    <h3>{{ creating ? 'Nuevo resultado' : 'Editar resultado pendiente' }}</h3>
+    <label>Tipo de resultado<input name="resultType" [(ngModel)]="form.resultType" required maxlength="100" list="resultTypes"></label>
+    <datalist id="resultTypes"><option value="Laboratorio"></option><option value="Ecografía"></option></datalist>
+    <label>Título del examen<input name="title" [(ngModel)]="form.title" required maxlength="200"></label>
+    <label>Fecha del resultado<input name="resultDate" type="date" [(ngModel)]="form.resultDate"></label>
+    <label class="wide">Contenido o resumen<textarea name="summary" [(ngModel)]="form.summary" rows="6" maxlength="10000"></textarea></label>
+    <p class="muted wide">Guarda los cambios antes de publicar. También puedes publicar un resultado que tenga un informe adjunto.</p>
+    <button class="btn btn-primary" type="submit" [disabled]="busy || resultForm.invalid || !form.title.trim() || !form.resultType.trim()">{{ busy ? 'Guardando...' : 'Guardar pendiente' }}</button>
+  </form>
+</section>

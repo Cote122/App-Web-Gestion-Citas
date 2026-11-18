@@ -1,5 +1,17 @@
 export type UserRole = 'Paciente' | 'Profesional' | 'Administrador' | 'Caja';
 
+export interface ClinicalResultFile {
+  id: string; fileName: string; contentType: string; sizeBytes: number | null; uploadedAt: string;
+}
+export interface ClinicalResult {
+  id: string; resultType: string; title: string; summary: string | null; status: string;
+  resultDate: string | null; publishedAt: string | null; isVisibleToPatient: boolean; canManage: boolean;
+  files: ClinicalResultFile[];
+}
+export interface SaveClinicalResult {
+  resultType: string; title: string; summary: string | null; resultDate: string | null;
+}
+
 export interface MedicalDocument {
   id: string;
   appointmentId: string;

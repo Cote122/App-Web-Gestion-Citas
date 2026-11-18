@@ -3,9 +3,30 @@ import { HttpClient } from '@angular/common/http';
 import { AbsenceType, AdminProfessional, AdminSpecialty, AdminUser, AffectedAppointment, Appointment, AvailabilitySlot, CreateAbsenceResponse, MedicalRecord, Professional, ProfessionalAbsence, ProfessionalAgendaItem, ProfessionalAppointmentDetail, RoleDefinition, Specialty, UserRole, WaitlistItem, WaitlistResponse } from '../models/models';
 import { Observable } from 'rxjs';
 import { MedicalDocument, MedicalDocumentLimits } from '../models/models';
+import { ClinicalResult, ClinicalResultFile, SaveClinicalResult } from '../models/models';
 @Injectable({ providedIn: 'root' })
 export class ApiService {
   constructor(private readonly http: HttpClient) {}
+
+  myClinicalResults() { return this.http.get<ClinicalResult[]>('/api/clinical-results/mine'); }
+  appointmentResults(id: string) { return this.http.get<ClinicalResult[]>(`/api/clinical-results/appointments/${id}`); }
+  clinicalResult(id: string) { return this.http.get<ClinicalResult>(`/api/clinical-results/${id}`); }
+  createClinicalResult(id: string, payload: SaveClinicalResult) {
+    return this.http.post<ClinicalResult>(`/api/clinical-results/appointments/${id}`, payload);
+  }
+  updateClinicalResult(id: string, payload: SaveClinicalResult) {
+    return this.http.put<ClinicalResult>(`/api/clinical-results/${id}`, payload);
+  }
+  publishClinicalResult(id: string, publish: boolean) {
+    return this.http.patch<ClinicalResult>(`/api/clinical-results/${id}/publication`, { publish });
+  }
+  uploadClinicalResultFile(id: string, file: File) {
+    const payload = new FormData(); payload.append('file', file);
+    return this.http.post<ClinicalResultFile>(`/api/clinical-results/${id}/files`, payload);
+  }
+  downloadClinicalResultFile(id: string, fileId: string) {
+    return this.http.get(`/api/clinical-results/${id}/files/${fileId}/download`, { responseType: 'blob' });
+  }
 
   medicalDocumentLimits() {
     return this.http.get<MedicalDocumentLimits>('/api/medical-documents/limits');

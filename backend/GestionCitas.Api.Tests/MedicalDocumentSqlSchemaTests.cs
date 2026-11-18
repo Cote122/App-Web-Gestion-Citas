@@ -134,7 +134,7 @@ public class MedicalDocumentSqlSchemaTests
         Assert.Equal(0, database.LastScriptTransactionCount);
     }
 
-    private sealed class TestDatabase : IAsyncDisposable
+    internal sealed class TestDatabase : IAsyncDisposable
     {
         private readonly string name = "GestionCitas_HU18_Test_" + Guid.NewGuid().ToString("N");
         private readonly string masterConnection;
@@ -184,9 +184,9 @@ public class MedicalDocumentSqlSchemaTests
             return Convert.ToString(await command.ExecuteScalarAsync()) ?? string.Empty;
         }
 
-        public async Task RunScript()
+        public async Task RunScript(string fileName = "09_documentos_medicos.sql")
         {
-            var script = await File.ReadAllTextAsync(Path.Combine(AppContext.BaseDirectory, "SqlScripts", "09_documentos_medicos.sql"));
+            var script = await File.ReadAllTextAsync(Path.Combine(AppContext.BaseDirectory, "SqlScripts", fileName));
             script = script.Replace("USE [GestionCitasDb];", $"USE [{name}];");
             await using var connection = new SqlConnection(ConnectionString);
             await connection.OpenAsync();
