@@ -58,7 +58,8 @@ public class ClinicalResultSqlSchemaTests
         Assert.Equal(12, await database.Scalar("SELECT COUNT(*) FROM sys.columns WHERE object_id=OBJECT_ID('dbo.ClinicalEncounters')"));
         Assert.Equal(1, await database.Scalar("SELECT COUNT(*) FROM sys.indexes WHERE object_id=OBJECT_ID('dbo.ClinicalResults') AND name='ExistingClinicalTitle'"));
         Assert.Equal("(N'Pendiente')", await database.TextScalar("SELECT definition FROM sys.default_constraints WHERE name='ExistingResultStatus'"));
-        result.Files.Add(new ClinicalResultFile { FileName = "prueba.pdf", StoragePath = Guid.NewGuid().ToString("N"), FileHash = new string('A', 64) });
+        db.ClinicalResultFiles.Add(new ClinicalResultFile { ClinicalResultId = result.Id,
+            FileName = "prueba.pdf", StoragePath = Guid.NewGuid().ToString("N"), FileHash = new string('A', 64) });
         await db.SaveChangesAsync(); db.ChangeTracker.Clear();
         var file = await db.ClinicalResultFiles.SingleAsync(); Assert.Null(file.ContentType); Assert.Null(file.FileSizeBytes); Assert.Equal(64, file.FileHash!.Length);
         Assert.Equal(0, database.LastScriptTransactionCount);
