@@ -5,16 +5,19 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { finalize, forkJoin } from 'rxjs';
 import { ApiService } from '../../core/api.service';
-import { PatientIndication, Prescription, PrescriptionItem } from '../../models/models';
+import { PatientIndication, Prescription, PrescriptionItem, PrescriptionDraft } from '../../models/models';
 import { AlertModalComponent } from '../../shared/alert-modal/alert-modal.component';
+import { PrescriptionReviewComponent } from '../../shared/prescription-review/prescription-review.component';
+import { AuthService } from '../../core/auth.service';
 
 @Component({ selector: 'app-prescriptions', standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, AlertModalComponent],
+  imports: [CommonModule, FormsModule, RouterLink, AlertModalComponent, PrescriptionReviewComponent],
   templateUrl: './prescriptions.component.html', styleUrl: './prescriptions.component.css' })
 export class PrescriptionsComponent implements OnInit {
   private readonly api = inject(ApiService);
   private readonly route = inject(ActivatedRoute);
   private readonly destroyRef = inject(DestroyRef);
+  readonly auth = inject(AuthService);
   readonly appointmentId = this.route.snapshot.paramMap.get('appointmentId');
   prescriptions: Prescription[] = [];
   indications: PatientIndication[] = [];
@@ -26,6 +29,9 @@ export class PrescriptionsComponent implements OnInit {
   busy = false;
   detailLoading = false;
   patientName = '';
+  patientDni = '';
+  professionalName = '';
+  pendingIssue?: PrescriptionDraft;
   generalIndications = '';
   items: PrescriptionItem[] = [];
   alertMessage = '';
@@ -37,7 +43,7 @@ export class PrescriptionsComponent implements OnInit {
     if (this.appointmentId) {
       forkJoin({ prescriptions: this.api.appointmentPrescriptions(this.appointmentId), appointment: this.api.professionalAppointmentDetail(this.appointmentId) })
         .pipe(takeUntilDestroyed(this.destroyRef), finalize(() => this.loading = false)).subscribe({
-          next: data => { this.prescriptions = data.prescriptions; this.patientName = data.appointment.patient.fullName; this.canIssue = data.appointment.status === 'Atendida'; },
+          next: data => { this.prescriptions = data.prescriptions; this.patientName = data.appointment.patient.fullName; this.patientDni = data.appointment.patient.dni; this.professionalName = data.appointment.professional || this.auth.user()?.fullName || ''; this.canIssue = data.appointment.status === 'Atendida'; },
           error: error => this.showError(error)
         });
     } else {
@@ -69,14 +75,22 @@ export class PrescriptionsComponent implements OnInit {
     if (!this.busy && this.items.length < 20) this.items.push({ medication: '', dose: '', frequency: '', duration: '', instructions: '' });
   }
   issue(): void {
-    if (this.busy || !this.appointmentId || !this.canIssue) return;
+    if (this.busy || this.pendingIssue || !this.appointmentId || !this.canIssue) return;
     if (!this.items.length && !this.generalIndications.trim()) { this.alertMessage = 'Registra al menos un medicamento o indicaciones generales.'; return; }
     if (this.items.some(x => !x.medication.trim())) return;
+    // Confirmar exactamente la copia que se muestra en el resumen.
+    this.pendingIssue = { generalIndications: this.generalIndications.trim() || null,
+      items: this.items.map(x => ({ medication: x.medication.trim(), dose: x.dose?.trim() || null,
+        frequency: x.frequency?.trim() || null, duration: x.duration?.trim() || null, instructions: x.instructions?.trim() || null })) };
+  }
+  confirmIssue(): void {
+    if (this.busy || !this.pendingIssue || !this.appointmentId || !this.canIssue) return;
+    const payload = this.pendingIssue;
     this.busy = true; this.success = '';
-    this.api.issuePrescription(this.appointmentId, { generalIndications: this.generalIndications.trim() || null, items: this.items })
+    this.api.issuePrescription(this.appointmentId, payload)
       .pipe(takeUntilDestroyed(this.destroyRef), finalize(() => this.busy = false)).subscribe({
-        next: value => { this.prescriptions = [value, ...this.prescriptions]; this.selected = value; this.creating = false; this.success = 'Receta emitida y disponible para el paciente.'; },
-        error: error => this.showError(error)
+        next: value => { this.pendingIssue = undefined; this.prescriptions = [value, ...this.prescriptions]; this.selected = value; this.creating = false; this.success = 'Receta emitida y disponible para el paciente.'; },
+        error: error => { this.pendingIssue = undefined; this.showError(error); }
       });
   }
   deactivate(value: Prescription): void {

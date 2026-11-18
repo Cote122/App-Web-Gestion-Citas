@@ -28,6 +28,7 @@
   <div class="table-scroll" *ngIf="value.items.length"><table><thead><tr><th scope="col">Medicamento</th><th scope="col">Dosis</th><th scope="col">Frecuencia</th><th scope="col">Duración</th><th scope="col">Instrucciones</th></tr></thead>
     <tbody><tr *ngFor="let item of value.items"><td>{{ item.medication }}</td><td>{{ item.dose || 'No registrada' }}</td><td>{{ item.frequency || 'No registrada' }}</td><td>{{ item.duration || 'No registrada' }}</td><td>{{ item.instructions || 'Sin instrucciones adicionales' }}</td></tr></tbody></table></div>
   <h4 *ngIf="value.generalIndications">Indicaciones generales</h4><p class="content" *ngIf="value.generalIndications">{{ value.generalIndications }}</p>
+  <p *ngIf="appointmentId" class="muted">El contenido emitido solo puede corregirlo un administrador.</p>
   <button *ngIf="value.canDeactivate" class="btn btn-danger" type="button" (click)="deactivate(value)" [disabled]="busy">Anular receta</button>
 </section>
 <section class="card" *ngIf="selectedIndication as value"><h3>Indicaciones de la atención</h3><p class="muted">{{ value.professional }} · {{ value.attentionDate | date:'dd/MM/yyyy' }}</p><p class="content">{{ value.content }}</p></section>
@@ -49,3 +50,8 @@
   </form>
 </section>
 <app-alert-modal *ngIf="alertMessage" title="Recetas e indicaciones" [message]="alertMessage" buttonText="Aceptar" (closed)="alertMessage = ''"></app-alert-modal>
+<app-prescription-review *ngIf="pendingIssue as draft"
+  [patient]="patientName + ' · DNI ' + patientDni" [professional]="professionalName"
+  [items]="draft.items" [generalIndications]="draft.generalIndications" [busy]="busy"
+  (cancelled)="pendingIssue = undefined" (confirmed)="confirmIssue()">
+</app-prescription-review>

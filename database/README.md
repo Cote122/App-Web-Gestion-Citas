@@ -39,3 +39,5 @@ dotnet ef database update
 ```
 
 No ejecutar migraciones de forma independiente sobre una base compartida sin coordinación del equipo.
+
+- `12_correcciones_recetas.sql`: crea y valida el historial independiente de correcciones de recetas por administrador, sin modificar columnas ni contenido de las recetas existentes. Ejecutar después del 11.

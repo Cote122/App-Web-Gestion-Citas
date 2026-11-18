@@ -38,10 +38,10 @@ public class PrescriptionSqlSchemaTests
             new Claim(ClaimTypes.NameIdentifier, userId.ToString()), new Claim(ClaimTypes.Role, role)], "Test")) } }
     };
     private static IssuePrescriptionRequest Request(string medication = "Medicamento ficticio") => new() { GeneralIndications = "Contenido de prueba", Items = [new() { Medication = medication, Dose = "Texto de dosis", Frequency = "Texto de frecuencia", Duration = "Texto de duración", Instructions = "Texto de instrucciones" }] };
-    private static async Task<TestAppointments> Setup(MedicalDocumentSqlSchemaTests.TestDatabase database)
+    internal static async Task<TestAppointments> Setup(MedicalDocumentSqlSchemaTests.TestDatabase database)
     {
         await using var db = Context(database.ConnectionString); await db.Database.EnsureCreatedAsync();
-        await database.Execute("DROP TABLE dbo.PrescriptionItems; DROP TABLE dbo.Prescriptions; DROP TABLE dbo.ClinicalEncounters;" + Native);
+        await database.Execute("DROP TABLE dbo.PrescriptionCorrections; DROP TABLE dbo.PrescriptionItems; DROP TABLE dbo.Prescriptions; DROP TABLE dbo.ClinicalEncounters;" + Native);
         var data = TestAppointments.Seed(db, withRecord: true); db.Appointments.Single().Status = AppointmentStatus.Atendida;
         db.MedicalRecords.Single().Recommendations = "Indicaciones de atención"; await db.SaveChangesAsync(); return data;
     }

@@ -127,20 +127,23 @@ public class PrescriptionsTests
         app.Client.DefaultRequestHeaders.Remove("X-Test-UserId"); app.Client.DefaultRequestHeaders.Add("X-Test-UserId", "invalid"); using var response = await app.Client.GetAsync("/api/prescriptions/mine"); Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 
-    private sealed class TestApp : IDisposable
+    internal sealed class TestApp : IDisposable
     {
         public IHost Host { get; }
         public HttpClient Client { get; }
         public TestAppointments Data { get; }
+        public Guid AdminId { get; } = Guid.NewGuid();
+        public CorrectionWriteFailure Failures { get; } = new();
         public string AppointmentUrl => $"/api/prescriptions/appointments/{Data.AppointmentId}";
         public TestApp()
         {
             var database = Guid.NewGuid().ToString();
             Host = new HostBuilder().ConfigureWebHost(web => web.UseTestServer().ConfigureServices(services => {
-                services.AddDbContext<AppDbContext>(o => o.UseInMemoryDatabase(database).ConfigureWarnings(x => x.Ignore(InMemoryEventId.TransactionIgnoredWarning)));
+                services.AddDbContext<AppDbContext>(o => o.UseInMemoryDatabase(database).AddInterceptors(Failures).ConfigureWarnings(x => x.Ignore(InMemoryEventId.TransactionIgnoredWarning)));
                 services.AddControllers().AddApplicationPart(typeof(PrescriptionsController).Assembly); services.AddAuthentication("Test").AddScheme<AuthenticationSchemeOptions, TestAuth>("Test", _ => { }); services.AddAuthorization();
             }).Configure(app => { app.UseRouting(); app.UseAuthentication(); app.UseAuthorization(); app.UseEndpoints(e => e.MapControllers()); })).Start();
             Client = Host.GetTestClient(); using var scope = Host.Services.CreateScope(); var db = scope.ServiceProvider.GetRequiredService<AppDbContext>(); Data = TestAppointments.Seed(db, withRecord: true);
+            db.Users.Add(new User { Id = AdminId, Dni = "70000004", Email = "admin@example.test", FullName = "Administrador de prueba", Role = "Administrador", PasswordHash = "test" });
             db.Appointments.Single().Status = AppointmentStatus.Atendida; var record = db.MedicalRecords.Single(); record.Recommendations = "Indicaciones registradas"; record.Observations = "Nota privada"; db.SaveChanges();
         }
         public void SignIn(Guid userId, string role) { Client.DefaultRequestHeaders.Remove("X-Test-UserId"); Client.DefaultRequestHeaders.Remove("X-Test-Role"); Client.DefaultRequestHeaders.Add("X-Test-UserId", userId.ToString()); Client.DefaultRequestHeaders.Add("X-Test-Role", role); }
@@ -148,6 +151,12 @@ public class PrescriptionsTests
         public async Task<PrescriptionDto> Create() { SignIn(Data.OwnerUserId, "Profesional"); using var response = await Issue(); Assert.Equal(HttpStatusCode.Created, response.StatusCode); return (await response.Content.ReadFromJsonAsync<PrescriptionDto>())!; }
         public async Task Mutate(Action<AppDbContext> action) { using var scope = Host.Services.CreateScope(); var db = scope.ServiceProvider.GetRequiredService<AppDbContext>(); action(db); await db.SaveChangesAsync(); }
         public void Dispose() { Client.Dispose(); Host.Dispose(); }
+    }
+    internal sealed class CorrectionWriteFailure : SaveChangesInterceptor
+    {
+        public bool Fail { get; set; }
+        public override ValueTask<InterceptionResult<int>> SavingChangesAsync(DbContextEventData data, InterceptionResult<int> result, CancellationToken token = default)
+        { if (Fail) throw new DbUpdateException("Fallo de persistencia simulado."); return ValueTask.FromResult(result); }
     }
     private sealed class TestAuth(IOptionsMonitor<AuthenticationSchemeOptions> options, ILoggerFactory logger, UrlEncoder encoder) : AuthenticationHandler<AuthenticationSchemeOptions>(options, logger, encoder)
     {

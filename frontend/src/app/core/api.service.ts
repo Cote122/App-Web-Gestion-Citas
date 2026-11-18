@@ -5,9 +5,14 @@ import { Observable } from 'rxjs';
 import { MedicalDocument, MedicalDocumentLimits } from '../models/models';
 import { ClinicalResult, ClinicalResultFile, SaveClinicalResult } from '../models/models';
 import { Prescription, PrescriptionItem, PatientIndication } from '../models/models';
+import { AdminPrescription, CorrectPrescription, PrescriptionCorrection } from '../models/models';
 @Injectable({ providedIn: 'root' })
 export class ApiService {
   constructor(private readonly http: HttpClient) {}
+  adminPrescriptions(patientDni: string) { return this.http.get<AdminPrescription[]>('/api/admin/prescriptions', { params: { patientDni } }); }
+  adminPrescription(id: string) { return this.http.get<AdminPrescription>(`/api/admin/prescriptions/${id}`); }
+  prescriptionCorrections(id: string) { return this.http.get<PrescriptionCorrection[]>(`/api/admin/prescriptions/${id}/corrections`); }
+  correctPrescription(id: string, request: CorrectPrescription) { return this.http.put<AdminPrescription>(`/api/admin/prescriptions/${id}`, request); }
   myPrescriptions() { return this.http.get<Prescription[]>('/api/prescriptions/mine'); }
   myIndications() { return this.http.get<PatientIndication[]>('/api/prescriptions/indications/mine'); }
   prescription(id: string) { return this.http.get<Prescription>(`/api/prescriptions/${id}`); }

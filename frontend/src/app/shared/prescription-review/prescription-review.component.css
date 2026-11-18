@@ -1,0 +1,8 @@
+.backdrop { position:fixed; inset:0; z-index:1000; background:#07192b99; display:grid; place-items:center; padding:20px; }
+.review { background:white; border-radius:18px; width:min(920px,100%); max-height:calc(100dvh - 40px); display:flex; flex-direction:column; box-shadow:0 20px 60px #07192b4d; outline:none; }
+header,footer { padding:20px 24px; display:flex; gap:12px; align-items:center; justify-content:space-between; flex-wrap:wrap; flex-shrink:0; }
+header { border-bottom:1px solid var(--line); } header h2 { margin:0; font-size:21px; }
+.close { border:0; background:transparent; font-size:28px; color:var(--text); } .body { overflow:auto; padding:8px 24px 24px; }
+.table-scroll { overflow-x:auto; } table { width:100%; border-collapse:collapse; text-align:left; } th,td { min-width:110px; padding:12px 8px; border-bottom:1px solid var(--line); overflow-wrap:anywhere; }
+.content { white-space:pre-wrap; overflow-wrap:anywhere; line-height:1.6; } .warning { padding:16px; border:1px solid #e6bd61; border-radius:10px; background:#fff7df; color:#6b4800; font-weight:600; line-height:1.6; }
+footer { border-top:1px solid var(--line); justify-content:flex-end; } @media(max-width:600px) { footer button { width:100%; } header,.body,footer { padding-left:16px; padding-right:16px; } }

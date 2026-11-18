@@ -18,3 +18,13 @@ public record PrescriptionItemDto(string Medication, string? Dose, string? Frequ
 public record PrescriptionDto(Guid Id, DateTimeOffset IssuedAt, string Professional, string? GeneralIndications,
     bool IsActive, bool CanDeactivate, IReadOnlyList<PrescriptionItemDto> Items);
 public record PatientIndicationDto(Guid Id, DateTimeOffset AttentionDate, string Professional, string Content);
+
+public sealed class CorrectPrescriptionRequest
+{
+    [Required, RegularExpression("^[0-9A-Fa-f]{64}$")] public string ExpectedVersion { get; init; } = string.Empty;
+    [Required, StringLength(1000)] public string Reason { get; init; } = string.Empty;
+    [Required] public IssuePrescriptionRequest Content { get; init; } = new();
+}
+public record AdminPrescriptionDto(Guid Id, DateTimeOffset IssuedAt, string Patient, string PatientDni,
+    string Professional, bool IsActive, string? GeneralIndications, IReadOnlyList<PrescriptionItemDto> Items, string Version);
+public record PrescriptionCorrectionDto(Guid Id, DateTimeOffset CorrectedAt, string Administrator, string Reason);
