@@ -6,9 +6,10 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { finalize, forkJoin } from 'rxjs';
 import { ApiService } from '../../core/api.service';
 import { ClinicalResult, ClinicalResultFile, MedicalDocumentLimits, SaveClinicalResult } from '../../models/models';
+import { AlertModalComponent } from '../../shared/alert-modal/alert-modal.component';
 
 @Component({
-  selector: 'app-results', standalone: true, imports: [CommonModule, FormsModule, RouterLink],
+  selector: 'app-results', standalone: true, imports: [CommonModule, FormsModule, RouterLink, AlertModalComponent],
   templateUrl: './results.component.html', styleUrl: './results.component.css'
 })
 export class ResultsComponent implements OnInit {
@@ -28,6 +29,7 @@ export class ResultsComponent implements OnInit {
   busy = false;
   downloadingId = '';
   error = '';
+  downloadError = '';
   success = '';
   search = '';
   type = '';
@@ -137,7 +139,7 @@ export class ResultsComponent implements OnInit {
   }
 
   download(file: ClinicalResultFile): void {
-    if (!this.selected || this.downloadingId || this.busy) return;
+    if (!this.selected || this.downloadingId || this.busy || this.downloadError) return;
     this.downloadingId = file.id; this.error = ''; this.success = '';
     this.api.downloadClinicalResultFile(this.selected.id, file.id)
       .pipe(takeUntilDestroyed(this.destroyRef), finalize(() => this.downloadingId = '')).subscribe({
@@ -146,7 +148,7 @@ export class ResultsComponent implements OnInit {
           const link = document.createElement('a'); link.href = url; link.download = file.fileName;
           document.body.appendChild(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000);
           this.success = 'Descarga iniciada.';
-        }, error: error => { void this.showError(error, 'No se pudo descargar el informe.'); }
+        }, error: error => { void this.showError(error, 'No se pudo descargar el informe.', true); }
       });
   }
 
@@ -155,11 +157,13 @@ export class ResultsComponent implements OnInit {
     this.results = [result, ...this.results.filter(x => x.id !== result.id)];
   }
 
-  private async showError(error: any, fallback: string): Promise<void> {
+  private async showError(error: any, fallback: string, showDownloadAlert = false): Promise<void> {
     let body = error?.error;
     if (body instanceof Blob) { try { body = JSON.parse(await body.text()); } catch { body = undefined; } }
-    this.error = body?.message ?? (error?.status === 404 ? 'Resultado no disponible o sin permiso de acceso.'
+    const message = body?.message ?? (error?.status === 404 ? 'Resultado no disponible o sin permiso de acceso.'
       : error?.status === 413 ? 'El archivo supera el límite de carga del servidor.'
       : error?.status === 0 ? 'No hay conexión con el servidor. Intenta nuevamente.' : fallback);
+    if (showDownloadAlert) this.downloadError = message;
+    else this.error = message;
   }
 }
