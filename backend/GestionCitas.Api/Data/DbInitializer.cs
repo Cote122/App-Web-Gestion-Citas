@@ -61,41 +61,71 @@ public static class DbInitializer
             await db.SaveChangesAsync();
         }
 
-        if (!await db.AvailabilitySlots.AnyAsync(x => x.StartAt >= DateTimeOffset.UtcNow.AddDays(-1)))
+        await EnsureAvailabilitySlotsAsync(db);
+    }
+
+    // Mantiene una ventana de 21 días por profesional, sin modificar cupos existentes u ocupados.
+    public static async Task<int> EnsureAvailabilitySlotsAsync(
+        AppDbContext db,
+        DateTimeOffset? now = null,
+        CancellationToken cancellationToken = default)
+    {
+        var offset = TimeSpan.FromHours(-5);
+        var today = (now ?? DateTimeOffset.UtcNow).ToOffset(offset).Date;
+        var firstDay = today.AddDays(1);
+        var lastDay = today.AddDays(22);
+        var first = new DateTimeOffset(firstDay, offset);
+        var endExclusive = new DateTimeOffset(lastDay, offset);
+
+        var professionalIds = await db.Professionals
+            .AsNoTracking()
+            .Where(x => x.IsActive && x.Specialty.IsActive)
+            .Select(x => x.Id)
+            .ToListAsync(cancellationToken);
+
+        var existing = await db.AvailabilitySlots
+            .AsNoTracking()
+            .Where(x => x.StartAt >= first && x.StartAt < endExclusive)
+            .Select(x => new { x.ProfessionalId, x.StartAt })
+            .ToListAsync(cancellationToken);
+        var existingKeys = existing.Select(x => (x.ProfessionalId, x.StartAt)).ToHashSet();
+
+        var absences = await db.ProfessionalAbsences
+            .AsNoTracking()
+            .Where(x => x.IsActive && x.StartAt < endExclusive && x.EndAt > first)
+            .Select(x => new { x.ProfessionalId, x.StartAt, x.EndAt })
+            .ToListAsync(cancellationToken);
+
+        var slots = new List<AvailabilitySlot>();
+        foreach (var professionalId in professionalIds)
         {
-            var professionals = await db.Professionals.Where(x => x.IsActive).ToListAsync();
-            // HU-14: no se generan cupos dentro de vacaciones o licencias activas.
-            var absences = await db.ProfessionalAbsences.Where(x => x.IsActive).ToListAsync();
-            var offset = TimeSpan.FromHours(-5);
-            var today = DateTime.Today;
-            var hours = new[] { 9, 10, 11, 15, 16 };
-
-            var slots = new List<AvailabilitySlot>();
-            foreach (var professional in professionals)
+            for (var dayOffset = 1; dayOffset <= 21; dayOffset++)
             {
-                for (var dayOffset = 1; dayOffset <= 21; dayOffset++)
-                {
-                    var day = today.AddDays(dayOffset);
-                    if (day.DayOfWeek == DayOfWeek.Sunday) continue;
+                var day = today.AddDays(dayOffset);
+                if (day.DayOfWeek == DayOfWeek.Sunday) continue;
 
-                    foreach (var hour in hours)
+                foreach (var hour in new[] { 9, 10, 11, 15, 16 })
+                {
+                    var start = new DateTimeOffset(day.Year, day.Month, day.Day, hour, 0, 0, offset);
+                    var end = start.AddMinutes(45);
+                    if (!existingKeys.Add((professionalId, start))) continue;
+                    if (absences.Any(a => a.ProfessionalId == professionalId &&
+                                          a.StartAt < end && a.EndAt > start)) continue;
+
+                    slots.Add(new AvailabilitySlot
                     {
-                        var start = new DateTimeOffset(day.Year, day.Month, day.Day, hour, 0, 0, offset);
-                        var end = start.AddMinutes(45);
-                        if (absences.Any(a => a.ProfessionalId == professional.Id && a.StartAt < end && a.EndAt > start)) continue;
-                        slots.Add(new AvailabilitySlot
-                        {
-                            ProfessionalId = professional.Id,
-                            StartAt = start,
-                            EndAt = start.AddMinutes(45),
-                            IsAvailable = true
-                        });
-                    }
+                        ProfessionalId = professionalId,
+                        StartAt = start,
+                        EndAt = end,
+                        IsAvailable = true
+                    });
                 }
             }
-
-            db.AvailabilitySlots.AddRange(slots);
-            await db.SaveChangesAsync();
         }
+
+        if (slots.Count == 0) return 0;
+        db.AvailabilitySlots.AddRange(slots);
+        await db.SaveChangesAsync(cancellationToken);
+        return slots.Count;
     }
 }

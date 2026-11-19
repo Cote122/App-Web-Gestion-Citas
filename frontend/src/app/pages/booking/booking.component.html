@@ -67,7 +67,7 @@
 
       <div class="calendar-nav">
         <button type="button" class="btn btn-secondary" (click)="previousMonth()">‹</button>
-        <b>{{ monthLabel | titlecase }}</b>
+        <b>{{ monthLabel }}</b>
         <button type="button" class="btn btn-secondary" (click)="nextMonth()">›</button>
       </div>
     </div>
@@ -105,7 +105,7 @@
   </section>
 
   <section class="card" *ngIf="professional && selectedDate">
-    <h3>{{ appointmentId ? '2. Horarios' : '4. Horarios' }} para {{ selectedDate | date:'EEEE dd/MM/yyyy' }}</h3>
+    <h3>{{ appointmentId ? '2. Horarios' : '4. Horarios' }} para el {{ selectedDate | date:'EEEE dd/MM/yyyy':undefined:'es-PE' }}</h3>
 
     <div class="day-slots">
       <article *ngFor="let item of selectedDaySlots"

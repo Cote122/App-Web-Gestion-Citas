@@ -23,6 +23,8 @@ builder.Services.Configure<EmailSettings>(
     builder.Configuration.GetSection("Email"));
 
 builder.Services.AddScoped<AuthService>();
+// HU-04: recuperación de contraseña por correo (enlace firmado, de un solo uso).
+builder.Services.AddScoped<PasswordResetService>();
 builder.Services.AddScoped<AppointmentService>();
 builder.Services.AddOptions<AppointmentPolicyOptions>()
     .Bind(builder.Configuration.GetSection("AppointmentPolicy"))
@@ -32,10 +34,12 @@ builder.Services.AddScoped<AppointmentCommunicationService>();
 builder.Services.AddScoped<SmtpEmailSender>();
 builder.Services.AddScoped<EmailOutboxService>();
 builder.Services.AddHostedService<AppointmentCommunicationWorker>();
+builder.Services.AddHostedService<AvailabilitySlotGenerationWorker>();
 builder.Services.AddHostedService<EmailOutboxWorker>();
 
 // HU-37: validación de DNI con servicio externo (token en DniApi:Token) y límite de consultas por IP.
 builder.Services.AddMemoryCache();
+builder.Services.AddSingleton<SessionRevocationService>();
 builder.Services.AddHttpClient<DniLookupService>(client =>
 {
     client.BaseAddress = new Uri(builder.Configuration["DniApi:BaseUrl"] ?? "https://dniruc.apisperu.com/api/v1/");
@@ -49,6 +53,14 @@ builder.Services.AddRateLimiter(options =>
         _ => new System.Threading.RateLimiting.FixedWindowRateLimiterOptions
         {
             PermitLimit = 10,
+            Window = TimeSpan.FromMinutes(1)
+        }));
+    // HU-04: pocas solicitudes de recuperación por minuto, para que nadie abuse del envío de correos.
+    options.AddPolicy("password-reset", context => System.Threading.RateLimiting.RateLimitPartition.GetFixedWindowLimiter(
+        context.Connection.RemoteIpAddress?.ToString() ?? "desconocido",
+        _ => new System.Threading.RateLimiting.FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 5,
             Window = TimeSpan.FromMinutes(1)
         }));
     options.OnRejected = async (context, token) =>
@@ -95,6 +107,17 @@ builder.Services.AddCors(options =>
 var app = builder.Build();
 
 app.UseCors("Frontend");
+
+// HU-45: las respuestas de la API no se guardan en caché del navegador, para que
+// el botón "Atrás" no muestre información protegida después de cerrar sesión.
+app.Use(async (context, next) =>
+{
+    if (context.Request.Path.StartsWithSegments("/api"))
+        context.Response.Headers.CacheControl = "no-store";
+
+    await next();
+});
+
 app.UseAuthentication();
 
 // HU-03/HU-06: evita que un JWT antiguo conserve acceso después de desactivar
@@ -109,6 +132,15 @@ app.Use(async (context, next) =>
         if (!Guid.TryParse(idValue, out var userId))
         {
             context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+            return;
+        }
+
+        // HU-45: el usuario cerró sesión después de recibir este token.
+        var sessions = context.RequestServices.GetRequiredService<SessionRevocationService>();
+        if (sessions.IsRevoked(userId, context.User.FindFirstValue(SessionRevocationService.IssuedAtClaim)))
+        {
+            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+            await context.Response.WriteAsJsonAsync(new { message = "Tu sesión se cerró. Inicia sesión nuevamente." });
             return;
         }
 

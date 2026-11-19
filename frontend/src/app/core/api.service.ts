@@ -130,7 +130,8 @@ export class ApiService {
     return this.http.get<AdminProfessional[]>('/api/admin/professionals');
   }
 
-  createProfessional(payload: { fullName: string; office: string; specialtyId: string }) {
+  // HU-44: registra al profesional junto con su cuenta (rol Profesional).
+  createProfessional(payload: { dni: string; email: string; password: string; fullName: string; office: string; specialtyId: string }) {
     return this.http.post<AdminProfessional>('/api/admin/professionals', payload);
   }
 
@@ -174,12 +175,12 @@ export class ApiService {
     return this.http.get<any[]>('/api/professional/agenda/available-slots');
   }
 
-  cancelProfessionalAppointment(appointmentId: string) {
-    return this.http.patch<any>(`/api/professional/agenda/${appointmentId}/cancel`, {});
+  cancelProfessionalAppointment(appointmentId: string, reason?: string) {
+    return this.http.patch<any>(`/api/professional/agenda/${appointmentId}/cancel`, { reason });
   }
 
-  rescheduleProfessionalAppointment(appointmentId: string, slotId: string) {
-    return this.http.patch<any>(`/api/professional/agenda/${appointmentId}/reschedule`, { slotId });
+  rescheduleProfessionalAppointment(appointmentId: string, slotId: string, reason?: string) {
+    return this.http.patch<any>(`/api/professional/agenda/${appointmentId}/reschedule`, { slotId, reason });
   }
   // HU-14: ausencias del profesional
   myAbsences() {

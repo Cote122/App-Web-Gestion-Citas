@@ -65,7 +65,8 @@ public class AuthService(AppDbContext db, IConfiguration configuration, DniLooku
 
     private LoginResponse BuildLoginResponse(User user)
     {
-        var expires = DateTimeOffset.UtcNow.AddHours(2);
+        var issuedAt = DateTimeOffset.UtcNow;
+        var expires = issuedAt.Add(SessionRevocationService.TokenLifetime);
         var key = configuration["Jwt:Key"]!;
         var credentials = new SigningCredentials(
             new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key)),
@@ -78,7 +79,9 @@ public class AuthService(AppDbContext db, IConfiguration configuration, DniLooku
             new(ClaimTypes.Name, user.FullName),
             new(ClaimTypes.Role, user.Role),
             new(JwtRegisteredClaimNames.Email, user.Email),
-            new("dni", user.Dni)
+            new("dni", user.Dni),
+            // HU-45: momento de emisión, para rechazar el token si el usuario ya cerró sesión.
+            new(SessionRevocationService.IssuedAtClaim, issuedAt.ToUnixTimeMilliseconds().ToString())
         };
 
         var token = new JwtSecurityToken(

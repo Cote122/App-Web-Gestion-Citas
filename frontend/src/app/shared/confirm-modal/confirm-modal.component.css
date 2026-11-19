@@ -1,12 +1,15 @@
 /* Mismo estilo que los modales de administración (pages/admin/modal.css), versión pequeña. */
 .modal-backdrop { position: fixed; inset: 0; background: #07192b99; display: grid; place-items: center; padding: 20px; z-index: 999; }
-.modal { width: min(480px, 95vw); max-height: calc(100vh - 40px); overflow: auto; background: white; border-radius: 18px; box-shadow: 0 20px 60px rgba(7, 25, 43, .3); -webkit-font-smoothing: antialiased; }
+.modal { width: min(480px, 95vw); max-height: calc(100vh - 40px); overflow: auto; background: white; border-radius: 18px; box-shadow: 0 20px 60px rgba(7, 25, 43, .3); -webkit-font-smoothing: antialiased; position: relative; }
 
 .modal-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; padding: 38px 34px 26px; border-bottom: 1px solid var(--line); }
 .modal-head h3 { margin: 0; color: var(--primary-dark); font-size: 20px; }
 
-.modal-close { border: 0; background: transparent; color: #c94a4a; font-size: 24px; line-height: 1; padding: 3px 8px; border-radius: 8px; opacity: .75; transition: opacity .15s, background .15s; }
-.modal-close:hover { opacity: 1; background: #fdeeee; }
+/* X cerca de la esquina y fácil de ver. */
+.modal-close { position: absolute; top: 33px; right: 26px; width: 36px; height: 36px; display: grid; place-items: center; border: 0; border-radius: 50%; background: #fdeeee; color: #c0392b; transition: background .15s, color .15s; }
+.modal-close:hover { background: #f9d6d6; color: #a32020; }
+.modal-close:focus-visible { outline: 2px solid #c0392b; outline-offset: 2px; }
+.modal-head h3 { padding-right: 44px; }
 
 .modal-body { padding: 36px 34px 40px; }
 .modal-body p { margin: 0; color: #1b2f44; font-size: 15.5px; font-weight: 500; line-height: 1.65; letter-spacing: .005em; }
@@ -33,5 +36,6 @@
   font-size: 14.5px;
 }
 
-.summary-row span { color: #64748b; }
-.summary-row strong { color: var(--primary-dark, #07192b); font-weight: 600; }
+.summary-row span { color: #4d6074; font-weight: 600; }
+.summary-row strong { color: var(--primary-dark, #07192b); font-weight: 700; }
+.modal-body p.intro { margin-bottom: 16px; color: #3b4f63; font-weight: 600; }

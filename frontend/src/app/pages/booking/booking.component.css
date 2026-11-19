@@ -9,9 +9,13 @@
   border: 1px solid var(--line);
   background: #f8fbfe;
   border-radius: 10px;
-  padding: 10px;
-  font-size: 11px;
-  color: #375a78;
+  padding: 14px 12px;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  font-size: 13px;
+  font-weight: 600;
+  color: #2c4d6b;
 }
 
 h3 { margin-top: 0; color: var(--primary-dark); }
@@ -64,9 +68,9 @@ h3 { margin-top: 0; color: var(--primary-dark); }
 .weekday {
   padding: 7px 4px;
   text-align: center;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 800;
-  color: var(--muted);
+  color: #3f566c;
   text-transform: uppercase;
 }
 .calendar-day {
@@ -102,7 +106,7 @@ h3 { margin-top: 0; color: var(--primary-dark); }
   opacity: .55;
 }
 .day-number { font-size: 15px; font-weight: 900; }
-.calendar-day small { font-size: 9px; color: var(--muted); }
+.calendar-day small { font-size: 11px; font-weight: 600; color: #3f566c; }
 
 .day-slots {
   display: grid;
@@ -161,10 +165,12 @@ h3 { margin-top: 0; color: var(--primary-dark); }
   margin: 14px 0 0;
   padding: 12px;
   border-radius: 10px;
-  background: #f7fafc;
-  color: var(--muted);
-  font-size: 12px;
-  line-height: 1.5;
+  background: #f2f7fc;
+  border: 1px solid #dde8f3;
+  color: #3f566c;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.55;
 }
 
 .empty { text-align: center; color: var(--muted); padding: 18px; }

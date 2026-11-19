@@ -28,11 +28,11 @@ h2 { margin: 0; color: var(--primary-dark); }
 
 .modal-backdrop { position: fixed; inset: 0; background: #07192b99; display: grid; place-items: center; padding: 20px; z-index: 999; }
 .modal { width: min(520px, 95vw); max-height: calc(100vh - 40px); overflow: auto; background: white; border-radius: 18px; box-shadow: 0 20px 60px rgba(7, 25, 43, .3); }
-.modal-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; padding: 28px 28px 18px; border-bottom: 1px solid var(--line); }
+.modal-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; padding: 24px 28px 16px; border-bottom: 1px solid var(--line); }
 .modal-head h3 { margin: 0; color: var(--primary-dark); font-size: 20px; }
 .modal-head p { margin: 8px 0 0; color: #2a3f55; font-size: 14px; }
 .modal-close { border: 0; background: transparent; color: #c94a4a; font-size: 24px; line-height: 1; padding: 3px 8px; border-radius: 8px; }
-.modal-body { padding: 24px 28px 32px; }
+.modal-body { padding: 16px 24px 12px !important; }
 .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
 .detail-grid .wide { grid-column: 1 / -1; }
 .detail-grid small { display: block; color: var(--muted); margin-bottom: 4px; }
@@ -103,12 +103,27 @@ h2 { margin: 0; color: var(--primary-dark); }
   box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
 }
 
+.modal textarea,
+.modal-body textarea {
+  display: block;
+  width: 100% !important;
+  max-width: 100% !important;
+  height: 70px;
+  min-height: 70px;
+  max-height: 70px;
+  padding: 8px 10px;
+  resize: none !important;
+  box-sizing: border-box !important;
+  margin: 0 !important;
+}
+
 .modal-footer {
   display: flex;
   justify-content: flex-end;
   align-items: center;
   gap: 0.75rem;
-  padding: 1rem 1.25rem;
+  margin-top: 8px !important;
+  padding: 12px 24px !important;
   border-top: 1px solid #e2e8f0;
   background-color: #f8fafc;
   border-bottom-left-radius: 8px;
@@ -117,11 +132,11 @@ h2 { margin: 0; color: var(--primary-dark); }
 
 @media (max-width: 900px) {
   .appointment { 
-    grid-template-columns: 1fr; /* En pantallas chicas se acomoda en una sola columna vertical */
+    grid-template-columns: 1fr;
     gap: 10px;
   }
   .appointment .btn {
-    justify-self: stretch; /* En móvil el botón puede ocupar todo el ancho para facilitar el toque */
+    justify-self: stretch;
   }
   .head { align-items: flex-start; flex-direction: column; }
   .detail-grid { grid-template-columns: 1fr; }

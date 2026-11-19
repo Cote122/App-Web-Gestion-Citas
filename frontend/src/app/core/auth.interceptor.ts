@@ -12,9 +12,11 @@ export const authInterceptor: HttpInterceptorFn = (request, next) => {
 
   return next(securedRequest).pipe(
     catchError((error: HttpErrorResponse) => {
-      if (token && error.status === 401) {
-        auth.logout();
-        void router.navigate(['/login'], { queryParams: { session: 'changed' } });
+      // HU-45: si el servidor rechaza el token (por ejemplo, se cerró sesión en otra
+      // pestaña), se cierra la sesión aquí y en las demás pestañas.
+      if (token && error.status === 401 && !request.url.endsWith('/api/auth/logout')) {
+        auth.endSession();
+        void router.navigate(['/login'], { queryParams: { session: 'changed' }, replaceUrl: true });
       }
       return throwError(() => error);
     })

@@ -1,6 +1,6 @@
 <section class="login-page">
   <div class="login-card">
-    <div class="brand"><span>+</span><div><strong>GESTIÓN SALUD</strong><small>Plataforma de citas y atención médica</small></div></div>
+    <div class="brand"><span aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round"/></svg></span><div><strong>GESTIÓN SALUD</strong><small>Plataforma de citas y atención médica</small></div></div>
     <h1>App Web Gestión de Citas</h1>
     <p>Primer incremento conectado a una API y SQL Server.</p>
 
@@ -13,11 +13,25 @@
       </div>
       <div class="form-field">
         <label>Contraseña</label>
-        <input formControlName="password" type="password" autocomplete="current-password">
+        <div class="password-wrap">
+          <input formControlName="password" [type]="showPassword ? 'text' : 'password'" autocomplete="current-password">
+          <button type="button" class="eye" (click)="showPassword = !showPassword"
+                  [attr.aria-label]="showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'" [attr.aria-pressed]="showPassword">
+            <svg *ngIf="!showPassword" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"></path><circle cx="12" cy="12" r="3"></circle>
+            </svg>
+            <svg *ngIf="showPassword" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M3 3l18 18"></path><path d="M10.6 5.1A10.6 10.6 0 0 1 12 5c6.5 0 10 7 10 7a17.6 17.6 0 0 1-3.2 4.2"></path>
+              <path d="M6.6 6.6C3.9 8.4 2 12 2 12s3.5 7 10 7a9.9 9.9 0 0 0 5.4-1.6"></path><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"></path>
+            </svg>
+          </button>
+        </div>
       </div>
       <p class="error" *ngIf="error">{{ error }}</p>
       <button class="btn btn-primary" type="submit" [disabled]="loading">{{ loading ? 'Ingresando...' : 'Iniciar sesión' }}</button>
     </form>
+    <!-- HU-04: recuperación de contraseña -->
+    <a routerLink="/forgot-password" style="margin-top: 14px; font-size: 14px;">¿Olvidaste tu contraseña?</a>
 
     <div class="demo">
       <b>Acceso rápido demo</b>

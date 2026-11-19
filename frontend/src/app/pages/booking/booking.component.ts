@@ -281,10 +281,12 @@ export class BookingComponent implements OnInit {
   }
 
   get monthLabel(): string {
-    return new Intl.DateTimeFormat('es-PE', {
+    const label = new Intl.DateTimeFormat('es-PE', {
       month: 'long',
       year: 'numeric'
     }).format(this.calendarMonth);
+    // Solo la primera letra en mayúscula: "Noviembre de 2026".
+    return label.charAt(0).toUpperCase() + label.slice(1);
   }
 
   get calendarDays(): CalendarDay[] {

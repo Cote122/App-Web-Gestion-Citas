@@ -88,6 +88,68 @@ public class ProfessionalAgendaServiceTests
         Assert.Equal("Tu usuario no está vinculado a un profesional.", error);
     }
 
+    [Fact]
+    public async Task CancelAndReschedule_WithReason_PersistsReasonCorrectly()
+    {
+        await using var db = CreateDb();
+        var data = Seed(db, DateOnly.FromDateTime(DateTime.UtcNow.AddDays(3)));
+        var service = new ProfessionalAgendaService(db);
+
+        var cancelReason = "Emergencia médica del profesional";
+        var (success, error) = await service.CancelAppointmentAsync(data.RosaUserId, data.RosaMorningId, cancelReason);
+
+        Assert.Null(error);
+        Assert.True(success);
+
+        var cancelledAppt = await db.Appointments.SingleAsync(x => x.Id == data.RosaMorningId);
+        Assert.Equal(AppointmentStatus.Cancelada, cancelledAppt.Status);
+        Assert.Equal(cancelReason, cancelledAppt.Reason);
+
+        var current = await db.Appointments.Include(x => x.Slot).SingleAsync(x => x.Id == data.RosaControlId);
+        var newSlot = new AvailabilitySlot
+        {
+            ProfessionalId = current.Slot.ProfessionalId,
+            StartAt = current.Slot.StartAt.AddDays(2),
+            EndAt = current.Slot.EndAt.AddDays(2),
+            IsAvailable = true
+        };
+        db.AvailabilitySlots.Add(newSlot);
+        await db.SaveChangesAsync();
+
+        var rescheduleReason = "Cambio solicitado por el médico tratante";
+        var (replacement, rescheduleError) = await service.RescheduleAppointmentAsync(data.RosaUserId, data.RosaControlId, newSlot.Id, rescheduleReason);
+
+        Assert.Null(rescheduleError);
+        Assert.NotNull(replacement);
+
+        var oldAppt = await db.Appointments.SingleAsync(x => x.Id == data.RosaControlId);
+        Assert.Equal(AppointmentStatus.Reprogramada, oldAppt.Status);
+        Assert.Equal(rescheduleReason, oldAppt.Reason);
+
+        var newApptRecord = await db.Appointments.SingleAsync(x => x.Id == replacement.Id);
+        Assert.Equal(AppointmentStatus.Confirmada, newApptRecord.Status);
+        Assert.Equal(oldAppt.Id, newApptRecord.PreviousAppointmentId);
+    }
+
+    [Fact]
+    public async Task ReasonOver500Characters_RejectsCancelAndRescheduleWithoutChangingAppointment()
+    {
+        await using var db = CreateDb();
+        var data = Seed(db, DateOnly.FromDateTime(DateTime.UtcNow.AddDays(3)));
+        var service = new ProfessionalAgendaService(db);
+        var tooLong = new string('x', 501);
+
+        var (cancelled, cancelError) = await service.CancelAppointmentAsync(data.RosaUserId, data.RosaMorningId, tooLong);
+        var (replacement, rescheduleError) = await service.RescheduleAppointmentAsync(data.RosaUserId, data.RosaControlId, Guid.NewGuid(), tooLong);
+
+        Assert.False(cancelled);
+        Assert.Null(replacement);
+        Assert.Equal("El motivo no puede superar los 500 caracteres.", cancelError);
+        Assert.Equal(cancelError, rescheduleError);
+        Assert.Equal(AppointmentStatus.Confirmada, (await db.Appointments.SingleAsync(x => x.Id == data.RosaMorningId)).Status);
+        Assert.Equal(AppointmentStatus.Confirmada, (await db.Appointments.SingleAsync(x => x.Id == data.RosaControlId)).Status);
+    }
+
     [Theory]
     [InlineData(false, "AppointmentCancelled")]
     [InlineData(true, "AppointmentRescheduled")]
