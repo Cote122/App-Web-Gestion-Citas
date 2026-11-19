@@ -95,6 +95,9 @@ export interface AdminProfessional {
   specialtyName: string;
   specialtyIsActive: boolean;
   isActive: boolean;
+  // HU-44: correo y DNI de la cuenta con la que inicia sesión (null en profesionales antiguos de prueba).
+  userEmail: string | null;
+  userDni: string | null;
 }
 
 export interface AvailabilitySlot {

@@ -1,0 +1,50 @@
+/* HU-44: complementa admin.css y modal.css. */
+/* Los campos de una misma fila empiezan arriba, aunque uno tenga un mensaje debajo (DNI verificado). */
+.modal-body { align-items: start; row-gap: 38px; }
+.modal-body .form-field { align-content: start; }
+/* El mensaje del DNI va en el espacio entre filas, para que todas tengan la misma separación. */
+.modal-body .form-field { position: relative; }
+.status { position: absolute; top: 100%; left: 0; margin-top: 5px; font-size: 12px; font-weight: 600; line-height: 16px; color: #4d6074; }
+.status.ok { color: #187647; }
+.status.bad { color: #b62f2f; }
+.form-field input.valid { border-color: #9bd3b0; }
+.form-field input.invalid { border-color: #e1a3a3; }
+
+/* Contraseña generada, con botón para generar otra dentro del recuadro. */
+.password-wrap { position: relative; }
+.password-wrap input { display: block; width: 100%; padding-right: 46px; font-family: Consolas, "Courier New", monospace; letter-spacing: .04em; }
+.regen { position: absolute; top: 50%; right: 6px; transform: translateY(-50%); width: 34px; height: 34px; display: grid; place-items: center; border: 0; border-radius: 8px; background: transparent; color: var(--primary); cursor: pointer; }
+.regen:hover { background: #e9f2fc; }
+.regen:focus-visible { outline: 2px solid var(--primary); outline-offset: 1px; }
+
+.modal-body.single { grid-template-columns: 1fr; gap: 16px; }
+/* Opción 1: ficha con un botón de copiar en cada dato. */
+.created-head { justify-content: flex-start; align-items: center; gap: 14px; }
+.created-head p { margin-top: 4px; }
+.ok-circle { width: 46px; height: 46px; flex: none; border-radius: 50%; background: #e3f6ea; color: #187647; display: grid; place-items: center; }
+.credential-rows { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+.credential-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 14px; border-bottom: 1px solid var(--line); }
+.credential-row:last-child { border-bottom: 0; }
+.credential-row.highlight { background: #f6faff; }
+.credential-row small { display: block; color: #4d6074; font-size: 12px; font-weight: 600; }
+.credential-row b { color: var(--primary-dark); overflow-wrap: anywhere; }
+.credential-row b.mono { font-family: Consolas, "Courier New", monospace; font-size: 17px; letter-spacing: .05em; }
+.copy-icon { width: 36px; height: 36px; flex: none; display: grid; place-items: center; padding: 0; border-radius: 9px; border: 1px solid #cfe0f2; background: #f2f8ff; color: var(--primary); cursor: pointer; transition: background .15s, color .15s, border-color .15s; }
+.copy-icon:hover { background: #e4f0ff; }
+.copy-icon.done { background: #e3f6ea; border-color: #b9e2c8; color: #187647; }
+.copy-icon:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.warning { margin: 0; padding: 10px 12px; border-radius: 10px; background: #fff7e8; border: 1px solid #f2d59b; color: #7a4b05; font-size: 13px; font-weight: 600; }
+
+/* X dentro de un círculo, a la altura del título (mismo diseño que el modal de confirmar cita). */
+.modal { position: relative; }
+.modal-head h3 { padding-right: 44px; }
+.modal-close { position: absolute; top: 33px; right: 26px; width: 36px; height: 36px; display: grid; place-items: center; padding: 0; border: 0; border-radius: 50%; background: #fdeeee; color: #c0392b; opacity: 1; transition: background .15s, color .15s; }
+.modal-close:hover { background: #f9d6d6; color: #a32020; }
+.modal-close:focus-visible { outline: 2px solid #c0392b; outline-offset: 2px; }
+
+/* Editar: DNI y correo de la cuenta con candado (mismo diseño que "Mi perfil"). */
+.field-label { font-size: 12px; font-weight: 800; color: #33495e; }
+.locked { min-height: 44px; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px; border: 1px solid #dbe4ee; border-radius: 10px; background: #f6f9fc; color: var(--primary-dark); cursor: not-allowed; }
+.locked span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.locked .empty-value { color: #8f520f; font-weight: 600; }
+.locked svg { flex: none; color: #8a9bad; }
