@@ -130,7 +130,8 @@ export class ApiService {
     return this.http.get<AdminProfessional[]>('/api/admin/professionals');
   }
 
-  createProfessional(payload: { fullName: string; office: string; specialtyId: string }) {
+  // HU-44: registra al profesional junto con su cuenta (rol Profesional).
+  createProfessional(payload: { dni: string; email: string; password: string; fullName: string; office: string; specialtyId: string }) {
     return this.http.post<AdminProfessional>('/api/admin/professionals', payload);
   }
 

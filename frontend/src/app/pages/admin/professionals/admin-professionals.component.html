@@ -11,14 +11,15 @@
   <div class="table-wrap" *ngIf="!loading">
     <table>
       <colgroup>
-        <col style="width: 30%"><col style="width: 18%"><col style="width: 20%"><col style="width: 12%"><col style="width: 20%">
+        <col style="width: 22%"><col style="width: 20%"><col style="width: 14%"><col style="width: 15%"><col style="width: 10%"><col style="width: 19%">
       </colgroup>
       <thead>
-        <tr><th>Profesional</th><th>Consultorio</th><th>Especialidad</th><th class="center">Estado</th><th class="actions">Acciones</th></tr>
+        <tr><th>Profesional</th><th>Cuenta</th><th>Consultorio</th><th>Especialidad</th><th class="center">Estado</th><th class="actions">Acciones</th></tr>
       </thead>
       <tbody>
         <tr *ngFor="let item of items" [class.inactive]="!item.isActive">
           <td><span class="name">{{ item.fullName }}</span></td>
+          <td><span class="sub" *ngIf="item.userEmail">{{ item.userEmail }}</span><span class="sub warn" *ngIf="!item.userEmail">Sin cuenta</span></td>
           <td>{{ item.office || '—' }}</td>
           <td>{{ item.specialtyName }}<span class="sub warn" *ngIf="!item.specialtyIsActive">Especialidad inactiva</span></td>
           <td class="center"><span class="badge" [ngClass]="item.isActive ? 'badge-green' : 'badge-gray'">{{ item.isActive ? 'Activo' : 'Inactivo' }}</span></td>
@@ -50,12 +51,67 @@
         <h3 id="professional-modal-title">{{ editing ? 'Editar profesional' : 'Nuevo profesional' }}</h3>
         <p>{{ editing ? 'Modifica los datos del profesional.' : 'Completa los datos obligatorios (*).' }}</p>
       </div>
-      <button class="modal-close" type="button" aria-label="Cerrar" (click)="closeModal()">×</button>
+      <button class="modal-close" type="button" aria-label="Cerrar" (click)="closeModal()"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
     </div>
 
     <div class="modal-body">
-      <div class="form-field wide"><label>Nombre completo *</label><input #firstField formControlName="fullName" maxlength="200" placeholder="Ej. Dra. Ana López"></div>
-      <div class="form-field"><label>Consultorio</label><input formControlName="office" maxlength="100" placeholder="Ej. Consultorio 1"></div>
+      <!-- HU-44: el profesional se registra con su cuenta de acceso (rol Profesional) -->
+      <ng-container *ngIf="!editing; else editName">
+        <div class="form-field">
+          <label for="dni">DNI *</label>
+          <input #firstField id="dni" formControlName="dni" maxlength="8" inputmode="numeric" autocomplete="off" placeholder="12345678"
+                 [class.valid]="dniStatus === 'valid'" [class.invalid]="dniStatus === 'error'" (input)="onDniInput()">
+          <small class="status" [class.ok]="dniStatus === 'valid'" [class.bad]="dniStatus === 'error'" aria-live="polite">
+            {{ dniStatus === 'checking' ? 'Verificando DNI…' : dniStatus === 'valid' ? '✓ DNI verificado' : dniMessage }}
+          </small>
+        </div>
+        <div class="form-field">
+          <label for="fullName">Nombre completo *</label>
+          <input id="fullName" formControlName="fullName" maxlength="200" placeholder="Se completa con el DNI">
+        </div>
+        <div class="form-field">
+          <label for="email">Correo *</label>
+          <input id="email" formControlName="email" type="email" maxlength="100" autocomplete="off" placeholder="doctora@correo.com" (input)="onEmailInput()">
+        </div>
+        <div class="form-field">
+          <label for="password">Contraseña *</label>
+          <div class="password-wrap">
+            <input id="password" formControlName="password" type="text" maxlength="64" autocomplete="off" spellcheck="false">
+            <button type="button" class="regen" (click)="regeneratePassword()" title="Generar otra contraseña" aria-label="Generar otra contraseña">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M21 12a9 9 0 1 1-2.64-6.36"></path><path d="M21 3v6h-6"></path>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </ng-container>
+
+      <!-- Al editar: DNI y correo de su cuenta se muestran con candado (no se cambian aquí) -->
+      <ng-template #editName>
+        <div class="form-field">
+          <span class="field-label">DNI</span>
+          <div class="locked" title="Este dato no se puede cambiar">
+            <span [class.empty-value]="!editing?.userDni">{{ editing?.userDni || 'Sin cuenta' }}</span>
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>
+          </div>
+        </div>
+        <div class="form-field">
+          <span class="field-label">Nombre completo</span>
+          <div class="locked" title="Este dato no se puede cambiar">
+            <span>{{ editing?.fullName }}</span>
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>
+          </div>
+        </div>
+        <div class="form-field wide">
+          <span class="field-label">Correo</span>
+          <div class="locked" title="Este dato no se puede cambiar">
+            <span [class.empty-value]="!editing?.userEmail">{{ editing?.userEmail || 'Sin cuenta' }}</span>
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>
+          </div>
+        </div>
+      </ng-template>
+
+      <div class="form-field"><label for="office">Consultorio</label><input #officeField id="office" formControlName="office" maxlength="100" placeholder="Ej. Consultorio 1"></div>
       <div class="form-field">
         <label>Especialidad *</label>
         <select formControlName="specialtyId">
@@ -63,13 +119,50 @@
           <option *ngFor="let item of specialtyOptions" [value]="item.id">{{ item.name }}{{ item.isActive ? '' : ' (inactiva)' }}</option>
         </select>
       </div>
-      <p class="hint" *ngIf="!editing">Un profesional nuevo no tiene horarios todavía; la configuración de agenda se gestiona aparte.</p>
       <p class="error" *ngIf="formError">{{ formError }}</p>
     </div>
 
     <div class="modal-foot">
       <button class="btn btn-secondary" type="button" (click)="closeModal()">Cancelar</button>
-      <button class="btn btn-primary" type="submit" [disabled]="form.invalid || saving">{{ saving ? 'Guardando...' : (editing ? 'Guardar cambios' : 'Registrar profesional') }}</button>
+      <button class="btn btn-primary" type="submit" [disabled]="!canSave">{{ saving ? 'Guardando...' : (editing ? 'Guardar cambios' : 'Registrar profesional') }}</button>
     </div>
   </form>
+</div>
+
+<!-- HU-44: datos de acceso de la cuenta recién creada (se muestran una sola vez) -->
+<div class="modal-backdrop" *ngIf="credentials as data">
+  <div class="modal modal-sm" role="dialog" aria-modal="true" aria-labelledby="credentials-title">
+    <div class="modal-head created-head">
+      <div class="ok-circle" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"></path></svg>
+      </div>
+      <div>
+        <h3 id="credentials-title">Cuenta creada</h3>
+        <p>{{ data.fullName }} · {{ data.specialtyName }}</p>
+      </div>
+    </div>
+    <div class="modal-body single">
+      <div class="credential-rows">
+        <ng-container *ngTemplateOutlet="row; context: { label: 'Usuario (correo)', value: data.email, field: 'email' }"></ng-container>
+        <ng-container *ngTemplateOutlet="row; context: { label: 'También puede entrar con su DNI', value: data.dni, field: 'dni' }"></ng-container>
+        <ng-container *ngTemplateOutlet="row; context: { label: 'Contraseña temporal', value: data.password, field: 'password' }"></ng-container>
+      </div>
+      <p class="warning">Guárdala ahora: por seguridad no se volverá a mostrar.</p>
+    </div>
+
+    <!-- Fila con su botón de copiar (muestra un check al copiar) -->
+    <ng-template #row let-label="label" let-value="value" let-field="field">
+      <div class="credential-row" [class.highlight]="field === 'password'">
+        <div><small>{{ label }}</small><b [class.mono]="field === 'password'">{{ value }}</b></div>
+        <button type="button" class="copy-icon" [class.done]="copiedField === field" (click)="copy(field)"
+                [attr.aria-label]="copiedField === field ? 'Copiado' : 'Copiar ' + label" [title]="copiedField === field ? 'Copiado' : 'Copiar'">
+          <svg *ngIf="copiedField !== field" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"></rect><path d="M5 15V5a2 2 0 0 1 2-2h10"></path></svg>
+          <svg *ngIf="copiedField === field" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7"></path></svg>
+        </button>
+      </div>
+    </ng-template>
+    <div class="modal-foot">
+      <button class="btn btn-primary" type="button" (click)="closeCredentials()">Entendido</button>
+    </div>
+  </div>
 </div>
