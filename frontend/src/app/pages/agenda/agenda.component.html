@@ -157,6 +157,21 @@
       <div class="empty" *ngIf="!loadingSlots && !availableSlots.length">
         <p>No tienes horarios disponibles configurados en este momento.</p>
       </div>
+
+      <!-- Campo de texto para el motivo de reprogramación -->
+      <div style="margin-top: 1.5rem;" *ngIf="availableSlots.length">
+        <label for="rescheduleReason" style="display: block; font-weight: 500; font-size: 0.875rem; margin-bottom: 0.35rem; color: #334155;">
+          Motivo de la reprogramación (Opcional):
+        </label>
+        <textarea 
+          id="rescheduleReason" maxlength="500" 
+          [(ngModel)]="rescheduleReason" 
+          class="form-control" 
+          rows="2" 
+          style="width: 100%; padding: 0.5rem; border: 1px solid #cbd5e1; border-radius: 0.375rem;"
+          placeholder="Escribe el motivo del cambio de horario...">
+        </textarea>
+      </div>
     </div>
 
     <div class="modal-footer" *ngIf="availableSlots.length">
@@ -230,6 +245,7 @@
   </app-medical-record-form>
 </div>
 
+<!-- MODAL DE CANCELACIÓN -->
 <div class="modal-backdrop" *ngIf="appointmentToCancelId" (click)="appointmentToCancelId = null">
   <div class="modal modal-sm" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
     <div class="modal-head">
@@ -238,6 +254,21 @@
         <p>¿Estás seguro de que deseas cancelar esta cita? Se liberará el cupo.</p>
       </div>
       <button class="modal-close" type="button" (click)="appointmentToCancelId = null">×</button>
+    </div>
+
+    <div class="modal-body" style="padding-top: 1rem;">
+      <!-- Campo de texto para el motivo de cancelación -->
+      <label for="cancelReason" style="display: block; font-weight: 500; font-size: 0.875rem; margin-bottom: 0.35rem; color: #334155;">
+        Motivo de la cancelación (Opcional):
+      </label>
+      <textarea 
+        id="cancelReason" maxlength="500" 
+        [(ngModel)]="cancelReason" 
+        class="form-control" 
+        rows="2" 
+        style="width: 100%; padding: 0.5rem; border: 1px solid #cbd5e1; border-radius: 0.375rem;"
+        placeholder="Escribe el motivo de la cancelación...">
+      </textarea>
     </div>
 
     <div class="modal-footer" style="display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 1.5rem;">

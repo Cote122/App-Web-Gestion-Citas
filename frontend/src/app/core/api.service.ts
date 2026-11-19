@@ -175,12 +175,12 @@ export class ApiService {
     return this.http.get<any[]>('/api/professional/agenda/available-slots');
   }
 
-  cancelProfessionalAppointment(appointmentId: string) {
-    return this.http.patch<any>(`/api/professional/agenda/${appointmentId}/cancel`, {});
+  cancelProfessionalAppointment(appointmentId: string, reason?: string) {
+    return this.http.patch<any>(`/api/professional/agenda/${appointmentId}/cancel`, { reason });
   }
 
-  rescheduleProfessionalAppointment(appointmentId: string, slotId: string) {
-    return this.http.patch<any>(`/api/professional/agenda/${appointmentId}/reschedule`, { slotId });
+  rescheduleProfessionalAppointment(appointmentId: string, slotId: string, reason?: string) {
+    return this.http.patch<any>(`/api/professional/agenda/${appointmentId}/reschedule`, { slotId, reason });
   }
   // HU-14: ausencias del profesional
   myAbsences() {

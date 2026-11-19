@@ -1,5 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
 import { ApiService } from '../../core/api.service';
@@ -10,7 +11,7 @@ import { MedicalDocumentsComponent } from '../../shared/medical-documents/medica
 @Component({
   selector: 'app-agenda',
   standalone: true,
-  imports: [CommonModule, DatePipe, RouterLink, MedicalRecordFormComponent, MedicalDocumentsComponent],
+  imports: [CommonModule, DatePipe, RouterLink, MedicalRecordFormComponent, MedicalDocumentsComponent, FormsModule],
   templateUrl: './agenda.component.html',
   styleUrls: ['./agenda.component.css']
 })
@@ -20,12 +21,14 @@ export class AgendaComponent implements OnInit {
   detail: ProfessionalAppointmentDetail | null = null;
   recordAppointmentId: string | null = null;
   recordPatientId: string | null = null;
-  appointmentToCancelId: string | null = null;
   
-  // Nuevas variables para la reprogramación
+  appointmentToCancelId: string | null = null;
+  cancelReason: string = '';
+
   rescheduleAppointment: ProfessionalAgendaItem | null = null;
   availableSlots: any[] = [];
   selectedNewSlotId: string | null = null;
+  rescheduleReason: string = '';
   loadingSlots = false;
   savingReschedule = false;
 
@@ -57,6 +60,7 @@ export class AgendaComponent implements OnInit {
   openRescheduleModal(item: ProfessionalAgendaItem): void {
     this.rescheduleAppointment = item;
     this.selectedNewSlotId = null;
+    this.rescheduleReason = '';
     this.availableSlots = [];
     this.groupedSlots = [];
     this.loadingSlots = true;
@@ -66,18 +70,17 @@ export class AgendaComponent implements OnInit {
     this.api.getProfessionalAvailableSlots().pipe(finalize(() => this.loadingSlots = false)).subscribe({
       next: slots => {
         this.availableSlots = slots;
-        this.groupSlotsByDate(slots); // Agrupamos al cargar
+        this.groupSlotsByDate(slots);
       },
       error: err => this.error = err?.error?.message || 'Error al cargar horarios disponibles.'
     });
   }
 
-  // Agrupa la lista plana de slots por fecha (ej: '2026-11-10')
   groupSlotsByDate(slots: any[]): void {
     const map = new Map<string, any[]>();
     
     slots.forEach(slot => {
-      const dateKey = slot.startAt.split('T')[0]; // Extrae YYYY-MM-DD
+      const dateKey = slot.startAt.split('T')[0];
       if (!map.has(dateKey)) {
         map.set(dateKey, []);
       }
@@ -86,7 +89,7 @@ export class AgendaComponent implements OnInit {
 
     this.groupedSlots = Array.from(map.entries()).map(([dateKey, daySlots]) => ({
       dateKey,
-      dateFormatted: dateKey, // O puedes formatearlo como prefieras
+      dateFormatted: dateKey,
       slots: daySlots.sort((a, b) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime())
     }));
   }
@@ -94,6 +97,7 @@ export class AgendaComponent implements OnInit {
   closeRescheduleModal(): void {
     this.rescheduleAppointment = null;
     this.selectedNewSlotId = null;
+    this.rescheduleReason = '';
     this.availableSlots = [];
   }
 
@@ -104,7 +108,11 @@ export class AgendaComponent implements OnInit {
     this.error = '';
     this.successMessage = '';
 
-    this.api.rescheduleProfessionalAppointment(this.rescheduleAppointment.id, this.selectedNewSlotId)
+    this.api.rescheduleProfessionalAppointment(
+      this.rescheduleAppointment.id, 
+      this.selectedNewSlotId, 
+      this.rescheduleReason
+    )
       .pipe(finalize(() => this.savingReschedule = false))
       .subscribe({
         next: () => {
@@ -118,18 +126,21 @@ export class AgendaComponent implements OnInit {
 
   promptCancelAppointment(appointmentId: string): void {
     this.appointmentToCancelId = appointmentId;
+    this.cancelReason = '';
   }
 
   executeCancelAppointment(): void {
     if (!this.appointmentToCancelId) return;
 
     const appointmentId = this.appointmentToCancelId;
+    const reasonToSend = this.cancelReason;
+    
     this.appointmentToCancelId = null;
-
+    this.cancelReason = '';
     this.error = '';
     this.successMessage = '';
 
-    this.api.cancelProfessionalAppointment(appointmentId).subscribe({
+    this.api.cancelProfessionalAppointment(appointmentId, reasonToSend).subscribe({
       next: () => {
         this.successMessage = 'Cita cancelada con éxito.';
         this.load();
