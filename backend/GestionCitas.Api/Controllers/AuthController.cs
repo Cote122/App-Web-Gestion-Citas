@@ -1,5 +1,7 @@
+using System.Security.Claims;
 using GestionCitas.Api.Dtos;
 using GestionCitas.Api.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 
@@ -7,8 +9,19 @@ namespace GestionCitas.Api.Controllers;
 
 [ApiController]
 [Route("api/auth")]
-public class AuthController(AuthService authService, DniLookupService dniLookup) : ControllerBase
+public class AuthController(AuthService authService, DniLookupService dniLookup, SessionRevocationService sessions) : ControllerBase
 {
+    // HU-45: cerrar sesión invalida los tokens ya emitidos para el usuario (todas sus pestañas).
+    [Authorize]
+    [HttpPost("logout")]
+    public IActionResult Logout()
+    {
+        if (Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId))
+            sessions.RevokeAll(userId);
+
+        return NoContent();
+    }
+
     // HU-37: valida el DNI y devuelve el nombre para autocompletar el registro.
     // Tiene límite de consultas por IP para no agotar el plan del servicio externo.
     [HttpGet("dni/{dni}")]

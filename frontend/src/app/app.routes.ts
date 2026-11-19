@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { adminGuard, authGuard, patientGuard, professionalGuard } from './core/auth.guard';
+import { adminGuard, authGuard, guestGuard, patientGuard, professionalGuard } from './core/auth.guard';
 import { LoginComponent } from './pages/login/login.component';
 import { RegisterComponent } from './pages/register/register.component';
 import { ShellComponent } from './layout/shell/shell.component';
@@ -16,8 +16,8 @@ import { PrescriptionsComponent } from './pages/prescriptions/prescriptions.comp
 import { AdminPrescriptionsComponent } from './pages/admin/prescriptions/admin-prescriptions.component';
 
 export const routes: Routes = [
-  { path: 'login', component: LoginComponent },
-  { path: 'register', component: RegisterComponent },
+  { path: 'login', component: LoginComponent, canActivate: [guestGuard] },
+  { path: 'register', component: RegisterComponent, canActivate: [guestGuard] },
   {
     path: 'app',
     component: ShellComponent,
