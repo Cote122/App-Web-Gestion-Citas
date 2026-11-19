@@ -4,6 +4,7 @@ import { HttpClient } from '@angular/common/http';
 import { AbstractControl, FormBuilder, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
+import { AuthService } from '../../core/auth.service';
 
 // Mismas reglas de contraseña del registro (HU-38).
 const PASSWORD_PATTERN = /^(?=.*[A-Za-zÁÉÍÓÚÜÑáéíóúüñ])(?=.*\d).+$/;
@@ -41,7 +42,7 @@ export class ResetPasswordComponent {
     confirmPassword: ['', [Validators.required]]
   }, { validators: passwordsMatch });
 
-  constructor(private readonly fb: FormBuilder, private readonly http: HttpClient, private readonly route: ActivatedRoute) {}
+  constructor(private readonly fb: FormBuilder, private readonly http: HttpClient, private readonly route: ActivatedRoute, private readonly auth: AuthService) {}
 
   errorFor(field: Field): string {
     if (field !== this.activeField && field !== this.flagged) return '';
@@ -72,7 +73,10 @@ export class ResetPasswordComponent {
     this.http.post<{ message: string }>('/api/auth/password/reset', { token: this.token, ...this.form.getRawValue() })
       .pipe(finalize(() => this.loading = false))
       .subscribe({
-        next: response => this.done = response.message,
+        next: response => {
+          this.auth.endSession();
+          this.done = response.message;
+        },
         error: error => {
           if (error?.status === 429) {
             this.error = 'Hiciste muchos intentos seguidos. Espera un minuto e intenta otra vez.';
