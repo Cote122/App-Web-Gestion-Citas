@@ -35,9 +35,11 @@ public class ProfessionalAgendaController(ProfessionalAgendaService agendaServic
     }
 
     [HttpPatch("{id:guid}/cancel")]
-    public async Task<IActionResult> Cancel(Guid id)
+    public async Task<IActionResult> Cancel(Guid id, [FromBody] CancelAppointmentRequest request)
     {
-        var (success, error) = await agendaService.CancelAppointmentAsync(CurrentUserId(), id);
+        // Pasamos el motivo recibido del body (puede ser opcional con request?.Reason)
+        var (success, error) = await agendaService.CancelAppointmentAsync(CurrentUserId(), id, request?.Reason);
+
         if (success) return Ok(new { message = "Cita cancelada con éxito." });
         if (error == "Cita no encontrada o no te pertenece.") return NotFound(new { message = error });
         return BadRequest(new { message = error });
@@ -46,7 +48,7 @@ public class ProfessionalAgendaController(ProfessionalAgendaService agendaServic
     [HttpPatch("{id:guid}/reschedule")]
     public async Task<IActionResult> Reschedule(Guid id, [FromBody] RescheduleAppointmentRequest request)
     {
-        var (appointment, error) = await agendaService.RescheduleAppointmentAsync(CurrentUserId(), id, request.SlotId);
+        var (appointment, error) = await agendaService.RescheduleAppointmentAsync(CurrentUserId(), id, request.SlotId, request.Reason);
         return appointment is null ? Conflict(new { message = error }) : Ok(appointment);
     }
 
