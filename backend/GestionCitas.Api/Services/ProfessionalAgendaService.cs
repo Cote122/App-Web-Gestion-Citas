@@ -69,6 +69,10 @@ public class ProfessionalAgendaService(AppDbContext db)
 
     public async Task<(bool Success, string? Error)> CancelAppointmentAsync(Guid userId, Guid appointmentId, string? reason = null)
     {
+        reason = reason?.Trim();
+        if (reason?.Length > 500)
+            return (false, "El motivo no puede superar los 500 caracteres.");
+
         var professional = await LinkedProfessionalAsync(userId);
         if (professional is null)
             return (false, "Tu usuario no está vinculado a un profesional.");
@@ -139,6 +143,10 @@ public class ProfessionalAgendaService(AppDbContext db)
 
     public async Task<(AppointmentDto? Appointment, string? Error)> RescheduleAppointmentAsync(Guid userId, Guid appointmentId, Guid newSlotId, string? reason = null)
     {
+        reason = reason?.Trim();
+        if (reason?.Length > 500)
+            return (null, "El motivo no puede superar los 500 caracteres.");
+
         var professional = await LinkedProfessionalAsync(userId);
         if (professional is null)
             return (null, "Tu usuario no está vinculado a un profesional.");
