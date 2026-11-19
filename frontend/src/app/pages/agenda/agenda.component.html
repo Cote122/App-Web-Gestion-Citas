@@ -164,7 +164,7 @@
           Motivo de la reprogramación (Opcional):
         </label>
         <textarea 
-          id="rescheduleReason" 
+          id="rescheduleReason" maxlength="500" 
           [(ngModel)]="rescheduleReason" 
           class="form-control" 
           rows="2" 
@@ -262,7 +262,7 @@
         Motivo de la cancelación (Opcional):
       </label>
       <textarea 
-        id="cancelReason" 
+        id="cancelReason" maxlength="500" 
         [(ngModel)]="cancelReason" 
         class="form-control" 
         rows="2" 
