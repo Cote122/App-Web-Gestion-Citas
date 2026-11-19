@@ -17,10 +17,13 @@ export class LoginComponent {
   // Ojito: muestra u oculta la contraseña.
   showPassword = false;
   error = '';
-  // HU-34: aviso cuando la sesión se cerró por inactividad.
-  readonly sessionNotice = this.route.snapshot.queryParamMap.get('session') === 'idle'
-    ? 'Tu sesión se cerró por inactividad. Inicia sesión otra vez.'
-    : '';
+  // HU-34 y HU-45: aviso de por qué se cerró la sesión.
+  private readonly sessionNotices: Record<string, string> = {
+    idle: 'Tu sesión se cerró por inactividad. Inicia sesión otra vez.',
+    closed: 'Tu sesión se cerró. Inicia sesión otra vez.',
+    changed: 'Tu sesión ya no es válida. Inicia sesión otra vez.'
+  };
+  readonly sessionNotice = this.sessionNotices[this.route.snapshot.queryParamMap.get('session') ?? ''] ?? '';
 
   form = this.fb.nonNullable.group({
     identifier: ['70000011', Validators.required],

@@ -9,6 +9,13 @@ export const authGuard: CanActivateFn = () => {
   return auth.isAuthenticated() ? true : router.createUrlTree(['/login']);
 };
 
+// HU-45: con la sesión ya abierta (en esta u otra pestaña), el login y el registro llevan al inicio.
+export const guestGuard: CanActivateFn = () => {
+  const auth = inject(AuthService);
+  const router = inject(Router);
+  return auth.isAuthenticated() ? router.createUrlTree(['/app/home']) : true;
+};
+
 export function roleGuard(...roles: UserRole[]): CanActivateFn {
   return () => {
     const auth = inject(AuthService);
