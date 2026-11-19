@@ -6,6 +6,8 @@ import { ShellComponent } from './layout/shell/shell.component';
 import { HomeComponent } from './pages/home/home.component';
 import { BookingComponent } from './pages/booking/booking.component';
 import { AppointmentsComponent } from './pages/appointments/appointments.component';
+import { ForgotPasswordComponent } from './pages/password/forgot-password.component';
+import { ResetPasswordComponent } from './pages/password/reset-password.component';
 import { AdminSpecialtiesComponent } from './pages/admin/specialties/admin-specialties.component';
 import { AdminProfessionalsComponent } from './pages/admin/professionals/admin-professionals.component';
 import { AdminUsersComponent } from './pages/admin/users/admin-users.component';
@@ -39,6 +41,9 @@ export const routes: Routes = [
       { path: '', pathMatch: 'full', redirectTo: 'home' }
     ]
   },
+  // HU-04: recuperación de contraseña por correo.
+  { path: 'forgot-password', component: ForgotPasswordComponent },
+  { path: 'reset-password', component: ResetPasswordComponent },
   { path: '', pathMatch: 'full', redirectTo: 'login' },
   { path: '**', redirectTo: 'login' }
 ];

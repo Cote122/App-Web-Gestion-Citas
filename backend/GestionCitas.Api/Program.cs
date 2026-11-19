@@ -23,6 +23,8 @@ builder.Services.Configure<EmailSettings>(
     builder.Configuration.GetSection("Email"));
 
 builder.Services.AddScoped<AuthService>();
+// HU-04: recuperación de contraseña por correo (enlace firmado, de un solo uso).
+builder.Services.AddScoped<PasswordResetService>();
 builder.Services.AddScoped<AppointmentService>();
 builder.Services.AddOptions<AppointmentPolicyOptions>()
     .Bind(builder.Configuration.GetSection("AppointmentPolicy"))
@@ -49,6 +51,14 @@ builder.Services.AddRateLimiter(options =>
         _ => new System.Threading.RateLimiting.FixedWindowRateLimiterOptions
         {
             PermitLimit = 10,
+            Window = TimeSpan.FromMinutes(1)
+        }));
+    // HU-04: pocas solicitudes de recuperación por minuto, para que nadie abuse del envío de correos.
+    options.AddPolicy("password-reset", context => System.Threading.RateLimiting.RateLimitPartition.GetFixedWindowLimiter(
+        context.Connection.RemoteIpAddress?.ToString() ?? "desconocido",
+        _ => new System.Threading.RateLimiting.FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 5,
             Window = TimeSpan.FromMinutes(1)
         }));
     options.OnRejected = async (context, token) =>

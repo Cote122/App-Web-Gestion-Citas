@@ -18,6 +18,8 @@
       <p class="error" *ngIf="error">{{ error }}</p>
       <button class="btn btn-primary" type="submit" [disabled]="loading">{{ loading ? 'Ingresando...' : 'Iniciar sesión' }}</button>
     </form>
+    <!-- HU-04: recuperación de contraseña -->
+    <a routerLink="/forgot-password" style="margin-top: 14px; font-size: 14px;">¿Olvidaste tu contraseña?</a>
 
     <div class="demo">
       <b>Acceso rápido demo</b>
