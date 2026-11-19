@@ -4,7 +4,7 @@
   --success: #2ea75b;
   --bg: #f4f7fb;
   --line: #dfe7ef;
-  --muted: #708195;
+  --muted: #55697d; /* más oscuro para que los textos grises se lean mejor */
   --text: #17324d;
 }
 
@@ -12,6 +12,9 @@
 html, body { margin: 0; min-height: 100%; font-family: "Segoe UI", Arial, sans-serif; background: var(--bg); color: var(--text); }
 button, input, select, textarea { font: inherit; }
 button { cursor: pointer; }
+/* El texto de la app no se puede seleccionar ni copiar; los campos de un formulario sí, para poder escribir y corregir. */
+body { -webkit-user-select: none; user-select: none; }
+input, textarea, [contenteditable="true"] { -webkit-user-select: text; user-select: text; }
 a { color: inherit; }
 
 .btn {

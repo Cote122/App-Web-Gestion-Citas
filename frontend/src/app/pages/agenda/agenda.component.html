@@ -138,7 +138,7 @@
       <div class="schedule-grid" *ngIf="!loadingSlots && groupedSlots.length">
         <div class="day-column" *ngFor="let day of groupedSlots">
           <div class="day-header">
-            <b>{{ day.dateKey | date:'EEEE dd/MM' }}</b>
+            <b>{{ day.dateKey | date:'EEEE dd/MM':undefined:'es-PE' }}</b>
           </div>
           
           <div class="slots-list">

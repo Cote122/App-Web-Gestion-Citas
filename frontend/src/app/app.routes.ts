@@ -14,6 +14,7 @@ import { ProfessionalAbsencesComponent } from './pages/professional/absences/pro
 import { ResultsComponent } from './pages/results/results.component';
 import { PrescriptionsComponent } from './pages/prescriptions/prescriptions.component';
 import { AdminPrescriptionsComponent } from './pages/admin/prescriptions/admin-prescriptions.component';
+import { ProfileComponent } from './pages/profile/profile.component';
 
 export const routes: Routes = [
   { path: 'login', component: LoginComponent },
@@ -24,6 +25,7 @@ export const routes: Routes = [
     canActivate: [authGuard],
     children: [
       { path: 'home', component: HomeComponent },
+      { path: 'profile', component: ProfileComponent },
       { path: 'book', component: BookingComponent, canActivate: [patientGuard] },
       { path: 'appointments', component: AppointmentsComponent, canActivate: [patientGuard] },
       { path: 'results', component: ResultsComponent, canActivate: [patientGuard] },

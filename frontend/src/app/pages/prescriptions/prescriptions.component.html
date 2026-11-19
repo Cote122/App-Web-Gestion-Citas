@@ -14,11 +14,11 @@
         <td><span class="badge" [class.badge-green]="value.isActive" [class.badge-gray]="!value.isActive">{{ value.isActive ? 'Activa' : 'Anulada' }}</span></td>
         <td><button class="btn btn-secondary" type="button" (click)="open(value.id)" [disabled]="busy || detailLoading">Ver receta</button></td></tr></tbody></table>
   </div>
-  <p class="muted" *ngIf="!loading && !prescriptions.length">No hay recetas disponibles.</p>
+  <p class="empty" *ngIf="!loading && !prescriptions.length">No hay recetas disponibles.</p>
 </section>
 <section class="card" *ngIf="!appointmentId && !loading">
   <h3>Indicaciones de tus atenciones</h3>
-  <p class="muted" *ngIf="!indications.length">No hay indicaciones registradas para consultar.</p>
+  <p class="empty" *ngIf="!indications.length">No hay indicaciones registradas para consultar.</p>
   <div class="indications"><article *ngFor="let value of indications"><div><b>{{ value.professional }}</b><small>{{ value.attentionDate | date:'dd/MM/yyyy' }}</small></div>
     <button class="btn btn-secondary" type="button" (click)="openIndication(value.id)" [disabled]="detailLoading">Ver indicaciones</button></article></div>
 </section>
