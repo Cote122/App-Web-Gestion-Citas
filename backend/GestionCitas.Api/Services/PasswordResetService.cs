@@ -18,6 +18,7 @@ public class PasswordResetService(
     AppDbContext db,
     IConfiguration configuration,
     SmtpEmailSender emailSender,
+    SessionRevocationService sessions,
     IHostEnvironment environment,
     ILogger<PasswordResetService> logger)
 {
@@ -82,6 +83,7 @@ public class PasswordResetService(
 
         user.PasswordHash = Hasher.HashPassword(user, newPassword);
         await db.SaveChangesAsync(cancellationToken);
+        sessions.RevokeAll(user.Id);
         logger.LogInformation("HU-04: contraseña restablecida para el usuario {UserId}.", user.Id);
         return null;
     }
