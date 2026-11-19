@@ -25,3 +25,10 @@ tr.selected { background: #eef6ff; }
 .result-form h3, .result-form .wide { grid-column: 1 / -1; }
 .empty { padding: 24px 0; }
 @media (max-width: 680px) { .result-form { grid-template-columns: 1fr; } .files li { align-items: stretch; flex-direction: column; } .buttons { width: 100%; } }
+
+/* Cabecera alineada y estado vacío como en "Mis citas" y "Recetas e indicaciones". */
+.card { padding: 24px 22px; }
+.heading { border-bottom: 1px solid var(--line); padding-bottom: 14px; }
+.heading h2 { margin: 0; color: var(--primary-dark); }
+.heading p { margin: 4px 0 0; }
+p.empty { margin: 16px 0 0; padding: 38px 30px; text-align: center; color: var(--muted); border: 1px dashed var(--line); border-radius: 12px; background: #fbfcfd; }

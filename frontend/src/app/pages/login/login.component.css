@@ -1,14 +1,32 @@
 .login-page { min-height: 100vh; display: grid; place-items: center; padding: 30px; background: linear-gradient(135deg, #eaf5ff, #f8fbff, #eaf8f1); }
 .login-card { width: min(560px, 100%); background: white; border: 1px solid var(--line); border-radius: 24px; padding: 30px; box-shadow: 0 20px 60px rgba(18, 50, 85, .14); }
 .brand { display: flex; align-items: center; justify-content: center; gap: 10px; color: var(--primary-dark); }
-.brand span { width: 46px; height: 46px; border-radius: 14px; display: grid; place-items: center; background: var(--primary); color: white; font-size: 28px; font-weight: 900; }
+.brand span { width: 46px; height: 46px; border-radius: 14px; display: grid; place-items: center; background: var(--primary); color: white; }
+.brand span svg { display: block; }
 .brand strong, .brand small { display: block; }
-.brand small { color: var(--muted); margin-top: 3px; }
+.brand small { color: #5b6d80; font-weight: 600; margin-top: 3px; }
 h1 { text-align: center; margin: 24px 0 6px; color: var(--primary-dark); }
-.login-card > p { text-align: center; color: var(--muted); }
+.login-card > p { text-align: center; color: #5b6d80; font-weight: 600; }
 .session-notice { margin-top: 18px; padding: 11px 14px; border-radius: 10px; background: #fff7e8; border: 1px solid #f2d59b; color: #7a4b05; font-size: 13px; font-weight: 600; text-align: center; }
 form { display: grid; gap: 14px; margin-top: 24px; }
 .demo { margin: 22px 0; padding-top: 18px; border-top: 1px solid var(--line); }
 .demo-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 10px 0; }
+.demo small { color: #4d6074; font-weight: 600; }
 .demo-grid button { border: 1px solid var(--line); background: white; border-radius: 10px; padding: 10px; color: var(--primary-dark); font-weight: 700; }
 .login-card > a { display: block; text-align: center; color: var(--primary); font-weight: 800; text-decoration: none; }
+
+/* Ojito de la contraseña (mismo diseño que en el registro). */
+.password-wrap { position: relative; }
+.password-wrap input { display: block; width: 100%; padding-right: 44px; }
+.eye { position: absolute; top: 50%; right: 6px; transform: translateY(-50%); width: 34px; height: 34px; display: grid; place-items: center; border: 0; border-radius: 8px; background: transparent; color: #6a7d90; }
+.eye:hover { background: var(--bg); color: var(--primary-dark); }
+.eye:focus-visible { outline: 2px solid var(--primary); outline-offset: 1px; }
+
+/* Más espacio ("respiración") entre las partes del login. */
+.login-card { width: min(580px, 100%); padding: 40px 44px 36px; }
+h1 { margin: 28px 0 8px; }
+form { gap: 18px; margin-top: 30px; }
+form > .btn { margin-top: 6px; min-height: 48px; }
+.demo { margin: 28px 0 24px; padding-top: 24px; }
+.demo-grid { gap: 10px; margin: 14px 0 12px; }
+@media (max-width: 560px) { .login-card { padding: 28px 22px; } }

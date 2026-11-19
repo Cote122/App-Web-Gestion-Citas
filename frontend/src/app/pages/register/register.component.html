@@ -1,8 +1,8 @@
 <section class="register-page">
   <div class="register-card">
-    <a routerLink="/login">← Volver al inicio de sesión</a>
+    <a class="back" routerLink="/login"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"></path></svg>Volver al inicio de sesión</a>
     <h1>Registro de paciente</h1>
-    <p class="muted">Los datos de esta versión son de prueba. No utilices información clínica real.</p>
+    <p class="subtitle">Los datos de esta versión son de prueba. No utilices información clínica real.</p>
 
     <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
       <div class="form-field">

@@ -1,6 +1,6 @@
 <div class="shell">
   <aside>
-    <div class="brand"><span>+</span><div><strong>GESTIÓN SALUD</strong><small>Proyecto Tecnológico</small></div></div>
+    <div class="brand"><span aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round"/></svg></span><div><strong>GESTIÓN SALUD</strong><small>Proyecto Tecnológico</small></div></div>
     <nav>
       <a routerLink="/app/home" routerLinkActive="active">Inicio</a>
       <a *ngIf="isPatient()" routerLink="/app/book" routerLinkActive="active">Nueva cita</a>
@@ -13,6 +13,7 @@
       <a *ngIf="isAdmin()" routerLink="/app/admin/professionals" routerLinkActive="active">Profesionales</a>
       <a *ngIf="isProfessional()" routerLink="/app/agenda" routerLinkActive="active">Mi agenda</a>
       <a *ngIf="isProfessional()" routerLink="/app/professional/absences" routerLinkActive="active">Mis ausencias</a>
+      <a routerLink="/app/profile" routerLinkActive="active">Mi perfil</a>
     </nav>
     <button class="logout" (click)="logout()">Cerrar sesión</button>
   </aside>

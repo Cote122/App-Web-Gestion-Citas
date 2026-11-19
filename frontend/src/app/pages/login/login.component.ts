@@ -14,6 +14,8 @@ import { AuthService } from '../../core/auth.service';
 })
 export class LoginComponent {
   loading = false;
+  // Ojito: muestra u oculta la contraseña.
+  showPassword = false;
   error = '';
   // HU-34: aviso cuando la sesión se cerró por inactividad.
   readonly sessionNotice = this.route.snapshot.queryParamMap.get('session') === 'idle'
