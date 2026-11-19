@@ -131,6 +131,25 @@ public class ProfessionalAgendaServiceTests
         Assert.Equal(oldAppt.Id, newApptRecord.PreviousAppointmentId);
     }
 
+    [Fact]
+    public async Task ReasonOver500Characters_RejectsCancelAndRescheduleWithoutChangingAppointment()
+    {
+        await using var db = CreateDb();
+        var data = Seed(db, DateOnly.FromDateTime(DateTime.UtcNow.AddDays(3)));
+        var service = new ProfessionalAgendaService(db);
+        var tooLong = new string('x', 501);
+
+        var (cancelled, cancelError) = await service.CancelAppointmentAsync(data.RosaUserId, data.RosaMorningId, tooLong);
+        var (replacement, rescheduleError) = await service.RescheduleAppointmentAsync(data.RosaUserId, data.RosaControlId, Guid.NewGuid(), tooLong);
+
+        Assert.False(cancelled);
+        Assert.Null(replacement);
+        Assert.Equal("El motivo no puede superar los 500 caracteres.", cancelError);
+        Assert.Equal(cancelError, rescheduleError);
+        Assert.Equal(AppointmentStatus.Confirmada, (await db.Appointments.SingleAsync(x => x.Id == data.RosaMorningId)).Status);
+        Assert.Equal(AppointmentStatus.Confirmada, (await db.Appointments.SingleAsync(x => x.Id == data.RosaControlId)).Status);
+    }
+
     [Theory]
     [InlineData(false, "AppointmentCancelled")]
     [InlineData(true, "AppointmentRescheduled")]
