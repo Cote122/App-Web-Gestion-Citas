@@ -6,12 +6,11 @@ import { finalize } from 'rxjs';
 import { ApiService } from '../../core/api.service';
 import { AuthService } from '../../core/auth.service';
 import { ProfessionalAgendaItem, ProfessionalAppointmentDetail } from '../../models/models';
-import { MedicalRecordFormComponent } from '../appointments/medical-record-form.component';
 import { MedicalDocumentsComponent } from '../../shared/medical-documents/medical-documents.component';
 @Component({
   selector: 'app-agenda',
   standalone: true,
-  imports: [CommonModule, DatePipe, RouterLink, MedicalRecordFormComponent, MedicalDocumentsComponent, FormsModule],
+  imports: [CommonModule, DatePipe, RouterLink, MedicalDocumentsComponent, FormsModule],
   templateUrl: './agenda.component.html',
   styleUrls: ['./agenda.component.css']
 })
@@ -19,8 +18,6 @@ export class AgendaComponent implements OnInit {
   items: ProfessionalAgendaItem[] = [];
   documentsAppointment?: ProfessionalAgendaItem;
   detail: ProfessionalAppointmentDetail | null = null;
-  recordAppointmentId: string | null = null;
-  recordPatientId: string | null = null;
   
   appointmentToCancelId: string | null = null;
   cancelReason: string = '';
@@ -47,8 +44,6 @@ export class AgendaComponent implements OnInit {
     this.loading = true;
     this.error = '';
     this.detail = null;
-    this.recordAppointmentId = null;
-    this.recordPatientId = null;
     this.api.professionalAgenda().pipe(finalize(() => this.loading = false)).subscribe({
       next: data => this.items = data,
       error: error => this.error = error?.error?.message ?? 'No se pudo consultar la agenda.'
@@ -158,17 +153,6 @@ export class AgendaComponent implements OnInit {
     });
   }
 
-  openRecordForm(appointmentId: string, patientId: string): void { 
-    this.recordAppointmentId = appointmentId;
-    this.recordPatientId = patientId;
-  }
-
-  closeRecordForm(): void {
-    this.recordAppointmentId = null;
-    this.recordPatientId = null;
-    this.load();
-  }
-
   closeDetail(): void {
     this.detail = null;
   }
@@ -177,6 +161,10 @@ export class AgendaComponent implements OnInit {
     if (status === 'Confirmada') return 'badge-green';
     if (status === 'Atendida') return 'badge-blue';
     return 'badge-gray';
+  }
+
+  private compareByDateDesc(a: ProfessionalAgendaItem, b: ProfessionalAgendaItem): number {
+    return new Date(b.startAt).getTime() - new Date(a.startAt).getTime();
   }
 
   get currentUserId(): string {
@@ -188,10 +176,10 @@ export class AgendaComponent implements OnInit {
   }
 
   get attendedAppointments(): ProfessionalAgendaItem[] {
-    return this.items.filter(item => item.status === 'Atendida');
+    return this.items.filter(item => item.status === 'Atendida').sort((a, b) => this.compareByDateDesc(a, b));;
   }
 
   get otherAppointments(): ProfessionalAgendaItem[] {
-    return this.items.filter(item => item.status !== 'Confirmada' && item.status !== 'Atendida');
+    return this.items.filter(item => item.status !== 'Confirmada' && item.status !== 'Atendida').sort((a, b) => this.compareByDateDesc(a, b));;
   }
 }

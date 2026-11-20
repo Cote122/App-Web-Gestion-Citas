@@ -1,0 +1,249 @@
+<div class="attention-page">
+
+  <!-- ESTADOS DE CARGA Y ERROR -->
+  <div class="page-state" *ngIf="loading">
+    <p>Cargando información del paciente...</p>
+  </div>
+
+  <div class="page-state error-state" *ngIf="!loading && error">
+    <p>{{ error }}</p>
+    <button class="btn btn-secondary" (click)="goBack()">
+      Volver a mi agenda
+    </button>
+  </div>
+
+  <ng-container *ngIf="!loading && !error && detail && currentAppointment">
+
+    <!-- ENCABEZADO DEL PACIENTE -->
+    <header class="patient-header">
+
+      <div class="patient-information">
+        <div class="patient-avatar">
+          {{ detail.patient.fullName.charAt(0) }}
+        </div>
+
+        <div>
+          <h1>{{ detail.patient.fullName }}</h1>
+          <p>DNI: {{ detail.patient.dni }}</p>
+        </div>
+      </div>
+
+      <div class="current-appointment">
+
+        <div class="appointment-icon">▦</div>
+
+        <div>
+          <span class="section-label">Cita actual</span>
+
+          <div class="appointment-date">
+            {{ currentAppointment.startAt | date:'dd/MM/yyyy' }}
+            <span>·</span>
+            {{ currentAppointment.startAt | date:'HH:mm' }}
+          </div>
+        </div>
+
+        <span
+          class="badge"
+          [ngClass]="badgeClass(currentAppointment.status)">
+          {{ currentAppointment.status }}
+        </span>
+
+      </div>
+
+      <button
+        type="button"
+        class="back-button"
+        (click)="goBack()"
+        aria-label="Volver a la agenda">
+        ×
+      </button>
+
+    </header>
+
+    <!-- CONTENIDO PRINCIPAL -->
+    <main class="attention-layout">
+
+      <!-- PANEL IZQUIERDO: HISTORIAL -->
+      <aside class="history-panel">
+
+        <div class="panel-heading">
+          <div>
+            <h2>Historial del paciente</h2>
+            <p>Citas médicas anteriores</p>
+          </div>
+
+          <span class="history-count">
+            {{ historyAppointments.length }}
+          </span>
+        </div>
+
+        <!-- LISTADO DE CITAS ANTERIORES -->
+        <div class="history-list">
+          <div class="empty-history" *ngIf="!historyAppointments.length">
+            <p>No hay atenciones anteriores registradas.</p>
+          </div>
+
+          <div
+            class="history-entry"
+            *ngFor="let item of historyAppointments">
+
+            <!-- CITA HISTÓRICA -->
+            <button
+              type="button"
+              class="history-item"
+              [class.active]="selectedHistoryAppointment?.id === item.id"
+              (click)="selectHistory(item)">
+
+              <div class="history-item-top">
+                <span class="history-date">
+                  {{ item.startAt | date:'dd/MM/yyyy' }}
+                </span>
+
+                <span class="badge badge-blue">
+                  Atendida
+                </span>
+              </div>
+
+              <strong>{{ item.specialty }}</strong>
+
+              <span class="history-office">
+                {{ item.office }}
+              </span>
+
+              <span class="history-reason">
+                {{ item.reason || 'Sin motivo registrado' }}
+              </span>
+
+              <span class="history-arrow">›</span>
+
+            </button>
+
+            <!-- DETALLE DEBAJO DE SU PROPIA CITA -->
+            <section
+              class="history-detail"
+              *ngIf="selectedHistoryAppointment?.id === item.id">
+
+              <div class="history-detail-heading">
+                <div>
+                  <h3>Registro médico</h3>
+                  <span>
+                    {{ item.startAt | date:'dd/MM/yyyy' }}
+                  </span>
+                </div>
+
+                <button
+                  type="button"
+                  class="close-history"
+                  (click)="closeHistoryDetail()">
+                  ×
+                </button>
+              </div>
+
+              <p *ngIf="loadingHistoryRecord" class="muted">
+                Cargando registro médico...
+              </p>
+
+              <p *ngIf="historyError" class="history-error">
+                {{ historyError }}
+              </p>
+
+              <ng-container *ngIf="historyRecord as record">
+
+                <div class="history-field">
+                  <label>Motivo de consulta</label>
+                  <p>{{ record.reason || 'No registrado' }}</p>
+                </div>
+
+                <div class="history-field">
+                  <label>Diagnóstico</label>
+                  <p>{{ record.diagnosis || 'No registrado' }}</p>
+                </div>
+
+                <div class="history-field">
+                  <label>Observaciones</label>
+                  <p>{{ record.observations || 'Sin observaciones' }}</p>
+                </div>
+
+                <div class="history-field">
+                  <label>Recomendaciones</label>
+                  <p>{{ record.recommendations || 'Sin recomendaciones' }}</p>
+                </div>
+
+              </ng-container>
+
+              <div class="history-actions">
+
+                <button
+                  type="button"
+                  class="btn btn-secondary"
+                  (click)="documentsAppointment = item">
+                  Documentos
+                </button>
+
+                <a
+                  class="btn btn-secondary"
+                  [routerLink]="['/app/results/appointments', item.id]">
+                  Resultados
+                </a>
+
+                <a
+                  class="btn btn-secondary"
+                  [routerLink]="['/app/prescriptions/appointments', item.id]">
+                  Recetas
+                </a>
+
+              </div>
+
+            </section>
+
+          </div>
+        </div>
+
+      </aside>
+
+      <!-- PANEL DERECHO: ATENCIÓN ACTUAL -->
+      <section class="form-panel">
+        <app-medical-record-form
+          *ngIf="
+            (currentAppointment.status === 'Confirmada' ||
+            currentAppointment.status === 'Atendida') &&
+            currentUserId
+          "
+          [appointmentId]="currentAppointment.id"
+          [patientId]="currentAppointment.patientId"
+          [professionalId]="currentUserId"
+          [readonly]="currentAppointment.status === 'Atendida'"
+          (close)="goBack()">
+        </app-medical-record-form>
+
+        <div
+          class="page-state"
+          *ngIf="
+            currentAppointment.status !== 'Confirmada' &&
+            currentAppointment.status !== 'Atendida'
+          ">
+          Esta cita no está disponible para registrar o consultar una atención.
+          <button class="btn btn-secondary" (click)="goBack()">
+            Volver a mi agenda
+          </button>
+        </div>
+
+        <div class="page-state error-state" *ngIf="!currentUserId">
+          No se pudo identificar al profesional autenticado.
+        </div>
+      </section>
+
+    </main>
+
+  </ng-container>
+
+</div>
+
+<!-- COMPONENTE DE DOCUMENTOS -->
+<app-medical-documents
+  *ngIf="documentsAppointment as appointment"
+  [appointmentId]="appointment.id"
+  [appointmentLabel]="appointment.code + ' · ' + appointment.patientName"
+  [canUpload]="false"
+  (closed)="documentsAppointment = null">
+</app-medical-documents>
