@@ -10,9 +10,9 @@
   <p *ngIf="appointmentId && !loading && !canIssue" class="muted">Registra la atención médica desde Mi agenda para emitir una receta.</p>
   <div class="table-scroll" *ngIf="!loading && prescriptions.length">
     <table><thead><tr><th scope="col">Fecha de emisión</th><th scope="col">Profesional</th><th scope="col">Estado</th><th scope="col">Detalle</th></tr></thead>
-      <tbody><tr *ngFor="let value of prescriptions"><td>{{ value.issuedAt | date:'dd/MM/yyyy HH:mm' }}</td><td>{{ value.professional }}</td>
-        <td><span class="badge" [class.badge-green]="value.isActive" [class.badge-gray]="!value.isActive">{{ value.isActive ? 'Activa' : 'Anulada' }}</span></td>
-        <td><button class="btn btn-secondary" type="button" (click)="open(value.id)" [disabled]="busy || detailLoading">Ver receta</button></td></tr></tbody></table>
+      <tbody><tr *ngFor="let value of prescriptions"><td data-label="Fecha de emisión">{{ value.issuedAt | date:'dd/MM/yyyy HH:mm' }}</td><td data-label="Profesional">{{ value.professional }}</td>
+        <td data-label="Estado"><span class="badge" [class.badge-green]="value.isActive" [class.badge-gray]="!value.isActive">{{ value.isActive ? 'Activa' : 'Anulada' }}</span></td>
+        <td data-label="Detalle"><button class="btn btn-secondary" type="button" (click)="open(value.id)" [disabled]="busy || detailLoading">Ver receta</button></td></tr></tbody></table>
   </div>
   <p class="empty" *ngIf="!loading && !prescriptions.length">No hay recetas disponibles.</p>
 </section>
@@ -26,7 +26,7 @@
 <section class="card" *ngIf="selected as value">
   <h3>Receta médica</h3><p class="muted">{{ value.professional }} · {{ value.issuedAt | date:'dd/MM/yyyy HH:mm' }}</p>
   <div class="table-scroll" *ngIf="value.items.length"><table><thead><tr><th scope="col">Medicamento</th><th scope="col">Dosis</th><th scope="col">Frecuencia</th><th scope="col">Duración</th><th scope="col">Instrucciones</th></tr></thead>
-    <tbody><tr *ngFor="let item of value.items"><td>{{ item.medication }}</td><td>{{ item.dose || 'No registrada' }}</td><td>{{ item.frequency || 'No registrada' }}</td><td>{{ item.duration || 'No registrada' }}</td><td>{{ item.instructions || 'Sin instrucciones adicionales' }}</td></tr></tbody></table></div>
+    <tbody><tr *ngFor="let item of value.items"><td data-label="Medicamento">{{ item.medication }}</td><td data-label="Dosis">{{ item.dose || 'No registrada' }}</td><td data-label="Frecuencia">{{ item.frequency || 'No registrada' }}</td><td data-label="Duración">{{ item.duration || 'No registrada' }}</td><td data-label="Instrucciones">{{ item.instructions || 'Sin instrucciones adicionales' }}</td></tr></tbody></table></div>
   <h4 *ngIf="value.generalIndications">Indicaciones generales</h4><p class="content" *ngIf="value.generalIndications">{{ value.generalIndications }}</p>
   <p *ngIf="appointmentId" class="muted">El contenido emitido solo puede corregirlo un administrador.</p>
   <button *ngIf="value.canDeactivate" class="btn btn-danger" type="button" (click)="deactivate(value)" [disabled]="busy">Anular receta</button>

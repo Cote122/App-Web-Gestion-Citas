@@ -25,6 +25,14 @@ tr.selected { background: #eef6ff; }
 .result-form h3, .result-form .wide { grid-column: 1 / -1; }
 .empty { padding: 24px 0; }
 @media (max-width: 680px) { .result-form { grid-template-columns: 1fr; } .files li { align-items: stretch; flex-direction: column; } .buttons { width: 100%; } }
+@media (max-width: 680px) {
+  .table-scroll { overflow-x: visible; }
+  .table-scroll table, .table-scroll tbody, .table-scroll tr, .table-scroll td { display: block; width: 100%; }
+  .table-scroll thead { display: none; }
+  .table-scroll tr { border: 1px solid var(--line); border-radius: 10px; margin-bottom: 10px; padding: 8px; }
+  .table-scroll td { min-width: 0; border: 0; padding: 7px; }
+  .table-scroll td::before { content: attr(data-label); display: block; font-size: 12px; font-weight: 800; color: var(--muted); margin-bottom: 4px; }
+}
 
 /* Cabecera alineada y estado vacío como en "Mis citas" y "Recetas e indicaciones". */
 .card { padding: 24px 22px; }

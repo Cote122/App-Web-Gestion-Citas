@@ -191,4 +191,7 @@ h3 { margin-top: 0; color: var(--primary-dark); }
 
 @media (max-width: 650px) {
   .choices, .choices.two, .day-slots { grid-template-columns: 1fr; }
+  .calendar { grid-template-columns: repeat(7, minmax(0, 1fr)); }
+  .calendar-nav { grid-template-columns: 38px minmax(0, 1fr) 38px; }
+  .calendar-day { min-width: 0; }
 }
