@@ -46,17 +46,50 @@ public class PatientReschedulingTests
     }
 
     [Fact]
-    public async Task ProfessionalChanges_DoNotConsumeOrResetPatientQuota()
+    public async Task ProfessionalChangeRequest_DoesNotConsumeOrResetPatientQuota()
     {
-        await using var db = Memory(Guid.NewGuid().ToString()); var data = TestAppointments.Seed(db); var slots = await AddSlots(db, data, 3);
+        await using var db = Memory(Guid.NewGuid().ToString());
+        var data = TestAppointments.Seed(db);
+        var slots = await AddSlots(db, data, 3);
+
         var patient = new AppointmentService(db);
-        var first = (await patient.RescheduleAsync(data.PatientId, data.AppointmentId, slots[0])).Appointment!;
+
+        var first = (await patient.RescheduleAsync(
+            data.PatientId,
+            data.AppointmentId,
+            slots[0]
+        )).Appointment!;
+
         var professional = new ProfessionalAgendaService(db);
-        var moved = (await professional.RescheduleAppointmentAsync(data.OwnerUserId, first.Id, slots[1])).Appointment!;
-        var policy = (await patient.MineAsync(data.PatientId)).Single(x => x.Id == moved.Id).Rescheduling!;
-        Assert.Equal(1, policy.Used); Assert.Equal(1, policy.Remaining);
-        var final = (await patient.RescheduleAsync(data.PatientId, moved.Id, slots[2])).Appointment!;
-        Assert.Equal(2, final.Rescheduling!.Used); Assert.False(final.Rescheduling.CanReschedule);
+
+        var (request, error) = await professional.RescheduleAppointmentAsync(
+            data.OwnerUserId,
+            first.Id,
+            slots[1]
+        );
+
+        Assert.Null(error);
+        Assert.NotNull(request);
+
+        Assert.Equal(first.Id, request.AppointmentId);
+        Assert.Equal("Reprogramacion", request.Type);
+        Assert.Equal("PendienteAprobacion", request.Status);
+
+        var current = await db.Appointments.SingleAsync(x => x.Id == first.Id);
+
+        Assert.Equal(AppointmentStatus.Confirmada, current.Status);
+        Assert.Equal(slots[0], current.SlotId);
+
+        Assert.True((await db.AvailabilitySlots.SingleAsync(
+            x => x.Id == slots[1]
+        )).IsAvailable);
+
+        var policy = (await patient.MineAsync(data.PatientId))
+            .Single(x => x.Id == first.Id)
+            .Rescheduling!;
+
+        Assert.Equal(1, policy.Used);
+        Assert.Equal(1, policy.Remaining);
     }
 
     [Theory]
@@ -103,8 +136,13 @@ public class PatientReschedulingTests
     private static async Task<Guid[]> AddSlots(AppDbContext db, TestAppointments data, int count)
     {
         var start = (await db.AvailabilitySlots.SingleAsync()).StartAt;
-        var slots = Enumerable.Range(1, count).Select(i => new AvailabilitySlot { ProfessionalId = data.ProfessionalId,
-            StartAt = start.AddDays(i), EndAt = start.AddDays(i).AddMinutes(30), IsAvailable = true }).ToArray();
+        var slots = Enumerable.Range(1, count).Select(i => new AvailabilitySlot
+        {
+            ProfessionalId = data.ProfessionalId,
+            StartAt = start.AddDays(i),
+            EndAt = start.AddDays(i).AddMinutes(30),
+            IsAvailable = true
+        }).ToArray();
         db.AvailabilitySlots.AddRange(slots); await db.SaveChangesAsync(); return slots.Select(x => x.Id).ToArray();
     }
 }
