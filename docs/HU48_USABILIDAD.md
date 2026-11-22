@@ -10,7 +10,7 @@ En pantallas estrechas, el menú lateral se abre bajo demanda; el calendario de 
 
 **Administración**: usuarios y permisos, especialidades y profesionales muestran ocho registros por página, ofrecen búsqueda textual y sus tablas se transforman en tarjetas etiquetadas en teléfono. La corrección de recetas conserva la búsqueda por DNI, incorpora fechas y páginas, y ya no recorta silenciosamente el listado a 50 recetas. Los catálogos sin fecha ofrecen filtros por texto según sus campos.
 
-**Otros listados**: resultados clínicos se filtran por nombre, tipo y fechas; recetas e indicaciones por profesional y fechas, con páginas independientes; ausencias por estado y fechas que se solapan con el rango, y sus citas afectadas por paciente/código. La reserva permite buscar y paginar especialidades, profesionales y horarios del día elegido. En cada búsqueda se vuelve a la primera página. Los formularios y vistas de detalle no requieren paginación de sus campos.
+**Otros listados**: resultados clínicos se filtran por nombre, tipo y fechas; recetas e indicaciones por profesional y fechas, con páginas independientes; ausencias por estado y fechas que se solapan con el rango, y sus citas afectadas por paciente/código. Los documentos médicos de una cita se buscan por archivo y se paginan. La reserva permite buscar y paginar especialidades, profesionales y horarios del día elegido. En cada búsqueda se vuelve a la primera página. Los formularios y vistas de detalle no requieren paginación de sus campos.
 
 ## Comprobación manual
 
