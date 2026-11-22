@@ -1,0 +1,18 @@
+.schedule-card { max-width: 1100px; }
+.selector { display: grid; gap: 8px; max-width: 480px; margin: 20px 0; }
+.selector label, .time-field span { font-weight: 700; color: #344d63; font-size: 13px; }
+select, input[type="time"] { border: 1px solid var(--line); border-radius: 8px; padding: 9px; font: inherit; background: white; color: var(--text); }
+.info { background: #f3f8ff; border: 1px solid #d8e6f5; border-radius: 9px; padding: 11px 14px; color: #344d63; font-size: 13px; line-height: 1.5; }
+.week { display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 14px; margin: 20px 0; }
+.day { border: 1px solid var(--line); border-radius: 12px; padding: 14px; min-width: 0; }
+.day-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 12px; }
+h3 { margin: 0; color: var(--primary-dark); font-size: 17px; }
+.day-head .btn { font-size: 12px; padding: 7px 10px; }
+.day .muted { font-size: 13px; }
+.time-row { display: flex; flex-wrap: wrap; align-items: end; gap: 10px; border-top: 1px solid var(--line); padding: 10px 0; }
+.time-field { display: grid; gap: 4px; }
+.time-field input { width: 112px; box-sizing: border-box; }
+.switch { display: flex; gap: 6px; align-items: center; font-size: 12px; font-weight: 600; color: #344d63; padding-bottom: 9px; }
+.remove { border: 0; background: transparent; color: #9b3030; cursor: pointer; font-weight: 700; padding: 9px 2px; }
+.remove:disabled { opacity: .55; }
+.footer { border-top: 1px solid var(--line); padding-top: 16px; display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; color: #4d6074; font-size: 13px; }

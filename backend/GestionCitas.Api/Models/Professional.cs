@@ -18,5 +18,8 @@ public class Professional
     public string Office { get; set; } = string.Empty;
 
     public bool IsActive { get; set; } = true;
+    // Hasta que el administrador guarde una agenda, se conserva el horario anterior.
+    public bool ScheduleConfigured { get; set; }
+    public ICollection<ProfessionalWeeklySlot> WeeklySlots { get; set; } = new List<ProfessionalWeeklySlot>();
     public ICollection<AvailabilitySlot> Slots { get; set; } = new List<AvailabilitySlot>();
 }

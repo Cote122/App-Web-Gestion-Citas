@@ -1,4 +1,5 @@
 using GestionCitas.Api.Models;
+using GestionCitas.Api.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -10,6 +11,11 @@ public static class DbInitializer
     {
         if (!await db.Users.AnyAsync())
         {
+            var demoPassword = Environment.GetEnvironmentVariable("GESTIONCITAS_DEMO_PASSWORD");
+            if (string.IsNullOrWhiteSpace(demoPassword))
+                throw new InvalidOperationException(
+                    "Para crear usuarios de demostración en una base vacía, configura GESTIONCITAS_DEMO_PASSWORD.");
+
             var hasher = new PasswordHasher<User>();
             var users = new[]
             {
@@ -22,7 +28,7 @@ public static class DbInitializer
 
             foreach (var user in users)
             {
-                user.PasswordHash = hasher.HashPassword(user, "Demo#2026");
+                user.PasswordHash = hasher.HashPassword(user, demoPassword);
             }
 
             db.Users.AddRange(users);
@@ -77,16 +83,20 @@ public static class DbInitializer
         var first = new DateTimeOffset(firstDay, offset);
         var endExclusive = new DateTimeOffset(lastDay, offset);
 
-        var professionalIds = await db.Professionals
+        var professionals = await db.Professionals
             .AsNoTracking()
             .Where(x => x.IsActive && x.Specialty.IsActive)
-            .Select(x => x.Id)
+            .Select(x => new { x.Id, x.ScheduleConfigured })
+            .ToListAsync(cancellationToken);
+
+        var weeklySlots = await db.ProfessionalWeeklySlots.AsNoTracking()
+            .Where(x => x.IsEnabled)
             .ToListAsync(cancellationToken);
 
         var existing = await db.AvailabilitySlots
             .AsNoTracking()
             .Where(x => x.StartAt >= first && x.StartAt < endExclusive)
-            .Select(x => new { x.ProfessionalId, x.StartAt })
+            .Select(x => new { x.ProfessionalId, x.StartAt, x.EndAt, x.IsAvailable, x.IsEnabled })
             .ToListAsync(cancellationToken);
         var existingKeys = existing.Select(x => (x.ProfessionalId, x.StartAt)).ToHashSet();
 
@@ -97,24 +107,34 @@ public static class DbInitializer
             .ToListAsync(cancellationToken);
 
         var slots = new List<AvailabilitySlot>();
-        foreach (var professionalId in professionalIds)
+        foreach (var professional in professionals)
         {
             for (var dayOffset = 1; dayOffset <= 21; dayOffset++)
             {
                 var day = today.AddDays(dayOffset);
-                if (day.DayOfWeek == DayOfWeek.Sunday) continue;
+                IEnumerable<TimeSpan> hours = professional.ScheduleConfigured
+                    ? weeklySlots.Where(x => x.ProfessionalId == professional.Id && x.DayOfWeek == (int)day.DayOfWeek)
+                        .Select(x => x.StartTime)
+                    : day.DayOfWeek == DayOfWeek.Sunday ? [] : WeeklySchedule.LegacyHours;
 
-                foreach (var hour in new[] { 9, 10, 11, 15, 16 })
+                foreach (var hour in hours)
                 {
-                    var start = new DateTimeOffset(day.Year, day.Month, day.Day, hour, 0, 0, offset);
-                    var end = start.AddMinutes(45);
-                    if (!existingKeys.Add((professionalId, start))) continue;
-                    if (absences.Any(a => a.ProfessionalId == professionalId &&
+                    var start = new DateTimeOffset(day.Add(hour), offset);
+                    var end = start.Add(WeeklySchedule.Duration);
+                    if (existingKeys.Contains((professional.Id, start))) continue;
+                    // Una cita anterior conserva su hora aunque el administrador cambie
+                    // la plantilla; nunca ofrecer un cupo nuevo que se cruce con ella.
+                    if (existing.Any(x => x.ProfessionalId == professional.Id &&
+                                          (!x.IsAvailable || x.IsEnabled) &&
+                                          x.StartAt < end && x.EndAt > start)) continue;
+                    if (absences.Any(a => a.ProfessionalId == professional.Id &&
                                           a.StartAt < end && a.EndAt > start)) continue;
+
+                    existingKeys.Add((professional.Id, start));
 
                     slots.Add(new AvailabilitySlot
                     {
-                        ProfessionalId = professionalId,
+                        ProfessionalId = professional.Id,
                         StartAt = start,
                         EndAt = end,
                         IsAvailable = true

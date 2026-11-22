@@ -3,6 +3,10 @@
 SET XACT_ABORT ON;
 IF DB_NAME() <> N'GestionCitasDb'
     THROW 50001, 'Selecciona la base GestionCitasDb antes de ejecutar.', 1;
+-- Tras instalar la agenda administrada, reponer cupos desde la API al iniciar.
+-- Este script usa horas fijas y podría volver a crear horarios retirados.
+IF COL_LENGTH('dbo.Professionals', 'ScheduleConfigured') IS NOT NULL
+    THROW 50002, 'Agenda administrada activa: reinicia la API para reponer cupos según la configuración.', 1;
 
 DECLARE @HoyPeru date = CONVERT(date, SWITCHOFFSET(SYSDATETIMEOFFSET(), '-05:00'));
 DECLARE @Insertados table (ProfessionalId uniqueidentifier NOT NULL, StartAt datetimeoffset NOT NULL);
