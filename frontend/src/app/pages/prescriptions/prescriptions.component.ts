@@ -9,9 +9,10 @@ import { PatientIndication, Prescription, PrescriptionItem, PrescriptionDraft } 
 import { AlertModalComponent } from '../../shared/alert-modal/alert-modal.component';
 import { PrescriptionReviewComponent } from '../../shared/prescription-review/prescription-review.component';
 import { AuthService } from '../../core/auth.service';
+import { ListPagerComponent } from '../../shared/list-pager/list-pager.component';
 
 @Component({ selector: 'app-prescriptions', standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, AlertModalComponent, PrescriptionReviewComponent],
+  imports: [CommonModule, FormsModule, RouterLink, AlertModalComponent, PrescriptionReviewComponent, ListPagerComponent],
   templateUrl: './prescriptions.component.html', styleUrl: './prescriptions.component.css' })
 export class PrescriptionsComponent implements OnInit {
   private readonly api = inject(ApiService);
@@ -36,6 +37,25 @@ export class PrescriptionsComponent implements OnInit {
   items: PrescriptionItem[] = [];
   alertMessage = '';
   success = '';
+  search = '';
+  from = '';
+  to = '';
+  prescriptionPage = 1;
+  indicationPage = 1;
+  readonly pageSize = 8;
+  get dateError(): string { return this.from && this.to && this.from > this.to ? 'La fecha Desde no puede ser posterior a Hasta.' : ''; }
+  filterChanged(): void { this.prescriptionPage = 1; this.indicationPage = 1; }
+  private matches(date: string, professional: string): boolean {
+    const parts = new Intl.DateTimeFormat('en-US', { timeZone: 'America/Lima', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(new Date(date));
+    const part = (type: string) => parts.find(x => x.type === type)?.value ?? '';
+    const day = `${part('year')}-${part('month')}-${part('day')}`;
+    return (!this.search.trim() || professional.toLocaleLowerCase('es-PE').includes(this.search.trim().toLocaleLowerCase('es-PE')))
+      && (!this.from || day >= this.from) && (!this.to || day <= this.to);
+  }
+  get filteredPrescriptions(): Prescription[] { return this.dateError ? [] : this.prescriptions.filter(x => this.matches(x.issuedAt, x.professional)); }
+  get visiblePrescriptions(): Prescription[] { return this.filteredPrescriptions.slice((this.prescriptionPage - 1) * this.pageSize, this.prescriptionPage * this.pageSize); }
+  get filteredIndications(): PatientIndication[] { return this.dateError ? [] : this.indications.filter(x => this.matches(x.attentionDate, x.professional)); }
+  get visibleIndications(): PatientIndication[] { return this.filteredIndications.slice((this.indicationPage - 1) * this.pageSize, this.indicationPage * this.pageSize); }
 
   ngOnInit(): void { this.load(); }
   load(): void {

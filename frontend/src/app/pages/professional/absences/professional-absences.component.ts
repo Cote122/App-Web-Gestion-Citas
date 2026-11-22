@@ -5,6 +5,7 @@ import { finalize } from 'rxjs';
 import { ApiService } from '../../../core/api.service';
 import { AbsenceType, AffectedAppointment, ProfessionalAbsence } from '../../../models/models';
 import { ConfirmModalComponent } from '../../admin/confirm-modal/confirm-modal.component';
+import { ListPagerComponent } from '../../../shared/list-pager/list-pager.component';
 
 const MAX_DAYS = 90;
 
@@ -12,7 +13,7 @@ const MAX_DAYS = 90;
 @Component({
   selector: 'app-professional-absences',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, ConfirmModalComponent],
+  imports: [CommonModule, ReactiveFormsModule, ConfirmModalComponent, ListPagerComponent],
   templateUrl: './professional-absences.component.html',
   styleUrls: ['../../admin/admin.css', '../../admin/modal.css', './professional-absences.component.css']
 })
@@ -24,11 +25,32 @@ export class ProfessionalAbsencesComponent implements OnInit {
   formError = '';
   message = '';
   modalOpen = false;
+  from = '';
+  to = '';
+  status = '';
+  page = 1;
+  readonly pageSize = 8;
+  get filterError(): string { return this.from && this.to && this.from > this.to ? 'La fecha Desde no puede ser posterior a Hasta.' : ''; }
+  setFilter(field: 'from' | 'to' | 'status', value: string): void { this[field] = value; this.page = 1; }
+  get filteredItems(): ProfessionalAbsence[] {
+    if (this.filterError) return [];
+    return this.items.filter(x => (!this.status || x.status === this.status)
+      && (!this.from || x.endDate >= this.from) && (!this.to || x.startDate <= this.to));
+  }
+  get visibleItems(): ProfessionalAbsence[] { return this.filteredItems.slice((this.page - 1) * this.pageSize, this.page * this.pageSize); }
 
   // Modal de citas afectadas (al guardar o con "Ver citas").
   affectedOpen = false;
   affectedTitle = '';
   affected: AffectedAppointment[] = [];
+  affectedQuery = '';
+  affectedPage = 1;
+  get filteredAffected(): AffectedAppointment[] {
+    const query = this.affectedQuery.trim().toLocaleLowerCase('es-PE');
+    return this.affected.filter(x => !query || `${x.patientName} ${x.patientEmail} ${x.code}`.toLocaleLowerCase('es-PE').includes(query));
+  }
+  get visibleAffected(): AffectedAppointment[] { return this.filteredAffected.slice((this.affectedPage - 1) * this.pageSize, this.affectedPage * this.pageSize); }
+  filterAffected(value: string): void { this.affectedQuery = value; this.affectedPage = 1; }
   loadingAffected = false;
 
   cancelling?: ProfessionalAbsence;
@@ -52,7 +74,7 @@ export class ProfessionalAbsencesComponent implements OnInit {
   load(): void {
     this.loading = true;
     this.api.myAbsences().pipe(finalize(() => this.loading = false)).subscribe({
-      next: data => this.items = data,
+      next: data => { this.items = data; this.page = 1; },
       error: error => this.error = error?.error?.message ?? 'No se pudieron cargar tus ausencias.'
     });
   }
@@ -119,6 +141,7 @@ export class ProfessionalAbsencesComponent implements OnInit {
   viewAffected(item: ProfessionalAbsence): void {
     this.affectedTitle = this.affectedHeading(item);
     this.affected = [];
+    this.filterAffected('');
     this.affectedOpen = true;
     this.loadingAffected = true;
     this.api.absenceAffected(item.id).pipe(finalize(() => this.loadingAffected = false)).subscribe({
@@ -161,6 +184,7 @@ export class ProfessionalAbsencesComponent implements OnInit {
   private showAffected(absence: ProfessionalAbsence, list: AffectedAppointment[]): void {
     this.affectedTitle = this.affectedHeading(absence);
     this.affected = list;
+    this.filterAffected('');
     this.loadingAffected = false;
     this.affectedOpen = true;
   }
