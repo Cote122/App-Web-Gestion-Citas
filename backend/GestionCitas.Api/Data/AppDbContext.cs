@@ -162,22 +162,22 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
                 table.HasCheckConstraint(
                     "CK_AppointmentChangeRequests_Type_TargetSlot",
                     """
-                    ([Type] = N'Cancelacion' AND [TargetSlotId] IS NULL)
+                    ([Type] = 'Cancelacion' AND [TargetSlotId] IS NULL)
                     OR
-                    ([Type] = N'Reprogramacion' AND [TargetSlotId] IS NOT NULL)
+                    ([Type] = 'Reprogramacion' AND [TargetSlotId] IS NOT NULL)
                     """);
 
                 table.HasCheckConstraint(
                     "CK_AppointmentChangeRequests_Status_Review",
                     """
                     (
-                        [Status] = N'PendienteAprobacion'
+                        [Status] = 'PendienteAprobacion'
                         AND [ReviewedByAdminId] IS NULL
                         AND [ReviewedAt] IS NULL
                     )
                     OR
                     (
-                        [Status] IN (N'Aprobada', N'Rechazada')
+                        [Status] IN ('Aprobada', 'Rechazada')
                         AND [ReviewedByAdminId] IS NOT NULL
                         AND [ReviewedAt] IS NOT NULL
                     )
@@ -245,7 +245,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 
             entity.HasIndex(x => x.AppointmentId)
                 .IsUnique()
-                .HasFilter("[Status] = N'PendienteAprobacion'")
+                .HasFilter("[Status] = 'PendienteAprobacion'")
                 .HasDatabaseName("UX_AppointmentChangeRequests_OnePendingPerAppointment");
 
             entity.HasIndex(x => x.TargetSlotId)
