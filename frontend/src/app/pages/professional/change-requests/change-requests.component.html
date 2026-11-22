@@ -1,0 +1,249 @@
+<section class="change-requests-page">
+
+  <header class="page-header">
+    <div>
+      <p class="eyebrow">GESTIÓN DE AGENDA</p>
+      <h2>Mis solicitudes</h2>
+      <p class="subtitle">
+        Consulta el estado de tus solicitudes de cancelación y reprogramación.
+      </p>
+    </div>
+
+    <button
+      class="refresh-button"
+      type="button"
+      (click)="load()"
+      [disabled]="loading">
+
+      <span class="refresh-icon">↻</span>
+      Actualizar
+
+    </button>
+  </header>
+
+
+  <!-- Resumen -->
+
+  <section class="summary-grid">
+
+    <article class="summary-card">
+      <span class="summary-label">Total de solicitudes</span>
+      <strong>{{ requests.length }}</strong>
+      <span class="summary-description">Registradas</span>
+    </article>
+
+    <article class="summary-card pending-card">
+      <span class="summary-label">Pendientes</span>
+      <strong>{{ pendingCount }}</strong>
+      <span class="summary-description">Esperando revisión</span>
+    </article>
+
+    <article class="summary-card approved-card">
+      <span class="summary-label">Aprobadas</span>
+      <strong>{{ approvedCount }}</strong>
+      <span class="summary-description">Autorizadas</span>
+    </article>
+
+    <article class="summary-card rejected-card">
+      <span class="summary-label">Rechazadas</span>
+      <strong>{{ rejectedCount }}</strong>
+      <span class="summary-description">No autorizadas</span>
+    </article>
+
+  </section>
+
+
+  <!-- Filtros -->
+
+  <section class="requests-section">
+
+    <div class="section-header">
+      <div>
+        <h3>Historial de solicitudes</h3>
+        <p class="subtitle">
+          Revisa el resultado de cada solicitud enviada.
+        </p>
+      </div>
+    </div>
+
+    <nav class="filters" aria-label="Filtrar solicitudes">
+
+      <button
+        *ngFor="let filter of filters"
+        type="button"
+        class="filter-button"
+        [class.active]="activeFilter === filter.value"
+        [attr.aria-pressed]="activeFilter === filter.value"
+        (click)="setFilter(filter.value)">
+
+        {{ filter.label }}
+
+        <span *ngIf="filter.value === 'PendienteAprobacion'">
+          {{ pendingCount }}
+        </span>
+
+      </button>
+
+    </nav>
+
+
+    <!-- Carga -->
+
+    <div class="loading-state" *ngIf="loading">
+      <div class="loader"></div>
+      <p>Consultando tus solicitudes...</p>
+    </div>
+
+
+    <!-- Error -->
+
+    <div class="error-state" *ngIf="error && !loading" role="alert">
+      <p>{{ error }}</p>
+
+      <button
+        type="button"
+        class="retry-button"
+        (click)="load()">
+
+        Intentar nuevamente
+
+      </button>
+    </div>
+
+
+    <!-- Sin resultados -->
+
+    <div
+      class="empty-state"
+      *ngIf="!loading && !error && !filteredRequests.length">
+
+      <div class="empty-icon">📋</div>
+
+      <h3>
+        {{ requests.length
+          ? 'No hay solicitudes en esta categoría'
+          : 'Todavía no tienes solicitudes' }}
+      </h3>
+
+      <p>
+        {{ requests.length
+          ? 'Prueba seleccionando otro filtro para consultar tus solicitudes.'
+          : 'Cuando registres una solicitud de cancelación o reprogramación, aparecerá aquí.' }}
+      </p>
+
+    </div>
+
+
+    <!-- Listado -->
+
+    <div class="request-list" *ngIf="!loading && filteredRequests.length">
+
+      <article
+        class="request-card"
+        *ngFor="let request of filteredRequests; trackBy: trackById">
+
+        <header class="request-card-header">
+
+          <div class="request-title">
+            <span class="appointment-code">
+              {{ request.appointmentCode }}
+            </span>
+
+            <span
+              class="type-badge"
+              [class.reschedule]="request.type === 'Reprogramacion'">
+
+              {{ typeLabel(request.type) }}
+
+            </span>
+          </div>
+
+          <span
+            class="status-badge"
+            [ngClass]="{
+              'status-pending': request.status === 'PendienteAprobacion',
+              'status-approved': request.status === 'Aprobada',
+              'status-rejected': request.status === 'Rechazada'
+            }">
+
+            {{ statusLabel(request.status) }}
+
+          </span>
+
+        </header>
+
+
+        <div class="request-details">
+
+          <div class="detail-item">
+            <span class="detail-label">Fecha de solicitud</span>
+            <strong>
+              {{ request.createdAt | date:'dd/MM/yyyy HH:mm' }}
+            </strong>
+          </div>
+
+          <div class="detail-item">
+            <span class="detail-label">Horario original</span>
+            <strong>
+              {{ request.originalSlotStartAt | date:'dd/MM/yyyy HH:mm' }}
+            </strong>
+          </div>
+
+          <div
+            class="detail-item"
+            *ngIf="request.targetSlotStartAt">
+
+            <span class="detail-label">Horario solicitado</span>
+            <strong class="new-slot">
+              {{ request.targetSlotStartAt | date:'dd/MM/yyyy HH:mm' }}
+            </strong>
+
+          </div>
+
+          <div
+            class="detail-item"
+            *ngIf="request.reviewedAt">
+
+            <span class="detail-label">Fecha de revisión</span>
+            <strong>
+              {{ request.reviewedAt | date:'dd/MM/yyyy HH:mm' }}
+            </strong>
+
+          </div>
+
+        </div>
+
+
+        <!-- Motivo del profesional -->
+
+        <div class="request-message" *ngIf="request.reason">
+          <span class="detail-label">Motivo de la solicitud</span>
+          <p>{{ request.reason }}</p>
+        </div>
+
+
+        <!-- Resultado administrativo -->
+
+        <div class="admin-response" *ngIf="request.adminComment">
+          <span class="detail-label">Comentario del administrador</span>
+          <p>{{ request.adminComment }}</p>
+        </div>
+
+
+        <!-- Estado -->
+
+        <footer class="request-footer">
+
+          <span class="status-description">
+            {{ statusDescription(request.status) }}
+          </span>
+
+        </footer>
+
+      </article>
+
+    </div>
+
+  </section>
+
+</section>

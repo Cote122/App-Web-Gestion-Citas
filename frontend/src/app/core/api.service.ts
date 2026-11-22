@@ -6,6 +6,8 @@ import { MedicalDocument, MedicalDocumentLimits } from '../models/models';
 import { ClinicalResult, ClinicalResultFile, SaveClinicalResult } from '../models/models';
 import { Prescription, PrescriptionItem, PatientIndication } from '../models/models';
 import { AdminPrescription, CorrectPrescription, PrescriptionCorrection } from '../models/models';
+import { AdminAppointmentChangeRequest } from '../models/models';
+import { AppointmentChangeRequest } from '../models/models';
 @Injectable({ providedIn: 'root' })
 export class ApiService {
   constructor(private readonly http: HttpClient) {}
@@ -197,5 +199,32 @@ export class ApiService {
 
   cancelAbsence(id: string) {
     return this.http.delete<ProfessionalAbsence>(`/api/professional/absences/${id}`);
+  }
+
+  // HU-47: revisión administrativa de solicitudes de cambios de citas.
+  adminPendingAppointmentChangeRequests() {
+    return this.http.get<AdminAppointmentChangeRequest[]>(
+      '/api/admin/appointment-requests/pending'
+    );
+  }
+
+  approveAppointmentChangeRequest(id: string, adminComment: string | null) {
+    return this.http.patch<void>(
+      `/api/admin/appointment-requests/${id}/approve`,
+      { adminComment }
+    );
+  }
+
+  rejectAppointmentChangeRequest(id: string, adminComment: string | null) {
+    return this.http.patch<void>(
+      `/api/admin/appointment-requests/${id}/reject`,
+      { adminComment }
+    );
+  }
+
+  professionalChangeRequests() {
+    return this.http.get<AppointmentChangeRequest[]>(
+      '/api/professional/agenda/change-requests'
+    );
   }
 }

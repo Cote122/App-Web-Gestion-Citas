@@ -22,6 +22,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<PrescriptionCorrection> PrescriptionCorrections => Set<PrescriptionCorrection>();
     public DbSet<NotificationOutbox> NotificationOutbox => Set<NotificationOutbox>();
     public DbSet<ProfessionalAbsence> ProfessionalAbsences => Set<ProfessionalAbsence>();
+    public DbSet<AppointmentChangeRequest> AppointmentChangeRequests => Set<AppointmentChangeRequest>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -152,6 +153,108 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
                 .WithMany()
                 .HasForeignKey(x => x.RelatedAppointmentId)
                 .OnDelete(DeleteBehavior.NoAction);
+        });
+
+        modelBuilder.Entity<AppointmentChangeRequest>(entity =>
+        {
+            entity.ToTable("AppointmentChangeRequests", table =>
+            {
+                table.HasCheckConstraint(
+                    "CK_AppointmentChangeRequests_Type_TargetSlot",
+                    """
+                    ([Type] = N'Cancelacion' AND [TargetSlotId] IS NULL)
+                    OR
+                    ([Type] = N'Reprogramacion' AND [TargetSlotId] IS NOT NULL)
+                    """);
+
+                table.HasCheckConstraint(
+                    "CK_AppointmentChangeRequests_Status_Review",
+                    """
+                    (
+                        [Status] = N'PendienteAprobacion'
+                        AND [ReviewedByAdminId] IS NULL
+                        AND [ReviewedAt] IS NULL
+                    )
+                    OR
+                    (
+                        [Status] IN (N'Aprobada', N'Rechazada')
+                        AND [ReviewedByAdminId] IS NOT NULL
+                        AND [ReviewedAt] IS NOT NULL
+                    )
+                    """);
+            });
+
+            entity.Property(x => x.Id)
+                .HasDefaultValueSql("(NEWID())");
+
+            entity.Property(x => x.Type)
+                .HasConversion<string>()
+                .HasMaxLength(20)
+                .IsRequired();
+
+            entity.Property(x => x.Status)
+                .HasConversion<string>()
+                .HasMaxLength(24)
+                .HasDefaultValue(AppointmentChangeRequestStatus.PendienteAprobacion)
+                .IsConcurrencyToken();
+
+            entity.Property(x => x.Reason)
+                .HasMaxLength(500);
+
+            entity.Property(x => x.AdminComment)
+                .HasMaxLength(500);
+
+            entity.Property(x => x.CreatedAt)
+                .HasDefaultValueSql(
+                    "(TODATETIMEOFFSET(SYSUTCDATETIME(), '-05:00'))");
+
+            // Relaciones
+            entity.HasOne(x => x.Appointment)
+                .WithMany()
+                .HasForeignKey(x => x.AppointmentId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("FK_AppointmentChangeRequests_Appointments");
+
+            entity.HasOne(x => x.RequestedByProfessional)
+                .WithMany()
+                .HasForeignKey(x => x.RequestedByProfessionalId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("FK_AppointmentChangeRequests_Professionals");
+
+            entity.HasOne(x => x.TargetSlot)
+                .WithMany()
+                .HasForeignKey(x => x.TargetSlotId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("FK_AppointmentChangeRequests_AvailabilitySlots");
+
+            entity.HasOne(x => x.ReviewedByAdmin)
+                .WithMany()
+                .HasForeignKey(x => x.ReviewedByAdminId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("FK_AppointmentChangeRequests_ReviewedByAdmin");
+
+            // Índices
+            entity.HasIndex(x => new { x.AppointmentId, x.CreatedAt })
+                .HasDatabaseName("IX_AppointmentChangeRequests_AppointmentId_CreatedAt");
+
+            entity.HasIndex(x => new { x.Status, x.CreatedAt })
+                .HasDatabaseName("IX_AppointmentChangeRequests_Status_CreatedAt");
+
+            entity.HasIndex(x => new { x.RequestedByProfessionalId, x.CreatedAt })
+                .HasDatabaseName("IX_AppointmentChangeRequests_Professional_CreatedAt");
+
+            entity.HasIndex(x => x.AppointmentId)
+                .IsUnique()
+                .HasFilter("[Status] = N'PendienteAprobacion'")
+                .HasDatabaseName("UX_AppointmentChangeRequests_OnePendingPerAppointment");
+
+            entity.HasIndex(x => x.TargetSlotId)
+                .HasFilter("[TargetSlotId] IS NOT NULL")
+                .HasDatabaseName("IX_AppointmentChangeRequests_TargetSlotId");
+
+            entity.HasIndex(x => x.ReviewedByAdminId)
+                .HasFilter("[ReviewedByAdminId] IS NOT NULL")
+                .HasDatabaseName("IX_AppointmentChangeRequests_ReviewedByAdminId");
         });
     }
 }

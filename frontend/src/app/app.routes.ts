@@ -17,6 +17,8 @@ import { ResultsComponent } from './pages/results/results.component';
 import { PrescriptionsComponent } from './pages/prescriptions/prescriptions.component';
 import { AdminPrescriptionsComponent } from './pages/admin/prescriptions/admin-prescriptions.component';
 import { ProfileComponent } from './pages/profile/profile.component';
+import { AdminAppointmentRequestsComponent } from './pages/admin/appointment-requests/appointment-requests.component';
+import { ProfessionalChangeRequestsComponent } from './pages/professional/change-requests/change-requests.component';
 
 export const routes: Routes = [
   { path: 'login', component: LoginComponent, canActivate: [guestGuard] },
@@ -40,7 +42,9 @@ export const routes: Routes = [
       { path: 'admin/professionals', component: AdminProfessionalsComponent, canActivate: [adminGuard] },
       { path: 'agenda', component: AgendaComponent, canActivate: [professionalGuard] },
       { path: 'professional/absences', component: ProfessionalAbsencesComponent, canActivate: [professionalGuard] },
-      { path: '', pathMatch: 'full', redirectTo: 'home' }
+      { path: '', pathMatch: 'full', redirectTo: 'home' },
+      { path: 'admin/appointment-requests', component: AdminAppointmentRequestsComponent, canActivate: [adminGuard] },
+      { path: 'professional/change-requests', component: ProfessionalChangeRequestsComponent, canActivate: [professionalGuard] }
     ]
   },
   // HU-04: recuperación de contraseña por correo.

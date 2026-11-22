@@ -222,3 +222,33 @@ export interface MedicalRecord {
   createdAt: string;
   updatedAt?: string;
 }
+
+export interface AdminAppointmentChangeRequest {
+  id: string;
+  appointmentId: string;
+  appointmentCode: string;
+  patientName: string;
+  professionalName: string;
+  specialtyName: string;
+  type: string;
+  status: string;
+  reason: string | null;
+  originalSlotStartAt: string;
+  targetSlotStartAt: string | null;
+  createdAt: string;
+}
+
+export interface AppointmentChangeRequest {
+  id: string;
+  appointmentId: string;
+  appointmentCode: string;
+  type: string;
+  status: string;
+  reason: string | null;
+  targetSlotId: string | null;
+  originalSlotStartAt: string;
+  targetSlotStartAt: string | null;
+  createdAt: string;
+  reviewedAt: string | null;
+  adminComment: string | null;
+}
