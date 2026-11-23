@@ -27,6 +27,7 @@
           <td data-label="Especialidad">{{ item.specialtyName }}<span class="sub warn" *ngIf="!item.specialtyIsActive">Especialidad inactiva</span></td>
           <td class="center" data-label="Estado"><span class="badge" [ngClass]="item.isActive ? 'badge-green' : 'badge-gray'">{{ item.isActive ? 'Activo' : 'Inactivo' }}</span></td>
           <td class="actions" data-label="Acciones">
+            <a class="btn btn-secondary" routerLink="/app/admin/schedules" [queryParams]="{ professionalId: item.id }">Horarios</a>
             <button class="btn btn-secondary" (click)="edit(item)">Editar</button>
             <button class="btn" [ngClass]="item.isActive ? 'btn-danger' : 'btn-secondary'" (click)="toggle(item)">{{ item.isActive ? 'Desactivar' : 'Activar' }}</button>
           </td>

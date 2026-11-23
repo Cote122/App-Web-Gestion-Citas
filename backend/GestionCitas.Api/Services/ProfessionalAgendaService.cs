@@ -58,7 +58,9 @@ public class ProfessionalAgendaService(AppDbContext db)
 
         var slots = await db.AvailabilitySlots
             .AsNoTracking()
-            .Where(s => s.ProfessionalId == professional.Id && s.IsAvailable && s.StartAt > PeruClock.Now)
+            .Where(s => s.ProfessionalId == professional.Id && s.IsEnabled && s.IsAvailable && s.StartAt > PeruClock.Now
+                        && s.Professional.IsActive && s.Professional.Specialty.IsActive)
+            .WithoutAbsences(db)
             .OrderBy(s => s.StartAt)
             .ToListAsync();
 
@@ -177,7 +179,8 @@ public class ProfessionalAgendaService(AppDbContext db)
             .ThenInclude(x => x.Specialty)
             .FirstOrDefaultAsync(x => x.Id == newSlotId && x.ProfessionalId == professional.Id);
 
-        if (newSlot is null || !newSlot.IsAvailable || newSlot.StartAt <= PeruClock.Now)
+        if (newSlot is null || !newSlot.IsEnabled || !newSlot.IsAvailable || newSlot.StartAt <= PeruClock.Now ||
+            await AbsenceRules.IsInAbsenceAsync(db, newSlot))
             return (null, "El nuevo horario seleccionado no está disponible o no te pertenece.");
 
         var previousSlotId = current.SlotId;
@@ -243,6 +246,12 @@ public class ProfessionalAgendaService(AppDbContext db)
 
     private async Task AssignReleasedSlotOrMakeAvailableAsync(AvailabilitySlot slot)
     {
+        if (!slot.IsEnabled)
+        {
+            slot.IsAvailable = true;
+            return;
+        }
+
         var next = await db.WaitlistEntries
             .Include(x => x.Patient)
             .Where(x => x.SlotId == slot.Id && x.Status == WaitlistStatus.Activa)

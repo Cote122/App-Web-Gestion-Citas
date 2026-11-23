@@ -107,6 +107,20 @@ export interface AvailabilitySlot {
   isAvailable: boolean;
 }
 
+export interface WeeklyScheduleEntry {
+  dayOfWeek: number; // Domingo=0, lunes=1 ... (hora de Perú).
+  startTime: string;
+  isEnabled: boolean;
+}
+
+export interface ProfessionalSchedule {
+  id: string;
+  fullName: string;
+  scheduleConfigured: boolean;
+  slots: WeeklyScheduleEntry[];
+  createdSlots?: number;
+}
+
 export interface WaitlistResponse {
   id: string;
   status: string;

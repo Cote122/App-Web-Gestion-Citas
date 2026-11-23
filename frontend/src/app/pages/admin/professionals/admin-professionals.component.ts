@@ -1,5 +1,6 @@
 import { Component, ElementRef, HostListener, OnInit, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { RouterLink } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule, ValidatorFn, Validators } from '@angular/forms';
 import { Subscription, finalize, forkJoin } from 'rxjs';
 import { ApiService } from '../../../core/api.service';
@@ -25,7 +26,7 @@ type CredentialField = 'email' | 'dni' | 'password';
 @Component({
   selector: 'app-admin-professionals',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, ConfirmModalComponent, ListPagerComponent],
+  imports: [CommonModule, ReactiveFormsModule, ConfirmModalComponent, RouterLink, ListPagerComponent],
   templateUrl: './admin-professionals.component.html',
   styleUrls: ['../admin.css', '../modal.css', './admin-professionals.component.css']
 })

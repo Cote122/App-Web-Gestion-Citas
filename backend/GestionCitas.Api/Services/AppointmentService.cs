@@ -26,7 +26,7 @@ public class AppointmentService(AppDbContext db, IOptions<AppointmentPolicyOptio
             return (null, ProfessionalUnavailableMessage);
         if (await AbsenceRules.IsInAbsenceAsync(db, slot))
             return (null, AbsenceRules.AbsenceMessage);
-        if (!slot.IsAvailable || slot.StartAt <= DateTimeOffset.UtcNow)
+        if (!slot.IsEnabled || !slot.IsAvailable || slot.StartAt <= DateTimeOffset.UtcNow)
             return (null, "El horario ya no está disponible.");
 
         slot.IsAvailable = false;
@@ -166,7 +166,7 @@ public class AppointmentService(AppDbContext db, IOptions<AppointmentPolicyOptio
             return (null, ProfessionalUnavailableMessage);
         if (newSlot is not null && await AbsenceRules.IsInAbsenceAsync(db, newSlot))
             return (null, AbsenceRules.AbsenceMessage);
-        if (newSlot is null || !newSlot.IsAvailable || newSlot.StartAt <= DateTimeOffset.UtcNow)
+        if (newSlot is null || !newSlot.IsEnabled || !newSlot.IsAvailable || newSlot.StartAt <= DateTimeOffset.UtcNow)
             return (null, "El nuevo horario ya no está disponible.");
         if (newSlot.ProfessionalId != current.Slot.ProfessionalId)
             return (null, "La reprogramación debe mantener el mismo profesional de la cita.");
@@ -293,6 +293,12 @@ public class AppointmentService(AppDbContext db, IOptions<AppointmentPolicyOptio
 
     private async Task AssignReleasedSlotOrMakeAvailableAsync(AvailabilitySlot slot)
     {
+        if (!slot.IsEnabled)
+        {
+            slot.IsAvailable = true;
+            return;
+        }
+
         var next = await db.WaitlistEntries
             .Include(x => x.Patient)
             .Where(x => x.SlotId == slot.Id && x.Status == WaitlistStatus.Activa)
