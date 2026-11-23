@@ -62,7 +62,7 @@
         <div><span class="badge" [ngClass]="badgeClass(item.status)">{{ item.status }}</span></div>
         
         <div class="actions" style="display: flex; gap: 0.5rem; align-items: center;" (click)="$event.stopPropagation()">
-          <button type="button" class="btn btn-primary" (click)="openRecordForm(item.id, item.patientId)">Atender</button>
+          <a class="btn btn-primary" [routerLink]="['/app/agenda/atencion', item.id]">Atender</a>
           <button type="button" class="btn btn-secondary" (click)="documentsAppointment = item">Documentos</button>
           <a class="btn btn-secondary" [routerLink]="['/app/results/appointments', item.id]">Resultados</a>
           <a class="btn btn-secondary" [routerLink]="['/app/prescriptions/appointments', item.id]">Recetas</a>
@@ -98,10 +98,10 @@
           <div><span class="badge" [ngClass]="badgeClass(item.status)">{{ item.status }}</span></div>
           
           <div class="actions" style="display: flex; gap: 0.5rem; align-items: center;" (click)="$event.stopPropagation()">
-            <button type="button" class="btn btn-info" (click)="openRecordForm(item.id, item.patientId)">Ver Registro Médico</button>
+            <a class="btn btn-info" [routerLink]="['/app/agenda/atencion', item.id]">Ver registro médico</a>
             <button type="button" class="btn btn-secondary" (click)="documentsAppointment = item">Documentos</button>
-          <a class="btn btn-secondary" [routerLink]="['/app/results/appointments', item.id]">Resultados</a>
-          <a class="btn btn-secondary" [routerLink]="['/app/prescriptions/appointments', item.id]">Recetas</a>
+            <a class="btn btn-secondary" [routerLink]="['/app/results/appointments', item.id]">Resultados</a>
+            <a class="btn btn-secondary" [routerLink]="['/app/prescriptions/appointments', item.id]">Recetas</a>
           </div>
         </article>
       </div>
@@ -263,16 +263,6 @@
       </div>
     </div>
   </div>
-</div>
-
-<!-- MODAL DE HISTORIAL / REGISTRO MÉDICO -->
-<div class="modal-backdrop" *ngIf="recordAppointmentId && recordPatientId && currentUserId" (click)="closeRecordForm()">
-  <app-medical-record-form
-    [appointmentId]="recordAppointmentId"
-    [patientId]="recordPatientId"
-    [professionalId]="currentUserId"
-    (close)="closeRecordForm()">
-  </app-medical-record-form>
 </div>
 
 <!-- MODAL DE CANCELACIÓN -->

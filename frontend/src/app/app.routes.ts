@@ -17,6 +17,7 @@ import { ResultsComponent } from './pages/results/results.component';
 import { PrescriptionsComponent } from './pages/prescriptions/prescriptions.component';
 import { AdminPrescriptionsComponent } from './pages/admin/prescriptions/admin-prescriptions.component';
 import { ProfileComponent } from './pages/profile/profile.component';
+import { MedicalAttentionComponent } from './pages/agenda/medical-attention.component';
 
 export const routes: Routes = [
   { path: 'login', component: LoginComponent, canActivate: [guestGuard] },
@@ -39,6 +40,7 @@ export const routes: Routes = [
       { path: 'admin/specialties', component: AdminSpecialtiesComponent, canActivate: [adminGuard] },
       { path: 'admin/professionals', component: AdminProfessionalsComponent, canActivate: [adminGuard] },
       { path: 'agenda', component: AgendaComponent, canActivate: [professionalGuard] },
+      { path: 'agenda/atencion/:appointmentId', component: MedicalAttentionComponent, canActivate: [professionalGuard] },
       { path: 'professional/absences', component: ProfessionalAbsencesComponent, canActivate: [professionalGuard] },
       { path: '', pathMatch: 'full', redirectTo: 'home' }
     ]
