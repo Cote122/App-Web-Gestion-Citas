@@ -1,6 +1,11 @@
 /* HU-14: complementa los estilos compartidos de admin.css y modal.css. */
 .none { display: inline; margin-right: 6px; }
 .modal-body.single { display: block; }
+.absence-filters { display:flex; flex-wrap:wrap; gap:12px; margin:16px 0; }
+.absence-filters label { display:grid; gap:6px; flex:1; min-width:150px; max-width:280px; font-size:14px; font-weight:600; }
+.absence-filters input, .absence-filters select { min-width:0; width:100%; padding:10px; border:1px solid #cad7e4; border-radius:8px; background:white; color:var(--text); }
+.affected-filter { display:grid; gap:6px; font-size:14px; font-weight:600; margin:10px 0; }
+.affected-filter input { width:100%; min-width:0; padding:10px; border:1px solid #cad7e4; border-radius:8px; }
 
 .types { display: flex; gap: 10px; }
 .type-option { flex: 1; display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 14px; border: 1px solid #cad7e4; border-radius: 10px; cursor: pointer; color: var(--primary-dark); font-weight: 700; font-size: 14px; }

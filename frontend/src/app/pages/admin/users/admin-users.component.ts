@@ -4,11 +4,12 @@ import { FormsModule } from '@angular/forms';
 import { finalize, forkJoin } from 'rxjs';
 import { ApiService } from '../../../core/api.service';
 import { AdminUser, RoleDefinition, UserRole } from '../../../models/models';
+import { ListPagerComponent } from '../../../shared/list-pager/list-pager.component';
 
 @Component({
   selector: 'app-admin-users',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, ListPagerComponent],
   templateUrl: './admin-users.component.html',
   styleUrl: '../admin.css'
 })
@@ -20,6 +21,15 @@ export class AdminUsersComponent implements OnInit {
   savingId = '';
   error = '';
   message = '';
+  page = 1;
+  readonly pageSize = 8;
+  searchText = '';
+  get filteredUsers(): AdminUser[] {
+    const query = this.searchText.trim().toLocaleLowerCase('es-PE');
+    return this.users.filter(x => !query || [x.fullName, x.dni, x.email, x.role].some(value => value.toLocaleLowerCase('es-PE').includes(query)));
+  }
+  get visibleUsers(): AdminUser[] { return this.filteredUsers.slice((this.page - 1) * this.pageSize, this.page * this.pageSize); }
+  filter(text: string): void { this.searchText = text; this.page = 1; }
 
   constructor(private readonly api: ApiService) {}
 
@@ -35,6 +45,7 @@ export class AdminUsersComponent implements OnInit {
       .subscribe({
         next: ({ users, roles }) => {
           this.users = users;
+          this.page = Math.min(this.page, Math.max(1, Math.ceil(this.filteredUsers.length / this.pageSize)));
           this.roles = roles;
           this.pendingRoles = Object.fromEntries(users.map(x => [x.id, x.role]));
         },

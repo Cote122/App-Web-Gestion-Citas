@@ -1,0 +1,56 @@
+<section class="card schedule-card">
+  <div class="head">
+    <div>
+      <h2>Horarios profesionales</h2>
+      <p>Configura los cupos semanales de cada profesional en hora de Perú. Cada cita dura 45 minutos.</p>
+    </div>
+    <a class="btn btn-secondary" routerLink="/app/admin/professionals">Ver profesionales</a>
+  </div>
+
+  <div class="selector" *ngIf="professionals.length">
+    <label for="professional">Profesional</label>
+    <select id="professional" [ngModel]="selectedId" (ngModelChange)="loadSchedule($event)" [disabled]="saving">
+      <option *ngFor="let person of professionals" [value]="person.id">
+        {{ person.fullName }} · {{ person.specialtyName }}{{ person.isActive ? '' : ' (inactivo)' }}
+      </option>
+    </select>
+  </div>
+
+  <p class="muted feedback" *ngIf="loading">Cargando horarios...</p>
+  <p class="error feedback" *ngIf="error" role="alert">{{ error }}</p>
+  <p class="success feedback" *ngIf="message" role="status">{{ message }}</p>
+  <p class="empty" *ngIf="!loading && !professionals.length">Aún no hay profesionales registrados.</p>
+
+  <ng-container *ngIf="schedule && !loading">
+    <p class="info" *ngIf="!schedule.scheduleConfigured">
+      Este profesional utiliza el horario inicial. Al guardar, tu selección reemplazará la generación automática de horas fijas.
+    </p>
+    <p class="info">Los cambios aplican a cupos futuros. Las citas reservadas se conservan; las solicitudes de espera de horarios que retires se cierran y se avisa a sus pacientes. Las ausencias registradas siguen bloqueando esos días.</p>
+
+    <div class="week">
+      <section class="day" *ngFor="let day of days">
+        <div class="day-head">
+          <h3>{{ day.name }}</h3>
+          <button type="button" class="btn btn-secondary" (click)="add(day.number)" [disabled]="saving">Añadir hora</button>
+        </div>
+        <p class="muted" *ngIf="!daySlots(day.number).length">Sin horarios habilitados.</p>
+        <div class="time-row" *ngFor="let slot of daySlots(day.number)">
+          <label class="time-field">
+            <span>Inicio</span>
+            <input type="time" step="900" [(ngModel)]="slot.startTime" [disabled]="saving" [attr.aria-label]="'Inicio ' + day.name">
+          </label>
+          <label class="switch">
+            <input type="checkbox" [(ngModel)]="slot.isEnabled" [disabled]="saving">
+            <span>{{ slot.isEnabled ? 'Habilitado' : 'Deshabilitado' }}</span>
+          </label>
+          <button type="button" class="remove" (click)="remove(slot)" [disabled]="saving" [attr.aria-label]="'Quitar horario ' + day.name + ' ' + slot.startTime">Quitar</button>
+        </div>
+      </section>
+    </div>
+
+    <div class="footer">
+      <span>{{ slots.length }} horarios semanales · {{ enabledCount }} habilitados</span>
+      <button type="button" class="btn btn-primary" (click)="save()" [disabled]="saving">{{ saving ? 'Guardando...' : 'Guardar horarios' }}</button>
+    </div>
+  </ng-container>
+</section>

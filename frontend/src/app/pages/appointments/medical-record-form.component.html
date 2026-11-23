@@ -1,41 +1,130 @@
-<div class="modal-container" (click)="$event.stopPropagation()">
-  <h2>Registro de Atención Médica</h2>
+<section class="record-form">
+
+  <div class="form-heading">
+    <div>
+      <h2>{{ readonly() ? 'Registro Médico' : 'Atención Médica' }}</h2>
+
+      <p>
+        {{ readonly()
+          ? 'Consulta de la información de una atención anterior.'
+          : 'Registra la información de la atención actual.' }}
+      </p>
+    </div>
+  </div>
 
   <div class="error-banner" *ngIf="error">
     {{ error }}
   </div>
 
-  <form (ngSubmit)="save()" #recordForm="ngForm">
-    <div class="form-field" [class.invalid]="recordForm.submitted && !record.reason">
+  <p class="loading-message" *ngIf="loadingRecord">
+    Cargando registro médico...
+  </p>
+
+  <form
+    *ngIf="!loadingRecord"
+    (ngSubmit)="save()"
+    #recordForm="ngForm">
+
+    <div
+      class="form-field"
+      [class.invalid]="recordForm.submitted && reason.invalid">
+
       <label for="reason">Motivo de consulta *</label>
-      <textarea id="reason" [(ngModel)]="record.reason" name="reason" rows="3" required placeholder="Describa el motivo de la consulta..."></textarea>
+
+      <textarea
+        id="reason"
+        [(ngModel)]="record.reason"
+        name="reason"
+        #reason="ngModel"
+        rows="3"
+        required
+        [disabled]="readonly()"
+        placeholder="Describa el motivo de la consulta...">
+      </textarea>
     </div>
 
-    <div class="form-field">
+    <div
+      class="form-field"
+      [class.invalid]="recordForm.submitted && attentionDate.invalid">
+
       <label for="attentionDate">Fecha de atención *</label>
-      <input type="date" id="attentionDate" [(ngModel)]="record.attentionDate" name="attentionDate" required>
+
+      <input
+        type="date"
+        id="attentionDate"
+        [(ngModel)]="record.attentionDate"
+        name="attentionDate"
+        #attentionDate="ngModel"
+        required
+        [disabled]="readonly()">
     </div>
 
-    <div class="form-field">
+    <div
+      class="form-field"
+      [class.invalid]="recordForm.submitted && diagnosis.invalid">
+
       <label for="diagnosis">Diagnóstico *</label>
-      <textarea id="diagnosis" [(ngModel)]="record.diagnosis" name="diagnosis" rows="3" required placeholder="Describa el diagnóstico..."></textarea>
+
+      <textarea
+        id="diagnosis"
+        [(ngModel)]="record.diagnosis"
+        name="diagnosis"
+        #diagnosis="ngModel"
+        rows="3"
+        required
+        [disabled]="readonly()"
+        placeholder="Describa el diagnóstico...">
+      </textarea>
     </div>
 
     <div class="form-field">
       <label for="observations">Observaciones</label>
-      <textarea id="observations" [(ngModel)]="record.observations" name="observations" rows="3" placeholder="Observaciones adicionales..."></textarea>
+
+      <textarea
+        id="observations"
+        [(ngModel)]="record.observations"
+        name="observations"
+        rows="3"
+        [disabled]="readonly()"
+        placeholder="Observaciones adicionales...">
+      </textarea>
     </div>
 
     <div class="form-field">
       <label for="recommendations">Recomendaciones</label>
-      <textarea id="recommendations" [(ngModel)]="record.recommendations" name="recommendations" rows="3" placeholder="Recomendaciones para el paciente..."></textarea>
+
+      <textarea
+        id="recommendations"
+        [(ngModel)]="record.recommendations"
+        name="recommendations"
+        rows="3"
+        [disabled]="readonly()"
+        placeholder="Recomendaciones para el paciente...">
+      </textarea>
     </div>
 
-    <div class="modal-actions">
-      <button type="button" class="btn btn-secondary" (click)="close.emit()">Cancelar</button>
-      <button type="submit" class="btn btn-primary" [disabled]="loading">
-        {{ loading ? 'Guardando...' : 'Guardar Atención' }}
+    <!-- ACCIONES SOLAMENTE PARA ATENCIONES NUEVAS -->
+    <div class="form-actions" *ngIf="!readonly()">
+
+      <button
+        type="button"
+        class="btn btn-secondary"
+        (click)="close.emit()"
+        [disabled]="loading">
+        Cancelar
       </button>
+
+      <button
+        type="submit"
+        class="btn btn-primary"
+        [disabled]="loading">
+
+        {{ loading ? 'Guardando...' : 'Guardar Atención' }}
+
+      </button>
+
     </div>
+
   </form>
-</div>
+
+</section>

@@ -2,6 +2,7 @@ using System.Security.Claims;
 using GestionCitas.Api.Data;
 using GestionCitas.Api.Dtos;
 using GestionCitas.Api.Models;
+using GestionCitas.Api.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -65,6 +66,12 @@ public class WaitlistController(AppDbContext db) : ControllerBase
 
         if (slot.StartAt <= DateTimeOffset.UtcNow)
             return BadRequest(new { message = "No puedes ingresar a la lista de espera de un horario que ya inició." });
+
+        if (!slot.IsEnabled)
+            return BadRequest(new { message = "Este horario ya no está habilitado por el administrador." });
+
+        if (await AbsenceRules.IsInAbsenceAsync(db, slot))
+            return BadRequest(new { message = AbsenceRules.AbsenceMessage });
 
         if (!slot.Professional.IsActive || !slot.Professional.Specialty.IsActive)
             return BadRequest(new { message = "El profesional o la especialidad ya no se encuentran disponibles." });

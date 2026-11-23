@@ -7,6 +7,14 @@
   <p class="error feedback" *ngIf="error">{{ error }}</p>
   <p class="success feedback" *ngIf="message">{{ message }}</p>
   <p class="muted" *ngIf="loading">Cargando ausencias...</p>
+  <div class="absence-filters" *ngIf="!loading">
+    <label>Desde<input type="date" [value]="from" (input)="setFilter('from', $any($event.target).value)"></label>
+    <label>Hasta<input type="date" [value]="to" (input)="setFilter('to', $any($event.target).value)"></label>
+    <label>Estado<select [value]="status" (change)="setFilter('status', $any($event.target).value)">
+      <option value="">Todos</option><option value="Programada">Programada</option><option value="En curso">En curso</option><option value="Finalizada">Finalizada</option><option value="Anulada">Anulada</option>
+    </select></label>
+  </div>
+  <p class="error" *ngIf="filterError">{{ filterError }}</p>
 
   <div class="table-wrap" *ngIf="!loading">
     <table>
@@ -17,12 +25,12 @@
         <tr><th>Tipo</th><th>Fechas</th><th>Motivo</th><th class="center">Estado</th><th class="actions">Citas afectadas</th></tr>
       </thead>
       <tbody>
-        <tr *ngFor="let item of items" [class.inactive]="item.status === 'Anulada' || item.status === 'Finalizada'">
-          <td><span class="name">{{ item.type }}</span></td>
-          <td>{{ formatDate(item.startDate) }} – {{ formatDate(item.endDate) }}</td>
-          <td><span class="sub">{{ item.reason || '—' }}</span></td>
-          <td class="center"><span class="badge" [ngClass]="badgeClass(item.status)">{{ item.status }}</span></td>
-          <td class="actions">
+        <tr *ngFor="let item of visibleItems" [class.inactive]="item.status === 'Anulada' || item.status === 'Finalizada'">
+          <td data-label="Tipo"><span class="name">{{ item.type }}</span></td>
+          <td data-label="Fechas">{{ formatDate(item.startDate) }} – {{ formatDate(item.endDate) }}</td>
+          <td data-label="Motivo"><span class="sub">{{ item.reason || '—' }}</span></td>
+          <td class="center" data-label="Estado"><span class="badge" [ngClass]="badgeClass(item.status)">{{ item.status }}</span></td>
+          <td class="actions" data-label="Citas afectadas">
             <button *ngIf="item.affectedCount > 0" class="btn btn-secondary" (click)="viewAffected(item)">Ver {{ item.affectedCount }}</button>
             <span *ngIf="item.affectedCount === 0" class="sub none">Ninguna</span>
             <button *ngIf="item.canCancel" class="btn btn-danger" (click)="cancelling = item">Anular</button>
@@ -30,8 +38,9 @@
         </tr>
       </tbody>
     </table>
-    <div class="empty" *ngIf="!items.length">Aún no registraste ausencias.</div>
+    <div class="empty" *ngIf="!filteredItems.length && !filterError">{{ items.length ? 'No hay ausencias que coincidan con el filtro.' : 'Aún no registraste ausencias.' }}</div>
   </div>
+  <app-list-pager *ngIf="!filterError" [page]="page" [total]="filteredItems.length" [pageSize]="pageSize" (pageChange)="page = $event"></app-list-pager>
 </section>
 
 <!-- Registrar ausencia -->
@@ -91,12 +100,17 @@
         <b>No tienes citas reservadas en esas fechas.</b>
         <span>Puedes ausentarte con tranquilidad.</span>
       </div>
+      <label class="affected-filter" *ngIf="!loadingAffected && affected.length">Buscar paciente o código
+        <input type="search" [value]="affectedQuery" (input)="filterAffected($any($event.target).value)" placeholder="Nombre, correo o código">
+      </label>
+      <p class="muted" *ngIf="affected.length && !filteredAffected.length">No hay citas que coincidan con la búsqueda.</p>
       <ul class="affected-list" *ngIf="!loadingAffected && affected.length">
-        <li *ngFor="let item of affected">
+        <li *ngFor="let item of visibleAffected">
           <div><b>{{ item.patientName }}</b><span>{{ item.patientEmail }}</span></div>
           <div class="when"><b>{{ item.startAt | date:'dd/MM/yyyy' }}</b><span>{{ item.startAt | date:'HH:mm' }} · {{ item.code }}</span></div>
         </li>
       </ul>
+      <app-list-pager [page]="affectedPage" [total]="filteredAffected.length" [pageSize]="pageSize" (pageChange)="affectedPage = $event"></app-list-pager>
     </div>
 
     <div class="modal-foot">

@@ -107,6 +107,20 @@ export interface AvailabilitySlot {
   isAvailable: boolean;
 }
 
+export interface WeeklyScheduleEntry {
+  dayOfWeek: number; // Domingo=0, lunes=1 ... (hora de Perú).
+  startTime: string;
+  isEnabled: boolean;
+}
+
+export interface ProfessionalSchedule {
+  id: string;
+  fullName: string;
+  scheduleConfigured: boolean;
+  slots: WeeklyScheduleEntry[];
+  createdSlots?: number;
+}
+
 export interface WaitlistResponse {
   id: string;
   status: string;
@@ -221,4 +235,34 @@ export interface MedicalRecord {
   attentionDate: string;
   createdAt: string;
   updatedAt?: string;
+}
+
+export interface AdminAppointmentChangeRequest {
+  id: string;
+  appointmentId: string;
+  appointmentCode: string;
+  patientName: string;
+  professionalName: string;
+  specialtyName: string;
+  type: string;
+  status: string;
+  reason: string | null;
+  originalSlotStartAt: string;
+  targetSlotStartAt: string | null;
+  createdAt: string;
+}
+
+export interface AppointmentChangeRequest {
+  id: string;
+  appointmentId: string;
+  appointmentCode: string;
+  type: string;
+  status: string;
+  reason: string | null;
+  targetSlotId: string | null;
+  originalSlotStartAt: string;
+  targetSlotStartAt: string | null;
+  createdAt: string;
+  reviewedAt: string | null;
+  adminComment: string | null;
 }

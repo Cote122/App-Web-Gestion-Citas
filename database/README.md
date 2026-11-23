@@ -11,6 +11,7 @@ La API utiliza Entity Framework Core. En el entorno compartido del equipo ya exi
 - `09_documentos_medicos.sql`: valida el catálogo clínico de 13 columnas de HU-18 y agrega índices no únicos; crea la tabla si falta. Conserva columnas y registros existentes. Ejecutar antes de publicar el manejo de documentos; ver [configuración y pruebas](../docs/MEDICAL_DOCUMENTS.md).
 - `10_resultados_clinicos.sql`: valida las tres tablas clínicas existentes de HU-15 y agrega índices no únicos sin alterar datos, estados ni defaults. Requiere el catálogo clínico instalado; ver [resultados clínicos](../docs/CLINICAL_RESULTS.md).
 - `11_recetas_indicaciones.sql`: valida el catálogo existente de recetas/indicaciones y agrega índices no únicos, conservando defaults y datos. Ver [HU-16](../docs/PRESCRIPTIONS.md).
+- `14_horarios_administrador.sql`: agrega la agenda semanal por profesional y el estado de habilitación de cupos existentes. Ejecutar antes de publicar el backend nuevo. No afecta citas actuales; el administrador configura cada agenda desde Profesionales → Horarios.
 
 Si ya están creados el historial y el motivo y solo falta reparar el índice, ejecutar `08_corregir_indice_auditoria.sql` y comprobar que `IsUnique = 0`. Para instalar el historial o completar una ejecución parcial, ejecutar el `07_historia_medica.sql` actualizado; su resultado debe mostrar `Reason = OK`, `MedicalRecords = OK` y `AuditIndexIsUnique = 0`. Este 07 ya incluye la reparación del índice y no necesita ejecutar el 08 a continuación.
 

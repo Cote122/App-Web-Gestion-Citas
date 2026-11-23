@@ -35,8 +35,12 @@
       <ng-container *ngIf="!loading && limits">
         <h3>Documentos de la cita <span>({{ documents.length }})</span></h3>
         <p class="empty" *ngIf="!documents.length">Todavía no hay documentos adjuntos a esta cita.</p>
+        <label class="document-filter" *ngIf="documents.length">Buscar documento
+          <input type="search" [value]="searchText" (input)="filter($any($event.target).value)" placeholder="Nombre del archivo">
+        </label>
+        <p class="empty" *ngIf="documents.length && !filteredDocuments.length">No hay documentos que coincidan con la búsqueda.</p>
         <ul class="document-list" *ngIf="documents.length">
-          <li *ngFor="let document of documents">
+          <li *ngFor="let document of visibleDocuments">
             <div>
               <b>{{ document.fileName }}</b>
               <small>{{ document.createdAt | date:'dd/MM/yyyy HH:mm' }}
@@ -60,6 +64,7 @@
             </div>
           </li>
         </ul>
+        <app-list-pager [page]="page" [total]="filteredDocuments.length" [pageSize]="pageSize" (pageChange)="page = $event"></app-list-pager>
       </ng-container>
     </div>
     <footer><button class="btn btn-secondary" type="button" [disabled]="saving" (click)="close()">Cerrar</button></footer>

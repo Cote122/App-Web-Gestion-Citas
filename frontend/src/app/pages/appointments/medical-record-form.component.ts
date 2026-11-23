@@ -2,6 +2,7 @@ import { Component, input, output, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { finalize } from 'rxjs';
+
 import { ApiService } from '../../core/api.service';
 import { MedicalRecord } from '../../models/models';
 
@@ -13,13 +14,17 @@ import { MedicalRecord } from '../../models/models';
   styleUrl: './medical-record-form.component.css'
 })
 export class MedicalRecordFormComponent implements OnInit {
+
   appointmentId = input.required<string>();
   patientId = input.required<string>();
   professionalId = input.required<string>();
+
+  readonly = input(false);
+
   close = output<void>();
 
   record: Partial<MedicalRecord> = {
-    attentionDate: new Date().toISOString().split('T')[0],
+    attentionDate: this.getToday(),
     reason: '',
     observations: '',
     diagnosis: '',
@@ -27,45 +32,62 @@ export class MedicalRecordFormComponent implements OnInit {
   };
 
   loading = false;
+  loadingRecord = false;
   error = '';
 
   constructor(private readonly api: ApiService) {}
 
   ngOnInit(): void {
-    this.loadExistingRecord();
+    if (this.readonly()) {
+      this.loadExistingRecord();
+    }
+  }
+
+  private getToday(): string {
+    const now = new Date();
+
+    const localDate = new Date(
+      now.getTime() - now.getTimezoneOffset() * 60000
+    );
+
+    return localDate.toISOString().split('T')[0];
   }
 
   loadExistingRecord(): void {
-    // Verificamos si ya existe un registro previo para esta cita
-    this.api.getMedicalRecordByAppointment(this.appointmentId()).subscribe({
-      next: (data) => {
-        if (data) {
+    this.loadingRecord = true;
+    this.error = '';
+
+    this.api.getMedicalRecordByAppointment(this.appointmentId())
+      .pipe(finalize(() => this.loadingRecord = false))
+      .subscribe({
+        next: data => {
           this.record = {
-            attentionDate: data.attentionDate ? data.attentionDate.split('T')[0] : this.record.attentionDate,
+            attentionDate: data.attentionDate
+              ? data.attentionDate.split('T')[0]
+              : '',
             reason: data.reason ?? '',
             observations: data.observations ?? '',
             diagnosis: data.diagnosis ?? '',
             recommendations: data.recommendations ?? ''
           };
+        },
+        error: err => {
+          this.error = err?.error?.message ??
+            'No se pudo cargar el registro médico.';
         }
-      },
-      error: () => {
-        // Si da 404 u otro error, asumimos que aún no existe y se queda en blanco para crear
-      }
-    });
+      });
   }
 
   save(): void {
-    if (!this.record.attentionDate) {
-      this.error = 'La fecha de atención es obligatoria.';
-      return;
-    }
-    if (!this.record.reason?.trim()) {
-      this.error = 'El motivo de consulta es obligatorio.';
-      return;
-    }
-    if (!this.record.diagnosis?.trim()) {
-      this.error = 'El diagnóstico es obligatorio.';
+    // Evitamos cualquier intento de guardar en modo lectura.
+    if (this.readonly()) return;
+
+    if (
+      !this.record.attentionDate ||
+      !this.record.reason?.trim() ||
+      !this.record.diagnosis?.trim()
+    ) {
+      this.error = 'Completa los campos obligatorios antes de continuar.';
       return;
     }
 
@@ -77,15 +99,20 @@ export class MedicalRecordFormComponent implements OnInit {
       patientId: this.patientId(),
       professionalId: this.professionalId(),
       attentionDate: this.record.attentionDate,
-      reason: this.record.reason,
-      observations: this.record.observations,
-      diagnosis: this.record.diagnosis,
-      recommendations: this.record.recommendations
+      reason: this.record.reason.trim(),
+      observations: this.record.observations?.trim() ?? '',
+      diagnosis: this.record.diagnosis.trim(),
+      recommendations: this.record.recommendations?.trim() ?? ''
     };
 
-    this.api.createMedicalRecord(payload).pipe(finalize(() => this.loading = false)).subscribe({
-      next: () => this.close.emit(),
-      error: error => this.error = error?.error?.message ?? 'No se pudo registrar la atención.'
-    });
+    this.api.createMedicalRecord(payload)
+      .pipe(finalize(() => this.loading = false))
+      .subscribe({
+        next: () => this.close.emit(),
+        error: err => {
+          this.error = err?.error?.message ??
+            'No se pudo registrar la atención médica.';
+        }
+      });
   }
 }

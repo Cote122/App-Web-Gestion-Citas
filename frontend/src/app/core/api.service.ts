@@ -1,11 +1,13 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { AbsenceType, AdminProfessional, AdminSpecialty, AdminUser, AffectedAppointment, Appointment, AvailabilitySlot, CreateAbsenceResponse, MedicalRecord, Professional, ProfessionalAbsence, ProfessionalAgendaItem, ProfessionalAppointmentDetail, RoleDefinition, Specialty, UserRole, WaitlistItem, WaitlistResponse } from '../models/models';
+import { AbsenceType, AdminProfessional, AdminSpecialty, AdminUser, AffectedAppointment, Appointment, AvailabilitySlot, CreateAbsenceResponse, MedicalRecord, Professional, ProfessionalAbsence, ProfessionalAgendaItem, ProfessionalAppointmentDetail, ProfessionalSchedule, RoleDefinition, Specialty, UserRole, WaitlistItem, WaitlistResponse, WeeklyScheduleEntry } from '../models/models';
 import { Observable } from 'rxjs';
 import { MedicalDocument, MedicalDocumentLimits } from '../models/models';
 import { ClinicalResult, ClinicalResultFile, SaveClinicalResult } from '../models/models';
 import { Prescription, PrescriptionItem, PatientIndication } from '../models/models';
 import { AdminPrescription, CorrectPrescription, PrescriptionCorrection } from '../models/models';
+import { AdminAppointmentChangeRequest } from '../models/models';
+import { AppointmentChangeRequest } from '../models/models';
 @Injectable({ providedIn: 'root' })
 export class ApiService {
   constructor(private readonly http: HttpClient) {}
@@ -114,6 +116,14 @@ export class ApiService {
     return this.http.get<AdminSpecialty[]>('/api/admin/specialties');
   }
 
+  professionalSchedule(id: string) {
+    return this.http.get<ProfessionalSchedule>(`/api/admin/professionals/${id}/schedule`);
+  }
+
+  saveProfessionalSchedule(id: string, slots: WeeklyScheduleEntry[]) {
+    return this.http.put<ProfessionalSchedule>(`/api/admin/professionals/${id}/schedule`, { slots });
+  }
+
   createSpecialty(payload: { name: string; description: string; price: number }) {
     return this.http.post<AdminSpecialty>('/api/admin/specialties', payload);
   }
@@ -197,5 +207,32 @@ export class ApiService {
 
   cancelAbsence(id: string) {
     return this.http.delete<ProfessionalAbsence>(`/api/professional/absences/${id}`);
+  }
+
+  // HU-47: revisión administrativa de solicitudes de cambios de citas.
+  adminPendingAppointmentChangeRequests() {
+    return this.http.get<AdminAppointmentChangeRequest[]>(
+      '/api/admin/appointment-requests/pending'
+    );
+  }
+
+  approveAppointmentChangeRequest(id: string, adminComment: string | null) {
+    return this.http.patch<void>(
+      `/api/admin/appointment-requests/${id}/approve`,
+      { adminComment }
+    );
+  }
+
+  rejectAppointmentChangeRequest(id: string, adminComment: string | null) {
+    return this.http.patch<void>(
+      `/api/admin/appointment-requests/${id}/reject`,
+      { adminComment }
+    );
+  }
+
+  professionalChangeRequests() {
+    return this.http.get<AppointmentChangeRequest[]>(
+      '/api/professional/agenda/change-requests'
+    );
   }
 }

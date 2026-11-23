@@ -22,3 +22,16 @@ public enum AttendanceConfirmationStatus
     Confirmada,
     NoAsistira
 }
+
+public enum AppointmentChangeRequestType
+{
+    Cancelacion,
+    Reprogramacion
+}
+
+public enum AppointmentChangeRequestStatus
+{
+    PendienteAprobacion,
+    Aprobada,
+    Rechazada
+}

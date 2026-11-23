@@ -35,21 +35,79 @@ public class ProfessionalAgendaController(ProfessionalAgendaService agendaServic
     }
 
     [HttpPatch("{id:guid}/cancel")]
-    public async Task<IActionResult> Cancel(Guid id, [FromBody] CancelAppointmentRequest request)
+    public async Task<IActionResult> Cancel(
+        Guid id,
+        [FromBody] CancelAppointmentRequest request)
     {
-        // Pasamos el motivo recibido del body (puede ser opcional con request?.Reason)
-        var (success, error) = await agendaService.CancelAppointmentAsync(CurrentUserId(), id, request?.Reason);
+        var (changeRequest, error) =
+            await agendaService.CancelAppointmentAsync(
+                CurrentUserId(),
+                id,
+                request?.Reason
+            );
 
-        if (success) return Ok(new { message = "Cita cancelada con éxito." });
-        if (error == "Cita no encontrada o no te pertenece.") return NotFound(new { message = error });
-        return BadRequest(new { message = error });
+        if (changeRequest is not null)
+        {
+            return Accepted(new
+            {
+                message = "Solicitud de cancelación registrada. Pendiente de aprobación administrativa.",
+                request = changeRequest
+            });
+        }
+
+        if (error == "Cita no encontrada o no te pertenece.")
+            return NotFound(new { message = error });
+
+        if (error == "Tu usuario no está vinculado a un profesional.")
+            return Forbid();
+
+        return Conflict(new { message = error });
     }
 
     [HttpPatch("{id:guid}/reschedule")]
-    public async Task<IActionResult> Reschedule(Guid id, [FromBody] RescheduleAppointmentRequest request)
+    public async Task<IActionResult> Reschedule(
+        Guid id,
+        [FromBody] RescheduleAppointmentRequest request)
     {
-        var (appointment, error) = await agendaService.RescheduleAppointmentAsync(CurrentUserId(), id, request.SlotId, request.Reason);
-        return appointment is null ? Conflict(new { message = error }) : Ok(appointment);
+        var (changeRequest, error) =
+            await agendaService.RescheduleAppointmentAsync(
+                CurrentUserId(),
+                id,
+                request.SlotId,
+                request.Reason
+            );
+
+        if (changeRequest is not null)
+        {
+            return Accepted(new
+            {
+                message = "Solicitud de reprogramación registrada. Pendiente de aprobación administrativa.",
+                request = changeRequest
+            });
+        }
+
+        if (error == "Cita no encontrada o no te pertenece.")
+            return NotFound(new { message = error });
+
+        if (error == "Tu usuario no está vinculado a un profesional.")
+            return Forbid();
+
+        return Conflict(new { message = error });
+    }
+
+    [HttpGet("change-requests")]
+    public async Task<IActionResult> GetChangeRequests()
+    {
+        var (requests, error) =
+            await agendaService.ListChangeRequestsAsync(CurrentUserId());
+
+        if (requests is not null)
+            return Ok(requests);
+
+        return StatusCode(
+            StatusCodes.Status403Forbidden,
+            new { message = error }
+        );
     }
 
     private Guid CurrentUserId() => Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);

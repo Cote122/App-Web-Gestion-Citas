@@ -1,5 +1,6 @@
 using GestionCitas.Api.Data;
 using GestionCitas.Api.Models;
+using GestionCitas.Api.Services;
 using Microsoft.EntityFrameworkCore;
 using Xunit;
 
@@ -7,6 +8,64 @@ namespace GestionCitas.Api.Tests;
 
 public class AvailabilitySlotGenerationTests
 {
+    [Fact]
+    public async Task EnsureAvailabilitySlots_UsesAdministratorsWeeklyHoursAndRespectsAbsence()
+    {
+        var options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString()).Options;
+        await using var db = new AppDbContext(options);
+        var professional = new Professional
+        {
+            FullName = "Agenda configurada", Specialty = new Specialty { Name = "General" },
+            ScheduleConfigured = true
+        };
+        var monday = new ProfessionalWeeklySlot
+        {
+            Professional = professional, DayOfWeek = 1, StartTime = TimeSpan.FromHours(8)
+        };
+        var disabled = new ProfessionalWeeklySlot
+        {
+            Professional = professional, DayOfWeek = 1, StartTime = TimeSpan.FromHours(9), IsEnabled = false
+        };
+        var absenceStart = new DateTimeOffset(2026, 11, 23, 0, 0, 0, TimeSpan.FromHours(-5));
+        db.AddRange(professional, monday, disabled,
+            new ProfessionalAbsence { Professional = professional, StartAt = absenceStart, EndAt = absenceStart.AddDays(1) });
+        await db.SaveChangesAsync();
+
+        var now = new DateTimeOffset(2026, 11, 19, 12, 0, 0, TimeSpan.FromHours(-5));
+        Assert.Equal(2, await DbInitializer.EnsureAvailabilitySlotsAsync(db, now));
+        Assert.All(await db.AvailabilitySlots.ToListAsync(), slot =>
+        {
+            Assert.Equal(DayOfWeek.Monday, slot.StartAt.DayOfWeek);
+            Assert.Equal(8, slot.StartAt.Hour);
+            Assert.True(WeeklySchedule.Allows(professional, slot.StartAt, [monday, disabled]));
+        });
+        Assert.Equal(0, await DbInitializer.EnsureAvailabilitySlotsAsync(db, now));
+    }
+
+    [Fact]
+    public async Task EnsureAvailabilitySlots_DoesNotOfferAnOverlappingTimeForAnExistingBooking()
+    {
+        var options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString()).Options;
+        await using var db = new AppDbContext(options);
+        var professional = new Professional
+        {
+            FullName = "Con cita anterior", Specialty = new Specialty { Name = "General" },
+            ScheduleConfigured = true
+        };
+        var bookedStart = new DateTimeOffset(2026, 11, 23, 9, 0, 0, TimeSpan.FromHours(-5));
+        db.AddRange(professional,
+            new ProfessionalWeeklySlot { Professional = professional, DayOfWeek = 1, StartTime = new TimeSpan(9, 15, 0) },
+            new AvailabilitySlot { Professional = professional, StartAt = bookedStart,
+                EndAt = bookedStart.AddMinutes(45), IsAvailable = false, IsEnabled = false });
+        await db.SaveChangesAsync();
+
+        var now = new DateTimeOffset(2026, 11, 19, 12, 0, 0, TimeSpan.FromHours(-5));
+        Assert.Equal(2, await DbInitializer.EnsureAvailabilitySlotsAsync(db, now));
+        Assert.DoesNotContain(db.AvailabilitySlots, slot => slot.StartAt == bookedStart.AddMinutes(15));
+    }
+
     [Fact]
     public async Task EnsureAvailabilitySlots_FillsMissingDaysPerProfessionalWithoutChangingBookedSlots()
     {

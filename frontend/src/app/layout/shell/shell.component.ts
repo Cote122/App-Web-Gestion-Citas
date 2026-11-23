@@ -19,6 +19,7 @@ export class ShellComponent implements OnInit, OnDestroy {
   readonly isAdmin = computed(() => this.user()?.role === 'Administrador');
   readonly isProfessional = computed(() => this.user()?.role === 'Profesional');
   readonly warningSeconds = SESSION_IDLE_CONFIG.warningSeconds;
+  menuOpen = false;
 
   constructor(
     private readonly auth: AuthService,
@@ -36,6 +37,7 @@ export class ShellComponent implements OnInit, OnDestroy {
   }
 
   logout(): void {
+    this.menuOpen = false;
     this.auth.logout();
     this.router.navigate(['/login']);
   }

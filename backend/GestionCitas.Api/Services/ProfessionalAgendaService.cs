@@ -58,7 +58,9 @@ public class ProfessionalAgendaService(AppDbContext db)
 
         var slots = await db.AvailabilitySlots
             .AsNoTracking()
-            .Where(s => s.ProfessionalId == professional.Id && s.IsAvailable && s.StartAt > PeruClock.Now)
+            .Where(s => s.ProfessionalId == professional.Id && s.IsEnabled && s.IsAvailable && s.StartAt > PeruClock.Now
+                        && s.Professional.IsActive && s.Professional.Specialty.IsActive)
+            .WithoutAbsences(db)
             .OrderBy(s => s.StartAt)
             .ToListAsync();
 
@@ -67,98 +69,82 @@ public class ProfessionalAgendaService(AppDbContext db)
         return (dtos, null);
     }
 
-    public async Task<(bool Success, string? Error)> CancelAppointmentAsync(Guid userId, Guid appointmentId, string? reason = null)
+    public async Task<(AppointmentChangeRequestDto? Request, string? Error)>
+        CancelAppointmentAsync(Guid userId, Guid appointmentId, string? reason = null)
     {
-        reason = reason?.Trim();
-        if (reason?.Length > 500)
-            return (false, "El motivo no puede superar los 500 caracteres.");
-
         var professional = await LinkedProfessionalAsync(userId);
-        if (professional is null)
-            return (false, "Tu usuario no está vinculado a un profesional.");
 
-        await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable);
-
-        var appointment = await db.Appointments
-            .Include(x => x.Patient)
-            .Include(x => x.Slot)
-                .ThenInclude(x => x.Professional)
-            .FirstOrDefaultAsync(x => x.Id == appointmentId && x.Slot.ProfessionalId == professional.Id);
-
-        if (appointment is null)
-            return (false, "Cita no encontrada o no te pertenece.");
-
-        if (appointment.Status != AppointmentStatus.Confirmada)
-            return (false, "La cita ya no puede cancelarse.");
-
-        if (appointment.Slot.StartAt <= PeruClock.Now)
-            return (false, "No se puede cancelar una cita cuyo horario ya inició.");
-
-        var cancelledSlotId = appointment.SlotId;
-        var cancelledAt = PeruClock.Now;
-
-        appointment.Status = AppointmentStatus.Cancelada;
-        appointment.UpdatedAt = cancelledAt;
-
-        // Guardamos el motivo en la cita si se proporciona desde el frontend
-        if (!string.IsNullOrWhiteSpace(reason))
-        {
-            appointment.Reason = reason;
-        }
-
-        db.AppointmentAuditLogs.Add(new AppointmentAuditLog
-        {
-            Appointment = appointment,
-            PatientId = appointment.PatientId,
-            EventType = "CancelledByProfessional",
-            PreviousSlotId = cancelledSlotId,
-            Details = $"Cita {appointment.Code} cancelada por el profesional. Motivo: {reason ?? "No especificado"}. Horario original: {appointment.Slot.StartAt:dd/MM/yyyy HH:mm}."
-        });
-
-        db.NotificationOutbox.Add(new NotificationOutbox
-        {
-            RecipientUserId = appointment.PatientId,
-            RelatedAppointmentId = appointment.Id,
-            RecipientEmail = appointment.Patient.Email,
-            Type = "AppointmentCancelled",
-            Subject = "Tu cita fue cancelada por el profesional",
-            Body = $"Hola {appointment.Patient.FullName}, te informamos que tu cita {appointment.Code} programada para el {appointment.Slot.StartAt:dd/MM/yyyy} a las {appointment.Slot.StartAt:HH:mm} ha sido cancelada. Motivo: {reason ?? "No especificado"}."
-        });
-
-        await AssignReleasedSlotOrMakeAvailableAsync(appointment.Slot);
-
-        try
-        {
-            await db.SaveChangesAsync();
-            await tx.CommitAsync();
-        }
-        catch (DbUpdateConcurrencyException)
-        {
-            await tx.RollbackAsync();
-            return (false, "Error de concurrencia al cancelar la cita. Inténtalo de nuevo.");
-        }
-
-        return (true, null);
-    }
-
-    public async Task<(AppointmentDto? Appointment, string? Error)> RescheduleAppointmentAsync(Guid userId, Guid appointmentId, Guid newSlotId, string? reason = null)
-    {
-        reason = reason?.Trim();
-        if (reason?.Length > 500)
-            return (null, "El motivo no puede superar los 500 caracteres.");
-
-        var professional = await LinkedProfessionalAsync(userId);
         if (professional is null)
             return (null, "Tu usuario no está vinculado a un profesional.");
 
-        await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+        var now = PeruClock.Now;
+
+        var appointment = await db.Appointments
+            .Include(x => x.Slot)
+            .FirstOrDefaultAsync(x =>
+                x.Id == appointmentId &&
+                x.Slot.ProfessionalId == professional.Id);
+
+        if (appointment is null)
+            return (null, "Cita no encontrada o no te pertenece.");
+
+        if (appointment.Status != AppointmentStatus.Confirmada)
+            return (null, "La cita ya no puede cancelarse.");
+
+        if (appointment.Slot.StartAt <= now)
+            return (null, "No se puede cancelar una cita cuyo horario ya inició.");
+
+        if (reason?.Length > 500)
+            return (null, "El motivo no puede superar los 500 caracteres.");
+
+        if (await HasPendingChangeRequestAsync(appointment.Id))
+            return (null, "La cita ya tiene una solicitud pendiente de aprobación.");
+
+        var request = new AppointmentChangeRequest
+        {
+            AppointmentId = appointment.Id,
+            RequestedByProfessionalId = professional.Id,
+            Type = AppointmentChangeRequestType.Cancelacion,
+            Reason = NormalizeReason(reason),
+            Status = AppointmentChangeRequestStatus.PendienteAprobacion,
+            CreatedAt = now
+        };
+
+        var error = await SavePendingRequestAsync(request);
+
+        if (error is not null)
+            return (null, error);
+
+        return (
+            ToChangeRequestDto(
+                request,
+                appointment.Code,
+                appointment.Slot.StartAt,
+                null
+            ),
+            null
+        );
+    }
+
+    public async Task<(AppointmentChangeRequestDto? Request, string? Error)>
+        RescheduleAppointmentAsync(
+            Guid userId,
+            Guid appointmentId,
+            Guid newSlotId,
+            string? reason = null)
+    {
+        var professional = await LinkedProfessionalAsync(userId);
+
+        if (professional is null)
+            return (null, "Tu usuario no está vinculado a un profesional.");
+
+        var now = PeruClock.Now;
 
         var current = await db.Appointments
-            .Include(x => x.Patient)
             .Include(x => x.Slot)
-                .ThenInclude(x => x.Professional)
-                .ThenInclude(x => x.Specialty)
-            .FirstOrDefaultAsync(x => x.Id == appointmentId && x.Slot.ProfessionalId == professional.Id);
+            .FirstOrDefaultAsync(x =>
+                x.Id == appointmentId &&
+                x.Slot.ProfessionalId == professional.Id);
 
         if (current is null)
             return (null, "Cita no encontrada o no te pertenece.");
@@ -166,145 +152,96 @@ public class ProfessionalAgendaService(AppDbContext db)
         if (current.Status != AppointmentStatus.Confirmada)
             return (null, "La cita ya no puede reprogramarse.");
 
-        if (current.Slot.StartAt <= PeruClock.Now)
+        if (current.Slot.StartAt <= now)
             return (null, "No se puede reprogramar una cita cuyo horario ya inició.");
 
         if (current.SlotId == newSlotId)
             return (null, "Selecciona un horario diferente al de tu cita actual.");
 
-        var newSlot = await db.AvailabilitySlots
-            .Include(x => x.Professional)
-            .ThenInclude(x => x.Specialty)
-            .FirstOrDefaultAsync(x => x.Id == newSlotId && x.ProfessionalId == professional.Id);
+        if (reason?.Length > 500)
+            return (null, "El motivo no puede superar los 500 caracteres.");
 
-        if (newSlot is null || !newSlot.IsAvailable || newSlot.StartAt <= PeruClock.Now)
-            return (null, "El nuevo horario seleccionado no está disponible o no te pertenece.");
+        if (await HasPendingChangeRequestAsync(current.Id))
+            return (null, "La cita ya tiene una solicitud pendiente de aprobación.");
 
-        var previousSlotId = current.SlotId;
-        var previousStartAt = current.Slot.StartAt;
-        var changedAt = PeruClock.Now;
+        var targetSlot = await db.AvailabilitySlots
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x =>
+                x.Id == newSlotId &&
+                x.ProfessionalId == professional.Id);
 
-        current.Status = AppointmentStatus.Reprogramada;
-        current.UpdatedAt = changedAt;
-
-        if (!string.IsNullOrWhiteSpace(reason))
+        if (targetSlot is null ||
+            !targetSlot.IsEnabled ||
+            !targetSlot.IsAvailable ||
+            targetSlot.StartAt <= now ||
+            await AbsenceRules.IsInAbsenceAsync(db, targetSlot))
         {
-            current.Reason = reason;
+            return (
+                null,
+                "El nuevo horario seleccionado no está disponible o no te pertenece."
+            );
         }
 
-        newSlot.IsAvailable = false;
-
-        var replacement = new Appointment
+        var request = new AppointmentChangeRequest
         {
-            Code = GenerateCode(),
-            PatientId = current.PatientId,
-            SlotId = newSlot.Id,
-            Status = AppointmentStatus.Confirmada,
-            PreviousAppointmentId = current.Id
+            AppointmentId = current.Id,
+            RequestedByProfessionalId = professional.Id,
+            Type = AppointmentChangeRequestType.Reprogramacion,
+            Reason = NormalizeReason(reason),
+            TargetSlotId = targetSlot.Id,
+            Status = AppointmentChangeRequestStatus.PendienteAprobacion,
+            CreatedAt = now
         };
 
-        db.Appointments.Add(replacement);
+        var error = await SavePendingRequestAsync(request);
 
-        db.AppointmentAuditLogs.Add(new AppointmentAuditLog
-        {
-            Appointment = current,
-            PatientId = current.PatientId,
-            EventType = "RescheduledByProfessional",
-            PreviousSlotId = previousSlotId,
-            NewSlotId = newSlot.Id,
-            Details = $"Cita {current.Code} reprogramada por el profesional. Motivo: {reason ?? "No especificado"}. Horario anterior: {previousStartAt:dd/MM/yyyy HH:mm}. Nuevo horario: {newSlot.StartAt:dd/MM/yyyy HH:mm}. Nueva cita: {replacement.Code}."
-        });
+        if (error is not null)
+            return (null, error);
 
-        db.NotificationOutbox.Add(new NotificationOutbox
-        {
-            RecipientUserId = current.PatientId,
-            RelatedAppointmentId = current.Id,
-            RecipientEmail = current.Patient.Email,
-            Type = "AppointmentRescheduled",
-            Subject = "Tu cita fue reprogramada",
-            Body = $"Hola {current.Patient.FullName}, tu cita fue reprogramada por el profesional. Nuevo horario: {newSlot.StartAt:dd/MM/yyyy} a las {newSlot.StartAt:HH:mm}. Motivo: {reason ?? "No especificado"}. Nuevo código: {replacement.Code}."
-        });
-
-        await AssignReleasedSlotOrMakeAvailableAsync(current.Slot);
-
-        try
-        {
-            await db.SaveChangesAsync();
-            await tx.CommitAsync();
-        }
-        catch (DbUpdateConcurrencyException)
-        {
-            await tx.RollbackAsync();
-            return (null, "El horario seleccionado acaba de ser tomado por otro usuario. Selecciona otro.");
-        }
-
-        return (ToAppointmentDto(replacement, newSlot), null);
+        return (
+            ToChangeRequestDto(
+                request,
+                current.Code,
+                current.Slot.StartAt,
+                targetSlot.StartAt
+            ),
+            null
+        );
     }
 
-    private async Task AssignReleasedSlotOrMakeAvailableAsync(AvailabilitySlot slot)
+    public async Task<(
+        List<AppointmentChangeRequestDto>? Requests,
+        string? Error
+    )> ListChangeRequestsAsync(Guid userId)
     {
-        var next = await db.WaitlistEntries
-            .Include(x => x.Patient)
-            .Where(x => x.SlotId == slot.Id && x.Status == WaitlistStatus.Activa)
-            .OrderBy(x => x.CreatedAt)
-            .ThenBy(x => x.Id)
-            .FirstOrDefaultAsync();
+        var professional = await LinkedProfessionalAsync(userId);
 
-        if (next is null)
-        {
-            slot.IsAvailable = true;
-            return;
-        }
+        if (professional is null)
+            return (null, "Tu usuario no está vinculado a un profesional.");
 
-        var appointment = new Appointment
-        {
-            Code = GenerateCode(),
-            PatientId = next.PatientId,
-            SlotId = slot.Id,
-            Status = AppointmentStatus.Confirmada
-        };
+        var requests = await db.AppointmentChangeRequests
+            .AsNoTracking()
+            .Where(x => x.RequestedByProfessionalId == professional.Id)
+            .Include(x => x.Appointment)
+                .ThenInclude(x => x.Slot)
+            .Include(x => x.TargetSlot)
+            .OrderByDescending(x => x.CreatedAt)
+            .ToListAsync();
 
-        db.Appointments.Add(appointment);
+        var result = requests.Select(x =>
+            ToChangeRequestDto(
+                x,
+                x.Appointment.Code,
+                x.Appointment.Slot.StartAt,
+                x.TargetSlot?.StartAt
+            )
+        ).ToList();
 
-        next.Status = WaitlistStatus.Asignada;
-        next.AssignedAppointment = appointment;
-        next.AssignedAt = PeruClock.Now;
-
-        slot.IsAvailable = false;
-
-        db.NotificationOutbox.Add(new NotificationOutbox
-        {
-            RecipientUserId = next.PatientId,
-            RelatedAppointmentId = appointment.Id,
-            RecipientEmail = next.Patient.Email,
-            Type = "WaitlistSlotAssigned",
-            Subject = "Se liberó un cupo y tu cita fue registrada",
-            Body = $"Hola {next.Patient.FullName}, se liberó el horario del {slot.StartAt:dd/MM/yyyy} a las {slot.StartAt:HH:mm}. Como eras el primero de la lista de espera, la cita fue registrada automáticamente a tu nombre con código {appointment.Code}."
-        });
+        return (result, null);
     }
 
     private Task<Professional?> LinkedProfessionalAsync(Guid userId) =>
         db.Professionals.AsNoTracking().FirstOrDefaultAsync(x => x.UserId == userId);
-
-    private static string GenerateCode() =>
-        $"CIT-{PeruClock.Now:yyyy}-{Guid.NewGuid().ToString("N")[..6].ToUpperInvariant()}";
-
-    private static AppointmentDto ToAppointmentDto(Appointment appointment, AvailabilitySlot slot) =>
-        new(
-            appointment.Id,
-            appointment.Code,
-            slot.Professional.SpecialtyId,
-            slot.Professional.Specialty.Name,
-            slot.ProfessionalId,
-            slot.Professional.FullName,
-            slot.Professional.Office,
-            slot.StartAt,
-            slot.EndAt,
-            appointment.Status.ToString(),
-            slot.Professional.Specialty.Price,
-            appointment.AttendanceStatus.ToString(),
-            appointment.AttendanceRequestedAt,
-            appointment.AttendanceRespondedAt);
 
     private static ProfessionalAgendaItemDto ToItem(Appointment appointment) =>
         new(
@@ -335,4 +272,65 @@ public class ProfessionalAgendaService(AppDbContext db)
                 appointment.Patient.FullName,
                 appointment.Patient.Email),
             appointment.Slot.Professional.FullName);
+
+    private async Task<bool> HasPendingChangeRequestAsync(Guid appointmentId)
+    {
+        return await db.AppointmentChangeRequests.AnyAsync(x =>
+            x.AppointmentId == appointmentId &&
+            x.Status == AppointmentChangeRequestStatus.PendienteAprobacion
+        );
+    }
+
+    private async Task<string?> SavePendingRequestAsync(
+        AppointmentChangeRequest request)
+    {
+        db.AppointmentChangeRequests.Add(request);
+
+        try
+        {
+            await db.SaveChangesAsync();
+            return null;
+        }
+        catch (DbUpdateException)
+        {
+            db.Entry(request).State = EntityState.Detached;
+
+            // Puede ocurrir si otra solicitud se registra simultáneamente.
+            if (await HasPendingChangeRequestAsync(request.AppointmentId))
+            {
+                return "La cita ya tiene una solicitud pendiente de aprobación.";
+            }
+
+            throw;
+        }
+    }
+
+    private static string? NormalizeReason(string? reason)
+    {
+        return string.IsNullOrWhiteSpace(reason)
+            ? null
+            : reason.Trim();
+    }
+
+    private static AppointmentChangeRequestDto ToChangeRequestDto(
+        AppointmentChangeRequest request,
+        string appointmentCode,
+        DateTimeOffset originalSlotStartAt,
+        DateTimeOffset? targetSlotStartAt)
+    {
+        return new AppointmentChangeRequestDto(
+            request.Id,
+            request.AppointmentId,
+            appointmentCode,
+            request.Type.ToString(),
+            request.Status.ToString(),
+            request.Reason,
+            request.TargetSlotId,
+            originalSlotStartAt,
+            targetSlotStartAt,
+            request.CreatedAt,
+            request.ReviewedAt,
+            request.AdminComment
+        );
+    }
 }

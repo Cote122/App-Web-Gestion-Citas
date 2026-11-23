@@ -5,11 +5,12 @@ import { finalize } from 'rxjs';
 import { ApiService } from '../../../core/api.service';
 import { AdminSpecialty } from '../../../models/models';
 import { ConfirmModalComponent } from '../confirm-modal/confirm-modal.component';
+import { ListPagerComponent } from '../../../shared/list-pager/list-pager.component';
 
 @Component({
   selector: 'app-admin-specialties',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, ConfirmModalComponent],
+  imports: [CommonModule, ReactiveFormsModule, ConfirmModalComponent, ListPagerComponent],
   templateUrl: './admin-specialties.component.html',
   styleUrls: ['../admin.css', '../modal.css']
 })
@@ -26,6 +27,15 @@ export class AdminSpecialtiesComponent implements OnInit {
   error = '';
   formError = '';
   message = '';
+  page = 1;
+  readonly pageSize = 8;
+  searchText = '';
+  get filteredItems(): AdminSpecialty[] {
+    const query = this.searchText.trim().toLocaleLowerCase('es-PE');
+    return this.items.filter(x => !query || [x.name, x.description].some(value => value.toLocaleLowerCase('es-PE').includes(query)));
+  }
+  get visibleItems(): AdminSpecialty[] { return this.filteredItems.slice((this.page - 1) * this.pageSize, this.page * this.pageSize); }
+  filter(text: string): void { this.searchText = text; this.page = 1; }
 
   form = this.fb.nonNullable.group({
     name: ['', [Validators.required, Validators.minLength(3), Validators.maxLength(100)]],
@@ -42,7 +52,7 @@ export class AdminSpecialtiesComponent implements OnInit {
   load(): void {
     this.loading = true;
     this.api.adminSpecialties().pipe(finalize(() => this.loading = false)).subscribe({
-      next: data => this.items = data,
+      next: data => { this.items = data; this.page = Math.min(this.page, Math.max(1, Math.ceil(this.filteredItems.length / this.pageSize))); },
       error: () => this.error = 'No se pudieron cargar las especialidades.'
     });
   }
