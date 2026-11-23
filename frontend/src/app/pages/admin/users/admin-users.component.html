@@ -9,6 +9,9 @@
   <p class="error feedback" *ngIf="error">{{ error }}</p>
   <p class="success feedback" *ngIf="message">{{ message }}</p>
   <p class="muted" *ngIf="loading">Cargando usuarios...</p>
+  <label class="list-filter" *ngIf="!loading">Buscar usuario, DNI, correo o rol
+    <input type="search" [value]="searchText" (input)="filter($any($event.target).value)" placeholder="Buscar en usuarios">
+  </label>
 
   <div class="table-wrap" *ngIf="!loading">
     <table>
@@ -22,21 +25,21 @@
         </tr>
       </thead>
       <tbody>
-        <tr *ngFor="let user of users" [class.inactive]="!user.isActive">
-          <td>
+        <tr *ngFor="let user of visibleUsers" [class.inactive]="!user.isActive">
+          <td data-label="Usuario">
             <span class="name">{{ user.fullName }}</span>
             <span class="sub">DNI {{ user.dni }} · {{ user.email }}</span>
           </td>
-          <td>{{ user.role }}</td>
-          <td>
+          <td data-label="Rol actual">{{ user.role }}</td>
+          <td data-label="Nuevo rol">
             <select [(ngModel)]="pendingRoles[user.id]">
               <option *ngFor="let role of roles" [ngValue]="role.role">{{ role.role }}</option>
             </select>
           </td>
-          <td>
+          <td data-label="Permisos">
             <span class="sub" *ngFor="let permission of permissionsFor(pendingRoles[user.id])">• {{ permission }}</span>
           </td>
-          <td class="actions">
+          <td class="actions" data-label="Acción">
             <button class="btn btn-primary"
                     [disabled]="savingId === user.id || pendingRoles[user.id] === user.role"
                     (click)="saveRole(user)">
@@ -46,5 +49,7 @@
         </tr>
       </tbody>
     </table>
+    <div class="empty" *ngIf="!filteredUsers.length">No hay usuarios que coincidan con la búsqueda.</div>
   </div>
+  <app-list-pager [page]="page" [total]="filteredUsers.length" [pageSize]="pageSize" (pageChange)="page = $event"></app-list-pager>
 </section>

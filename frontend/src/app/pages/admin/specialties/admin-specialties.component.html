@@ -7,6 +7,9 @@
   <p class="error feedback" *ngIf="error">{{ error }}</p>
   <p class="success feedback" *ngIf="message">{{ message }}</p>
   <p class="muted" *ngIf="loading">Cargando especialidades...</p>
+  <label class="list-filter" *ngIf="!loading">Buscar especialidad
+    <input type="search" [value]="searchText" (input)="filter($any($event.target).value)" placeholder="Nombre o descripción">
+  </label>
 
   <div class="table-wrap" *ngIf="!loading">
     <table>
@@ -17,20 +20,21 @@
         <tr><th>Especialidad</th><th class="center">Precio</th><th class="center">Profesionales</th><th class="center">Estado</th><th class="actions">Acciones</th></tr>
       </thead>
       <tbody>
-        <tr *ngFor="let item of items" [class.inactive]="!item.isActive">
-          <td><span class="name">{{ item.name }}</span><span class="sub">{{ item.description || 'Sin descripción' }}</span></td>
-          <td class="center">S/ {{ item.price | number:'1.2-2' }}</td>
-          <td class="center">{{ item.professionalCount }}</td>
-          <td class="center"><span class="badge" [ngClass]="item.isActive ? 'badge-green' : 'badge-gray'">{{ item.isActive ? 'Activa' : 'Inactiva' }}</span></td>
-          <td class="actions">
+        <tr *ngFor="let item of visibleItems" [class.inactive]="!item.isActive">
+          <td data-label="Especialidad"><span class="name">{{ item.name }}</span><span class="sub">{{ item.description || 'Sin descripción' }}</span></td>
+          <td class="center" data-label="Precio">S/ {{ item.price | number:'1.2-2' }}</td>
+          <td class="center" data-label="Profesionales">{{ item.professionalCount }}</td>
+          <td class="center" data-label="Estado"><span class="badge" [ngClass]="item.isActive ? 'badge-green' : 'badge-gray'">{{ item.isActive ? 'Activa' : 'Inactiva' }}</span></td>
+          <td class="actions" data-label="Acciones">
             <button class="btn btn-secondary" (click)="edit(item)">Editar</button>
             <button class="btn" [ngClass]="item.isActive ? 'btn-danger' : 'btn-secondary'" (click)="toggle(item)">{{ item.isActive ? 'Desactivar' : 'Activar' }}</button>
           </td>
         </tr>
       </tbody>
     </table>
-    <div class="empty" *ngIf="!items.length">Aún no hay especialidades registradas.</div>
+    <div class="empty" *ngIf="!filteredItems.length">{{ items.length ? 'No hay especialidades que coincidan con la búsqueda.' : 'Aún no hay especialidades registradas.' }}</div>
   </div>
+  <app-list-pager [page]="page" [total]="filteredItems.length" [pageSize]="pageSize" (pageChange)="page = $event"></app-list-pager>
 </section>
 
 <app-confirm-modal *ngIf="deactivating as item"

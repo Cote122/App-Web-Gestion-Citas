@@ -16,11 +16,23 @@ import { MedicalDocumentsComponent } from '../../shared/medical-documents/medica
   styleUrl: './appointments.component.css'
 })
 export class AppointmentsComponent implements OnInit {
+  readonly weekdays = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
+  readonly pageSize = 6;
   items: Appointment[] = [];
   waitlist: WaitlistItem[] = [];
   documentsAppointment?: Appointment;
 
   loading = false;
+  fromDate = '';
+  toDate = '';
+  dateError = '';
+  appliedFrom = '';
+  appliedTo = '';
+  displayedMonth = new Date().toISOString().slice(0, 7);
+  expandedDay: string | null = null;
+  historyPage = 1;
+  upcomingPage = 1;
+  waitlistPage = 1;
 
   alertTitle = '';
   alertMessage = '';
@@ -52,6 +64,10 @@ export class AppointmentsComponent implements OnInit {
         next: result => {
           this.items = result.appointments;
           this.waitlist = result.waitlist;
+          if (!this.expandedDay && this.appointmentHistory.length) {
+            this.displayedMonth = this.localDate(this.appointmentHistory[0].startAt).slice(0, 7);
+          }
+          this.clampPages();
         },
         error: error => {
           this.showAlert(
@@ -83,6 +99,102 @@ export class AppointmentsComponent implements OnInit {
       .sort((a, b) =>
         new Date(b.startAt).getTime() - new Date(a.startAt).getTime()
       );
+  }
+
+  get filteredHistory(): Appointment[] {
+    return this.appointmentHistory.filter(item => {
+      const day = this.localDate(item.startAt);
+      return (!this.appliedFrom || day >= this.appliedFrom) && (!this.appliedTo || day <= this.appliedTo);
+    });
+  }
+
+  get historyDays(): string[] {
+    return [...new Set(this.filteredHistory.map(x => this.localDate(x.startAt)))].sort().reverse();
+  }
+
+  get visibleHistoryDays(): string[] {
+    return this.historyDays.slice((this.historyPage - 1) * this.pageSize, this.historyPage * this.pageSize);
+  }
+
+  get historyPages(): number { return Math.max(1, Math.ceil(this.historyDays.length / this.pageSize)); }
+  get upcomingPages(): number { return Math.max(1, Math.ceil(this.upcomingAppointments.length / this.pageSize)); }
+  get waitlistPages(): number { return Math.max(1, Math.ceil(this.waitlist.length / this.pageSize)); }
+  get visibleUpcoming(): Appointment[] { return this.upcomingAppointments.slice((this.upcomingPage - 1) * this.pageSize, this.upcomingPage * this.pageSize); }
+  get visibleWaitlist(): WaitlistItem[] { return this.waitlist.slice((this.waitlistPage - 1) * this.pageSize, this.waitlistPage * this.pageSize); }
+
+  get calendarDays(): Array<{ date: string; count: number } | null> {
+    const [year, month] = this.displayedMonth.split('-').map(Number);
+    const first = new Date(Date.UTC(year, month - 1, 1));
+    const blanks = (first.getUTCDay() + 6) % 7;
+    const countByDay = new Map<string, number>();
+    for (const item of this.filteredHistory) {
+      const date = this.localDate(item.startAt);
+      countByDay.set(date, (countByDay.get(date) ?? 0) + 1);
+    }
+    const days = new Date(Date.UTC(year, month, 0)).getUTCDate();
+    return [...Array(blanks).fill(null), ...Array.from({ length: days }, (_, i) => {
+      const date = `${year}-${String(month).padStart(2, '0')}-${String(i + 1).padStart(2, '0')}`;
+      return { date, count: countByDay.get(date) ?? 0 };
+    })];
+  }
+
+  get monthLabel(): string {
+    const [year, month] = this.displayedMonth.split('-').map(Number);
+    return new Intl.DateTimeFormat('es-PE', { month: 'long', year: 'numeric', timeZone: 'UTC' })
+      .format(new Date(Date.UTC(year, month - 1, 1)));
+  }
+
+  applyDates(): void {
+    if ((this.fromDate && this.toDate && this.fromDate > this.toDate) || (!!this.fromDate !== !!this.toDate)) {
+      this.dateError = 'Selecciona ambas fechas y comprueba que la fecha inicial no sea posterior a la final.';
+      return;
+    }
+    this.dateError = '';
+    this.appliedFrom = this.fromDate;
+    this.appliedTo = this.toDate;
+    this.historyPage = 1;
+    this.expandedDay = null;
+    const first = this.historyDays[0];
+    if (first) this.displayedMonth = first.slice(0, 7);
+    else if (this.fromDate) this.displayedMonth = this.fromDate.slice(0, 7);
+  }
+
+  clearDates(): void {
+    this.fromDate = this.toDate = this.appliedFrom = this.appliedTo = this.dateError = '';
+    this.historyPage = 1;
+    this.expandedDay = null;
+    if (this.historyDays.length) this.displayedMonth = this.historyDays[0].slice(0, 7);
+  }
+
+  moveMonth(delta: number): void {
+    const [year, month] = this.displayedMonth.split('-').map(Number);
+    this.displayedMonth = new Date(Date.UTC(year, month - 1 + delta, 1)).toISOString().slice(0, 7);
+  }
+
+  selectDay(day: string): void {
+    const index = this.historyDays.indexOf(day);
+    if (index < 0) return;
+    this.historyPage = Math.floor(index / this.pageSize) + 1;
+    this.expandedDay = this.expandedDay === day ? null : day;
+  }
+
+  appointmentsOn(day: string): Appointment[] {
+    return this.filteredHistory.filter(item => this.localDate(item.startAt) === day);
+  }
+
+  localDate(value: string): string {
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/Lima', year: 'numeric', month: '2-digit', day: '2-digit'
+    }).formatToParts(new Date(value));
+    const get = (name: string) => parts.find(x => x.type === name)?.value ?? '';
+    return `${get('year')}-${get('month')}-${get('day')}`;
+  }
+
+  private clampPages(): void {
+    this.historyPage = Math.min(this.historyPage, this.historyPages);
+    this.upcomingPage = Math.min(this.upcomingPage, this.upcomingPages);
+    this.waitlistPage = Math.min(this.waitlistPage, this.waitlistPages);
+    if (this.expandedDay && !this.historyDays.includes(this.expandedDay)) this.expandedDay = null;
   }
 
   requestCancelAppointment(item: Appointment): void {

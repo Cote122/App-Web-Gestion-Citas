@@ -6,6 +6,7 @@ import { ApiService } from '../../core/api.service';
 import { Appointment, AvailabilitySlot, Professional, Specialty } from '../../models/models';
 import { ConfirmModalComponent } from '../../shared/confirm-modal/confirm-modal.component';
 import { AlertModalComponent } from '../../shared/alert-modal/alert-modal.component';
+import { ListPagerComponent } from '../../shared/list-pager/list-pager.component';
 
 interface CalendarDay {
   date: Date | null;
@@ -18,13 +19,33 @@ interface CalendarDay {
 @Component({
   selector: 'app-booking',
   standalone: true,
-  imports: [CommonModule, DatePipe, ConfirmModalComponent, AlertModalComponent],
+  imports: [CommonModule, DatePipe, ConfirmModalComponent, AlertModalComponent, ListPagerComponent],
   templateUrl: './booking.component.html',
   styleUrl: './booking.component.css'
 })
 export class BookingComponent implements OnInit {
   specialties: Specialty[] = [];
   professionals: Professional[] = [];
+  specialtyQuery = '';
+  professionalQuery = '';
+  specialtyPage = 1;
+  professionalPage = 1;
+  readonly pageSize = 9;
+  slotPage = 1;
+  readonly slotPageSize = 12;
+  get visibleDaySlots(): AvailabilitySlot[] { return this.selectedDaySlots.slice((this.slotPage - 1) * this.slotPageSize, this.slotPage * this.slotPageSize); }
+  get filteredSpecialties(): Specialty[] {
+    const query = this.specialtyQuery.trim().toLocaleLowerCase('es-PE');
+    return this.specialties.filter(x => !query || `${x.name} ${x.description ?? ''}`.toLocaleLowerCase('es-PE').includes(query));
+  }
+  get visibleSpecialties(): Specialty[] { return this.filteredSpecialties.slice((this.specialtyPage - 1) * this.pageSize, this.specialtyPage * this.pageSize); }
+  get filteredProfessionals(): Professional[] {
+    const query = this.professionalQuery.trim().toLocaleLowerCase('es-PE');
+    return this.professionals.filter(x => !query || `${x.fullName} ${x.office ?? ''}`.toLocaleLowerCase('es-PE').includes(query));
+  }
+  get visibleProfessionals(): Professional[] { return this.filteredProfessionals.slice((this.professionalPage - 1) * this.pageSize, this.professionalPage * this.pageSize); }
+  filterSpecialties(value: string): void { this.specialtyQuery = value; this.specialtyPage = 1; }
+  filterProfessionals(value: string): void { this.professionalQuery = value; this.professionalPage = 1; }
   slots: AvailabilitySlot[] = [];
   specialty?: Specialty;
   professional?: Professional;
@@ -138,6 +159,8 @@ export class BookingComponent implements OnInit {
     this.slot = undefined;
     this.slots = [];
     this.professionals = [];
+    this.professionalQuery = '';
+    this.professionalPage = 1;
     this.selectedDateKey = '';
 
     this.loadingProfessionals = true;
@@ -155,6 +178,7 @@ export class BookingComponent implements OnInit {
     this.professional = item;
     this.slot = undefined;
     this.selectedDateKey = '';
+    this.slotPage = 1;
     this.loading = true;
 
     this.api.availability(item.id).pipe(finalize(() => this.loading = false)).subscribe({
@@ -174,6 +198,7 @@ export class BookingComponent implements OnInit {
   chooseDate(day: CalendarDay): void {
     if (!day.date || !day.hasSlots) return;
     this.selectedDateKey = day.key;
+    this.slotPage = 1;
     this.slot = undefined;
   }
 

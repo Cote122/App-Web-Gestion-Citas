@@ -5,11 +5,12 @@ import { finalize, forkJoin } from 'rxjs';
 import { ApiService } from '../../core/api.service';
 import { AuthService } from '../../core/auth.service';
 import { MedicalDocument, MedicalDocumentLimits } from '../../models/models';
+import { ListPagerComponent } from '../list-pager/list-pager.component';
 
 @Component({
   selector: 'app-medical-documents',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, ListPagerComponent],
   templateUrl: './medical-documents.component.html',
   styleUrl: './medical-documents.component.css'
 })
@@ -26,6 +27,15 @@ export class MedicalDocumentsComponent implements OnInit, AfterViewInit, OnDestr
   private readonly auth = inject(AuthService);
   private readonly destroyRef = inject(DestroyRef);
   documents: MedicalDocument[] = [];
+  searchText = '';
+  page = 1;
+  readonly pageSize = 8;
+  get filteredDocuments(): MedicalDocument[] {
+    const query = this.searchText.trim().toLocaleLowerCase('es-PE');
+    return this.documents.filter(x => !query || x.fileName.toLocaleLowerCase('es-PE').includes(query));
+  }
+  get visibleDocuments(): MedicalDocument[] { return this.filteredDocuments.slice((this.page - 1) * this.pageSize, this.page * this.pageSize); }
+  filter(text: string): void { this.searchText = text; this.page = 1; }
   limits?: MedicalDocumentLimits;
   file?: File;
   loading = false;
@@ -68,7 +78,7 @@ export class MedicalDocumentsComponent implements OnInit, AfterViewInit, OnDestr
     forkJoin({ documents: this.api.medicalDocuments(this.appointmentId), limits: this.api.medicalDocumentLimits() })
       .pipe(takeUntilDestroyed(this.destroyRef), finalize(() => this.loading = false))
       .subscribe({
-        next: result => { this.documents = result.documents; this.limits = result.limits; },
+        next: result => { this.documents = result.documents; this.limits = result.limits; this.page = 1; },
         error: error => { void this.showError(error, 'No se pudieron consultar los documentos.'); }
       });
   }
@@ -101,6 +111,7 @@ export class MedicalDocumentsComponent implements OnInit, AfterViewInit, OnDestr
       .subscribe({
         next: document => {
           this.documents = [document, ...this.documents];
+          this.page = 1;
           this.file = undefined;
           if (this.fileInput) this.fileInput.nativeElement.value = '';
           this.success = 'Documento guardado correctamente.';

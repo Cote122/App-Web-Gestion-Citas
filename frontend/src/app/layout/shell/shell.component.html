@@ -1,7 +1,9 @@
 <div class="shell">
-  <aside>
+  <button *ngIf="menuOpen" class="menu-overlay" type="button" aria-label="Cerrar menú" (click)="menuOpen = false"></button>
+  <aside [class.open]="menuOpen" id="main-menu">
     <div class="brand"><span aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round"/></svg></span><div><strong>GESTIÓN SALUD</strong><small>Proyecto Tecnológico</small></div></div>
-    <nav>
+    <button class="menu-close" type="button" (click)="menuOpen = false" aria-label="Cerrar navegación">✕</button>
+    <nav (click)="menuOpen = false">
       <a routerLink="/app/home" routerLinkActive="active">Inicio</a>
       <a *ngIf="isPatient()" routerLink="/app/book" routerLinkActive="active">Nueva cita</a>
       <a *ngIf="isPatient()" routerLink="/app/appointments" routerLinkActive="active">Mis citas</a>
@@ -20,6 +22,7 @@
 
   <main>
     <header>
+      <button class="menu-toggle btn btn-secondary" type="button" (click)="menuOpen = true" aria-label="Abrir navegación" aria-controls="main-menu" [attr.aria-expanded]="menuOpen">☰ Menú</button>
       <div>
         <h1>Plataforma Web de Gestión de Citas</h1>
         <p>Incremento inicial conectado a API y SQL Server</p>
