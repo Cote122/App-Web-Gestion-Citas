@@ -11,6 +11,8 @@ public class AvailabilitySlot
     public DateTimeOffset StartAt { get; set; }
     public DateTimeOffset EndAt { get; set; }
     public bool IsAvailable { get; set; } = true;
+    // Se puede conservar una cita existente sin ofrecer de nuevo este horario.
+    public bool IsEnabled { get; set; } = true;
 
     [Timestamp]
     public byte[] RowVersion { get; set; } = Array.Empty<byte>();

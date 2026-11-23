@@ -350,6 +350,121 @@ public class ProfessionalAgendaServiceTests
         }
     }
 
+    [Fact]
+    public async Task RescheduleRequest_RejectsSlotDisabledByAdministrator()
+    {
+        await using var db = CreateDb();
+        var data = Seed(db, DateOnly.FromDateTime(DateTime.UtcNow.AddDays(3)));
+        var original = await db.Appointments.Include(x => x.Slot)
+            .SingleAsync(x => x.Id == data.RosaMorningId);
+        var target = new AvailabilitySlot
+        {
+            ProfessionalId = original.Slot.ProfessionalId,
+            StartAt = original.Slot.StartAt.AddDays(1),
+            EndAt = original.Slot.EndAt.AddDays(1),
+            IsAvailable = true,
+            IsEnabled = false
+        };
+        db.AvailabilitySlots.Add(target);
+        await db.SaveChangesAsync();
+
+        var (request, error) = await new ProfessionalAgendaService(db)
+            .RescheduleAppointmentAsync(data.RosaUserId, original.Id, target.Id);
+
+        Assert.Null(request);
+        Assert.Equal("El nuevo horario seleccionado no está disponible o no te pertenece.", error);
+        Assert.Empty(await db.AppointmentChangeRequests.ToListAsync());
+        Assert.Equal(AppointmentStatus.Confirmada, original.Status);
+    }
+
+    [Fact]
+    public async Task AdminApproval_RejectsTargetDisabledAfterRequestWasCreated()
+    {
+        await using var db = CreateDb();
+        var data = Seed(db, DateOnly.FromDateTime(DateTime.UtcNow.AddDays(3)));
+        var original = await db.Appointments.Include(x => x.Slot)
+            .SingleAsync(x => x.Id == data.RosaMorningId);
+        var target = new AvailabilitySlot
+        {
+            ProfessionalId = original.Slot.ProfessionalId,
+            StartAt = original.Slot.StartAt.AddDays(1),
+            EndAt = original.Slot.EndAt.AddDays(1),
+            IsAvailable = true
+        };
+        var admin = new User
+        {
+            Email = "administrador@demo.local",
+            FullName = "Administrador",
+            Role = "Administrador"
+        };
+        db.AddRange(target, admin);
+        await db.SaveChangesAsync();
+
+        var (request, error) = await new ProfessionalAgendaService(db)
+            .RescheduleAppointmentAsync(data.RosaUserId, original.Id, target.Id);
+        Assert.Null(error);
+        Assert.NotNull(request);
+
+        target.IsEnabled = false;
+        await db.SaveChangesAsync();
+
+        var (success, approvalError) = await new AdminAppointmentChangeService(db)
+            .ApproveAsync(admin.Id, request.Id, null);
+
+        Assert.False(success);
+        Assert.Equal("El horario solicitado ya no está disponible.", approvalError);
+        Assert.Equal(AppointmentStatus.Confirmada, original.Status);
+        Assert.Equal(AppointmentChangeRequestStatus.PendienteAprobacion,
+            (await db.AppointmentChangeRequests.SingleAsync(x => x.Id == request.Id)).Status);
+        Assert.Empty(await db.NotificationOutbox.ToListAsync());
+    }
+
+    [Fact]
+    public async Task AdminCancellation_DoesNotReassignDisabledSlotToWaitlist()
+    {
+        await using var db = CreateDb();
+        var data = Seed(db, DateOnly.FromDateTime(DateTime.UtcNow.AddDays(3)));
+        var original = await db.Appointments.Include(x => x.Slot)
+            .SingleAsync(x => x.Id == data.RosaMorningId);
+        var admin = new User
+        {
+            Email = "administrador@demo.local",
+            FullName = "Administrador",
+            Role = "Administrador"
+        };
+        var waiting = new User
+        {
+            Email = "espera@demo.local",
+            FullName = "Paciente en espera"
+        };
+        var entry = new WaitlistEntry
+        {
+            Patient = waiting,
+            Slot = original.Slot,
+            SpecialtyId = (await db.Professionals.SingleAsync(x => x.Id == original.Slot.ProfessionalId)).SpecialtyId
+        };
+        db.AddRange(admin, waiting, entry);
+        await db.SaveChangesAsync();
+
+        var (request, error) = await new ProfessionalAgendaService(db)
+            .CancelAppointmentAsync(data.RosaUserId, original.Id);
+        Assert.Null(error);
+        Assert.NotNull(request);
+
+        original.Slot.IsEnabled = false;
+        await db.SaveChangesAsync();
+
+        var (success, approvalError) = await new AdminAppointmentChangeService(db)
+            .ApproveAsync(admin.Id, request.Id, null);
+
+        Assert.True(success);
+        Assert.Null(approvalError);
+        Assert.Equal(AppointmentStatus.Cancelada, original.Status);
+        Assert.Equal(WaitlistStatus.Activa, entry.Status);
+        Assert.Null(entry.AssignedAppointmentId);
+        Assert.DoesNotContain(await db.Appointments.ToListAsync(), x => x.PatientId == waiting.Id);
+    }
+
     private static AppDbContext CreateDb()
     {
         var options = new DbContextOptionsBuilder<AppDbContext>()

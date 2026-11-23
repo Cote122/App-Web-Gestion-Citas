@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { AbsenceType, AdminProfessional, AdminSpecialty, AdminUser, AffectedAppointment, Appointment, AvailabilitySlot, CreateAbsenceResponse, MedicalRecord, Professional, ProfessionalAbsence, ProfessionalAgendaItem, ProfessionalAppointmentDetail, RoleDefinition, Specialty, UserRole, WaitlistItem, WaitlistResponse } from '../models/models';
+import { AbsenceType, AdminProfessional, AdminSpecialty, AdminUser, AffectedAppointment, Appointment, AvailabilitySlot, CreateAbsenceResponse, MedicalRecord, Professional, ProfessionalAbsence, ProfessionalAgendaItem, ProfessionalAppointmentDetail, ProfessionalSchedule, RoleDefinition, Specialty, UserRole, WaitlistItem, WaitlistResponse, WeeklyScheduleEntry } from '../models/models';
 import { Observable } from 'rxjs';
 import { MedicalDocument, MedicalDocumentLimits } from '../models/models';
 import { ClinicalResult, ClinicalResultFile, SaveClinicalResult } from '../models/models';
@@ -114,6 +114,14 @@ export class ApiService {
 
   adminSpecialties() {
     return this.http.get<AdminSpecialty[]>('/api/admin/specialties');
+  }
+
+  professionalSchedule(id: string) {
+    return this.http.get<ProfessionalSchedule>(`/api/admin/professionals/${id}/schedule`);
+  }
+
+  saveProfessionalSchedule(id: string, slots: WeeklyScheduleEntry[]) {
+    return this.http.put<ProfessionalSchedule>(`/api/admin/professionals/${id}/schedule`, { slots });
   }
 
   createSpecialty(payload: { name: string; description: string; price: number }) {

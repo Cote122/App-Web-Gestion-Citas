@@ -9,6 +9,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<Specialty> Specialties => Set<Specialty>();
     public DbSet<Professional> Professionals => Set<Professional>();
     public DbSet<AvailabilitySlot> AvailabilitySlots => Set<AvailabilitySlot>();
+    public DbSet<ProfessionalWeeklySlot> ProfessionalWeeklySlots => Set<ProfessionalWeeklySlot>();
     public DbSet<Appointment> Appointments => Set<Appointment>();
     public DbSet<AppointmentAuditLog> AppointmentAuditLogs => Set<AppointmentAuditLog>();
     public DbSet<WaitlistEntry> WaitlistEntries => Set<WaitlistEntry>();
@@ -85,6 +86,14 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         modelBuilder.Entity<AvailabilitySlot>()
             .HasIndex(x => new { x.ProfessionalId, x.StartAt })
             .IsUnique();
+
+        modelBuilder.Entity<ProfessionalWeeklySlot>(entity =>
+        {
+            entity.HasOne(x => x.Professional).WithMany(x => x.WeeklySlots)
+                .HasForeignKey(x => x.ProfessionalId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasIndex(x => new { x.ProfessionalId, x.DayOfWeek, x.StartTime }).IsUnique();
+            entity.Property(x => x.StartTime).HasColumnType("time(0)");
+        });
 
         // HU-14: vacaciones y licencias del profesional.
         modelBuilder.Entity<ProfessionalAbsence>(entity =>

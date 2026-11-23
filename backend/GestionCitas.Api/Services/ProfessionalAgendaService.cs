@@ -58,7 +58,9 @@ public class ProfessionalAgendaService(AppDbContext db)
 
         var slots = await db.AvailabilitySlots
             .AsNoTracking()
-            .Where(s => s.ProfessionalId == professional.Id && s.IsAvailable && s.StartAt > PeruClock.Now)
+            .Where(s => s.ProfessionalId == professional.Id && s.IsEnabled && s.IsAvailable && s.StartAt > PeruClock.Now
+                        && s.Professional.IsActive && s.Professional.Specialty.IsActive)
+            .WithoutAbsences(db)
             .OrderBy(s => s.StartAt)
             .ToListAsync();
 
@@ -169,8 +171,10 @@ public class ProfessionalAgendaService(AppDbContext db)
                 x.ProfessionalId == professional.Id);
 
         if (targetSlot is null ||
+            !targetSlot.IsEnabled ||
             !targetSlot.IsAvailable ||
-            targetSlot.StartAt <= now)
+            targetSlot.StartAt <= now ||
+            await AbsenceRules.IsInAbsenceAsync(db, targetSlot))
         {
             return (
                 null,

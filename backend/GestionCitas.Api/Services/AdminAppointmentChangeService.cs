@@ -254,7 +254,8 @@ public class AdminAppointmentChangeService(AppDbContext db)
         if (newSlot is null)
             return "El horario solicitado ya no existe o no pertenece al profesional.";
 
-        if (!newSlot.IsAvailable || newSlot.StartAt <= PeruClock.Now)
+        if (!newSlot.IsEnabled || !newSlot.IsAvailable || newSlot.StartAt <= PeruClock.Now ||
+            await AbsenceRules.IsInAbsenceAsync(db, newSlot))
             return "El horario solicitado ya no está disponible.";
 
         if (newSlot.Id == oldSlot.Id)
@@ -319,6 +320,12 @@ public class AdminAppointmentChangeService(AppDbContext db)
 
     private async Task AssignReleasedSlotOrMakeAvailableAsync(AvailabilitySlot slot)
     {
+        if (!slot.IsEnabled)
+        {
+            slot.IsAvailable = true;
+            return;
+        }
+
         var next = await db.WaitlistEntries
             .Include(x => x.Patient)
             .Where(x =>
