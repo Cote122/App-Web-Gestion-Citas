@@ -170,6 +170,9 @@
   flex-direction: column;
   gap: 0.65rem;
 }
+.history-filters { display: flex; flex-wrap: wrap; gap: .75rem; margin: 1rem 0; }
+.history-filters label { display: grid; gap: .35rem; flex: 1 1 130px; font-size: .85rem; font-weight: 600; }
+.history-filters input { width: 100%; min-width: 0; padding: .6rem; border: 1px solid #cbd5e1; border-radius: 8px; }
 
 .history-item {
   position: relative;

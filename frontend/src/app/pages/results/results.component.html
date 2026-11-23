@@ -14,24 +14,28 @@
   <p class="success" role="status" *ngIf="success">{{ success }}</p>
   <p class="muted" role="status" *ngIf="loading">Consultando resultados...</p>
   <div class="filters" *ngIf="!loading && results.length">
-    <label>Buscar examen<input [(ngModel)]="search" placeholder="Nombre o tipo de resultado" maxlength="200"></label>
-    <label>Tipo de resultado<select [(ngModel)]="type"><option value="">Todos los tipos</option><option *ngFor="let value of types" [value]="value">{{ value }}</option></select></label>
+    <label>Buscar examen<input [(ngModel)]="search" (ngModelChange)="filterChanged()" placeholder="Nombre o tipo de resultado" maxlength="200"></label>
+    <label>Tipo de resultado<select [(ngModel)]="type" (ngModelChange)="filterChanged()"><option value="">Todos los tipos</option><option *ngFor="let value of types" [value]="value">{{ value }}</option></select></label>
+    <label>Desde<input type="date" [(ngModel)]="from" (ngModelChange)="filterChanged()"></label>
+    <label>Hasta<input type="date" [(ngModel)]="to" (ngModelChange)="filterChanged()"></label>
   </div>
+  <p class="error" *ngIf="dateError">{{ dateError }}</p>
   <p class="muted empty" *ngIf="!loading && !results.length">{{ appointmentId ? 'No hay resultados registrados para esta cita.' : 'Aún no tienes resultados publicados disponibles.' }}</p>
-  <div class="table-scroll" *ngIf="!loading && results.length">
+  <div class="table-scroll" *ngIf="!loading && results.length && !dateError">
     <table>
       <thead><tr><th scope="col">Examen</th><th scope="col">Tipo</th><th scope="col">Fecha</th><th scope="col">Disponibilidad</th><th scope="col">Detalle</th></tr></thead>
       <tbody>
-        <tr *ngFor="let result of filtered" [class.selected]="selected?.id === result.id">
-          <td>{{ result.title }}</td><td>{{ result.resultType }}</td>
-          <td>{{ (result.resultDate || result.publishedAt) ? ((result.resultDate || result.publishedAt) | date:'dd/MM/yyyy') : 'Sin fecha registrada' }}</td>
-          <td><span class="badge" [class.badge-green]="result.status === 'Publicado' && result.isVisibleToPatient" [class.badge-gray]="result.status !== 'Publicado' || !result.isVisibleToPatient">{{ result.status === 'Publicado' && result.isVisibleToPatient ? 'Disponible' : result.status }}</span></td>
-          <td><button class="btn btn-secondary" type="button" (click)="open(result.id)" [disabled]="busy || detailLoading">Ver resultado</button></td>
+        <tr *ngFor="let result of visible" [class.selected]="selected?.id === result.id">
+          <td data-label="Examen">{{ result.title }}</td><td data-label="Tipo">{{ result.resultType }}</td>
+          <td data-label="Fecha">{{ (result.resultDate || result.publishedAt) ? ((result.resultDate || result.publishedAt) | date:'dd/MM/yyyy') : 'Sin fecha registrada' }}</td>
+          <td data-label="Disponibilidad"><span class="badge" [class.badge-green]="result.status === 'Publicado' && result.isVisibleToPatient" [class.badge-gray]="result.status !== 'Publicado' || !result.isVisibleToPatient">{{ result.status === 'Publicado' && result.isVisibleToPatient ? 'Disponible' : result.status }}</span></td>
+          <td data-label="Detalle"><button class="btn btn-secondary" type="button" (click)="open(result.id)" [disabled]="busy || detailLoading">Ver resultado</button></td>
         </tr>
       </tbody>
     </table>
     <p class="muted" *ngIf="!filtered.length">No hay resultados que coincidan con la búsqueda.</p>
   </div>
+  <app-list-pager *ngIf="!dateError" [page]="page" [total]="filtered.length" [pageSize]="pageSize" (pageChange)="page = $event"></app-list-pager>
 </section>
 
 <app-alert-modal

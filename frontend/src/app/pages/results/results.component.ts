@@ -7,9 +7,10 @@ import { finalize, forkJoin } from 'rxjs';
 import { ApiService } from '../../core/api.service';
 import { ClinicalResult, ClinicalResultFile, MedicalDocumentLimits, SaveClinicalResult } from '../../models/models';
 import { AlertModalComponent } from '../../shared/alert-modal/alert-modal.component';
+import { ListPagerComponent } from '../../shared/list-pager/list-pager.component';
 
 @Component({
-  selector: 'app-results', standalone: true, imports: [CommonModule, FormsModule, RouterLink, AlertModalComponent],
+  selector: 'app-results', standalone: true, imports: [CommonModule, FormsModule, RouterLink, AlertModalComponent, ListPagerComponent],
   templateUrl: './results.component.html', styleUrl: './results.component.css'
 })
 export class ResultsComponent implements OnInit {
@@ -33,6 +34,10 @@ export class ResultsComponent implements OnInit {
   success = '';
   search = '';
   type = '';
+  from = '';
+  to = '';
+  page = 1;
+  readonly pageSize = 8;
   form = { resultType: 'Laboratorio', title: '', summary: '', resultDate: '' };
 
   ngOnInit(): void { this.load(); }
@@ -66,7 +71,17 @@ export class ResultsComponent implements OnInit {
   get filtered(): ClinicalResult[] {
     const query = this.search.trim().toLocaleLowerCase();
     return this.results.filter(x => (!this.type || x.resultType === this.type) &&
-      (!query || `${x.title} ${x.resultType}`.toLocaleLowerCase().includes(query)));
+      (!query || `${x.title} ${x.resultType}`.toLocaleLowerCase().includes(query)) &&
+      (!this.from || !!(x.resultDate || x.publishedAt) && this.localDay((x.resultDate || x.publishedAt)!) >= this.from) &&
+      (!this.to || !!(x.resultDate || x.publishedAt) && this.localDay((x.resultDate || x.publishedAt)!) <= this.to));
+  }
+  get visible(): ClinicalResult[] { return this.filtered.slice((this.page - 1) * this.pageSize, this.page * this.pageSize); }
+  get dateError(): string { return this.from && this.to && this.from > this.to ? 'La fecha Desde no puede ser posterior a Hasta.' : ''; }
+  filterChanged(): void { this.page = 1; }
+  private localDay(value: string): string {
+    const parts = new Intl.DateTimeFormat('en-US', { timeZone: 'America/Lima', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(new Date(value));
+    const part = (type: string) => parts.find(x => x.type === type)?.value ?? '';
+    return `${part('year')}-${part('month')}-${part('day')}`;
   }
 
   open(id: string): void {

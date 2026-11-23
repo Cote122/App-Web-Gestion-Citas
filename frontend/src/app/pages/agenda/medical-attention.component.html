@@ -73,19 +73,25 @@
           </div>
 
           <span class="history-count">
-            {{ historyAppointments.length }}
+            {{ filteredHistory.length }}
           </span>
         </div>
 
+        <div class="history-filters">
+          <label>Desde<input type="date" [value]="fromDate" (change)="fromDate = $any($event.target).value; filterChanged()"></label>
+          <label>Hasta<input type="date" [value]="toDate" (change)="toDate = $any($event.target).value; filterChanged()"></label>
+        </div>
+        <p class="history-error" role="alert" *ngIf="dateError">{{ dateError }}</p>
+
         <!-- LISTADO DE CITAS ANTERIORES -->
         <div class="history-list">
-          <div class="empty-history" *ngIf="!historyAppointments.length">
-            <p>No hay atenciones anteriores registradas.</p>
+          <div class="empty-history" *ngIf="!filteredHistory.length && !dateError">
+            <p>{{ historyAppointments.length ? 'No hay atenciones en las fechas seleccionadas.' : 'No hay atenciones anteriores registradas.' }}</p>
           </div>
 
           <div
             class="history-entry"
-            *ngFor="let item of historyAppointments">
+            *ngFor="let item of visibleHistory">
 
             <!-- CITA HISTÓRICA -->
             <button
@@ -198,6 +204,7 @@
 
           </div>
         </div>
+        <app-list-pager *ngIf="!dateError" [page]="historyPage" [total]="filteredHistory.length" [pageSize]="pageSize" (pageChange)="historyPage = $event; closeHistoryDetail()"></app-list-pager>
 
       </aside>
 

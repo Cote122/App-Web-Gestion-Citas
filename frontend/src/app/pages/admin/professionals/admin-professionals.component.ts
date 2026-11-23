@@ -6,6 +6,7 @@ import { ApiService } from '../../../core/api.service';
 import { AuthService } from '../../../core/auth.service';
 import { AdminProfessional, AdminSpecialty } from '../../../models/models';
 import { ConfirmModalComponent } from '../confirm-modal/confirm-modal.component';
+import { ListPagerComponent } from '../../../shared/list-pager/list-pager.component';
 
 // Mismas reglas del registro (HU-38).
 const EMAIL_PATTERN = /^[^@\s<>()[\],;:"]+@[^@\s<>()[\],;:"]+\.[A-Za-z]{2,}$/;
@@ -24,7 +25,7 @@ type CredentialField = 'email' | 'dni' | 'password';
 @Component({
   selector: 'app-admin-professionals',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, ConfirmModalComponent],
+  imports: [CommonModule, ReactiveFormsModule, ConfirmModalComponent, ListPagerComponent],
   templateUrl: './admin-professionals.component.html',
   styleUrls: ['../admin.css', '../modal.css', './admin-professionals.component.css']
 })
@@ -44,6 +45,15 @@ export class AdminProfessionalsComponent implements OnInit {
   error = '';
   formError = '';
   message = '';
+  page = 1;
+  readonly pageSize = 8;
+  searchText = '';
+  get filteredItems(): AdminProfessional[] {
+    const query = this.searchText.trim().toLocaleLowerCase('es-PE');
+    return this.items.filter(x => !query || [x.fullName, x.specialtyName, x.office, x.userEmail ?? '', x.userDni ?? ''].some(value => value.toLocaleLowerCase('es-PE').includes(query)));
+  }
+  get visibleItems(): AdminProfessional[] { return this.filteredItems.slice((this.page - 1) * this.pageSize, this.page * this.pageSize); }
+  filter(text: string): void { this.searchText = text; this.page = 1; }
 
   // HU-44: verificación del DNI y datos de acceso de la cuenta recién creada.
   dniStatus: 'idle' | 'checking' | 'valid' | 'error' = 'idle';
@@ -86,6 +96,7 @@ export class AdminProfessionalsComponent implements OnInit {
       .subscribe({
         next: ({ professionals, specialties }) => {
           this.items = professionals;
+          this.page = Math.min(this.page, Math.max(1, Math.ceil(this.filteredItems.length / this.pageSize)));
           this.specialties = specialties;
         },
         error: () => this.error = 'No se pudieron cargar los profesionales.'

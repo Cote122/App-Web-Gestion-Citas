@@ -40,7 +40,7 @@ export const routes: Routes = [
       { path: 'admin/specialties', component: AdminSpecialtiesComponent, canActivate: [adminGuard] },
       { path: 'admin/professionals', component: AdminProfessionalsComponent, canActivate: [adminGuard] },
       { path: 'agenda', component: AgendaComponent, canActivate: [professionalGuard] },
-      { path: 'agenda/atencion/:appointmentId',component: MedicalAttentionComponent},
+      { path: 'agenda/atencion/:appointmentId', component: MedicalAttentionComponent, canActivate: [professionalGuard] },
       { path: 'professional/absences', component: ProfessionalAbsencesComponent, canActivate: [professionalGuard] },
       { path: '', pathMatch: 'full', redirectTo: 'home' }
     ]

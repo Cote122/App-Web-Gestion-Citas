@@ -33,7 +33,7 @@ public class AdminPrescriptionsController(AppDbContext db, ILogger<AdminPrescrip
         if (!Regex.IsMatch(patientDni ?? "", "^[0-9]{8}$")) return BadRequest(new { message = "Ingresa el DNI del paciente de 8 dígitos." });
         var patient = await db.Users.AsNoTracking().Where(x => x.Dni == patientDni).Select(x => new { x.Id, x.FullName, x.Dni }).SingleOrDefaultAsync(token);
         if (patient is null) return PrivateOk(Array.Empty<AdminPrescriptionDto>());
-        var rows = await Query().AsNoTracking().Where(x => x.PatientId == patient.Id).OrderByDescending(x => x.IssuedAt).Take(50).ToListAsync(token);
+        var rows = await Query().AsNoTracking().Where(x => x.PatientId == patient.Id).OrderByDescending(x => x.IssuedAt).ToListAsync(token);
         return PrivateOk(rows.Select(x => new AdminPrescriptionDto(x.Id, x.IssuedAt, patient.FullName, patient.Dni, x.Professional.FullName, x.IsActive,
             x.GeneralIndications, PrescriptionContent.Items(x), PrescriptionContent.Version(PrescriptionContent.Snapshot(x)))));
     }

@@ -16,6 +16,8 @@ button { cursor: pointer; }
 body { -webkit-user-select: none; user-select: none; }
 input, textarea, [contenteditable="true"] { -webkit-user-select: text; user-select: text; }
 a { color: inherit; }
+img, video { max-width: 100%; }
+:focus-visible { outline: 3px solid #ee9b24; outline-offset: 2px; }
 
 .btn {
   min-height: 42px;
