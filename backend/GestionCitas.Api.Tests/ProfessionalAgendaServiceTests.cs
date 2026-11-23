@@ -89,23 +89,41 @@ public class ProfessionalAgendaServiceTests
     }
 
     [Fact]
-    public async Task CancelAndReschedule_WithReason_PersistsReasonCorrectly()
+    public async Task CancelAndReschedule_WithReason_PersistsReasonInPendingRequests()
     {
         await using var db = CreateDb();
         var data = Seed(db, DateOnly.FromDateTime(DateTime.UtcNow.AddDays(3)));
         var service = new ProfessionalAgendaService(db);
 
+        // Solicitud de cancelación.
         var cancelReason = "Emergencia médica del profesional";
-        var (success, error) = await service.CancelAppointmentAsync(data.RosaUserId, data.RosaMorningId, cancelReason);
 
-        Assert.Null(error);
-        Assert.True(success);
+        var (cancelRequest, cancelError) =
+            await service.CancelAppointmentAsync(
+                data.RosaUserId,
+                data.RosaMorningId,
+                cancelReason
+            );
 
-        var cancelledAppt = await db.Appointments.SingleAsync(x => x.Id == data.RosaMorningId);
-        Assert.Equal(AppointmentStatus.Cancelada, cancelledAppt.Status);
-        Assert.Equal(cancelReason, cancelledAppt.Reason);
+        Assert.Null(cancelError);
+        Assert.NotNull(cancelRequest);
+        Assert.Equal("Cancelacion", cancelRequest.Type);
+        Assert.Equal("PendienteAprobacion", cancelRequest.Status);
+        Assert.Equal(cancelReason, cancelRequest.Reason);
 
-        var current = await db.Appointments.Include(x => x.Slot).SingleAsync(x => x.Id == data.RosaControlId);
+        var originalCancellation = await db.Appointments
+            .SingleAsync(x => x.Id == data.RosaMorningId);
+
+        Assert.Equal(AppointmentStatus.Confirmada, originalCancellation.Status);
+        Assert.Null(originalCancellation.Reason);
+
+        // Solicitud de reprogramación.
+        var current = await db.Appointments
+            .Include(x => x.Slot)
+            .SingleAsync(x => x.Id == data.RosaControlId);
+
+        var originalSlotId = current.SlotId;
+
         var newSlot = new AvailabilitySlot
         {
             ProfessionalId = current.Slot.ProfessionalId,
@@ -113,90 +131,338 @@ public class ProfessionalAgendaServiceTests
             EndAt = current.Slot.EndAt.AddDays(2),
             IsAvailable = true
         };
+
         db.AvailabilitySlots.Add(newSlot);
         await db.SaveChangesAsync();
 
         var rescheduleReason = "Cambio solicitado por el médico tratante";
-        var (replacement, rescheduleError) = await service.RescheduleAppointmentAsync(data.RosaUserId, data.RosaControlId, newSlot.Id, rescheduleReason);
+
+        var (rescheduleRequest, rescheduleError) =
+            await service.RescheduleAppointmentAsync(
+                data.RosaUserId,
+                data.RosaControlId,
+                newSlot.Id,
+                rescheduleReason
+            );
 
         Assert.Null(rescheduleError);
-        Assert.NotNull(replacement);
+        Assert.NotNull(rescheduleRequest);
+        Assert.Equal("Reprogramacion", rescheduleRequest.Type);
+        Assert.Equal("PendienteAprobacion", rescheduleRequest.Status);
+        Assert.Equal(rescheduleReason, rescheduleRequest.Reason);
+        Assert.Equal(newSlot.Id, rescheduleRequest.TargetSlotId);
 
-        var oldAppt = await db.Appointments.SingleAsync(x => x.Id == data.RosaControlId);
-        Assert.Equal(AppointmentStatus.Reprogramada, oldAppt.Status);
-        Assert.Equal(rescheduleReason, oldAppt.Reason);
+        // La cita sigue confirmada y conserva su horario y motivo originales.
+        var originalAppointment = await db.Appointments
+            .SingleAsync(x => x.Id == data.RosaControlId);
 
-        var newApptRecord = await db.Appointments.SingleAsync(x => x.Id == replacement.Id);
-        Assert.Equal(AppointmentStatus.Confirmada, newApptRecord.Status);
-        Assert.Equal(oldAppt.Id, newApptRecord.PreviousAppointmentId);
+        Assert.Equal(AppointmentStatus.Confirmada, originalAppointment.Status);
+        Assert.Equal(originalSlotId, originalAppointment.SlotId);
+        Assert.Equal("Control prenatal", originalAppointment.Reason);
+
+        // El horario solicitado todavía no está reservado.
+        Assert.True((await db.AvailabilitySlots
+            .SingleAsync(x => x.Id == newSlot.Id)).IsAvailable);
+
+        Assert.Equal(2, await db.AppointmentChangeRequests.CountAsync());
+        Assert.Equal(3, await db.Appointments.CountAsync());
     }
 
     [Fact]
     public async Task ReasonOver500Characters_RejectsCancelAndRescheduleWithoutChangingAppointment()
     {
         await using var db = CreateDb();
-        var data = Seed(db, DateOnly.FromDateTime(DateTime.UtcNow.AddDays(3)));
+
+        var data = Seed(
+            db,
+            DateOnly.FromDateTime(DateTime.UtcNow.AddDays(3))
+        );
+
         var service = new ProfessionalAgendaService(db);
         var tooLong = new string('x', 501);
 
-        var (cancelled, cancelError) = await service.CancelAppointmentAsync(data.RosaUserId, data.RosaMorningId, tooLong);
-        var (replacement, rescheduleError) = await service.RescheduleAppointmentAsync(data.RosaUserId, data.RosaControlId, Guid.NewGuid(), tooLong);
+        var (cancelRequest, cancelError) =
+            await service.CancelAppointmentAsync(
+                data.RosaUserId,
+                data.RosaMorningId,
+                tooLong
+            );
 
-        Assert.False(cancelled);
-        Assert.Null(replacement);
-        Assert.Equal("El motivo no puede superar los 500 caracteres.", cancelError);
+        var (rescheduleRequest, rescheduleError) =
+            await service.RescheduleAppointmentAsync(
+                data.RosaUserId,
+                data.RosaControlId,
+                Guid.NewGuid(),
+                tooLong
+            );
+
+        Assert.Null(cancelRequest);
+        Assert.Null(rescheduleRequest);
+
+        Assert.Equal(
+            "El motivo no puede superar los 500 caracteres.",
+            cancelError
+        );
+
         Assert.Equal(cancelError, rescheduleError);
-        Assert.Equal(AppointmentStatus.Confirmada, (await db.Appointments.SingleAsync(x => x.Id == data.RosaMorningId)).Status);
-        Assert.Equal(AppointmentStatus.Confirmada, (await db.Appointments.SingleAsync(x => x.Id == data.RosaControlId)).Status);
+
+        Assert.Equal(
+            AppointmentStatus.Confirmada,
+            (await db.Appointments.SingleAsync(
+                x => x.Id == data.RosaMorningId
+            )).Status
+        );
+
+        Assert.Equal(
+            AppointmentStatus.Confirmada,
+            (await db.Appointments.SingleAsync(
+                x => x.Id == data.RosaControlId
+            )).Status
+        );
+
+        Assert.Empty(await db.AppointmentChangeRequests.ToListAsync());
     }
 
     [Theory]
-    [InlineData(false, "AppointmentCancelled")]
-    [InlineData(true, "AppointmentRescheduled")]
-    public async Task ProfessionalChanges_EnqueueOnePendingEmailForTheExistingOutbox(bool reschedule, string type)
+    [InlineData(false, "Cancelacion")]
+    [InlineData(true, "Reprogramacion")]
+    public async Task ProfessionalChanges_RegisterPendingRequestWithoutNotifyingPatient(
+        bool reschedule,
+        string type)
     {
         await using var db = CreateDb();
-        var data = Seed(db, DateOnly.FromDateTime(DateTime.UtcNow.AddDays(3)));
+
+        var data = Seed(
+            db,
+            DateOnly.FromDateTime(DateTime.UtcNow.AddDays(3))
+        );
+
         var service = new ProfessionalAgendaService(db);
+
+        var appointment = await db.Appointments
+            .SingleAsync(x => x.Id == data.RosaMorningId);
+
+        var originalSlotId = appointment.SlotId;
+        Guid? targetSlotId = null;
 
         if (reschedule)
         {
-            var current = await db.Appointments.Include(x => x.Slot).SingleAsync(x => x.Id == data.RosaMorningId);
+            var current = await db.Appointments
+                .Include(x => x.Slot)
+                .SingleAsync(x => x.Id == data.RosaMorningId);
+
             var slot = new AvailabilitySlot
             {
                 ProfessionalId = current.Slot.ProfessionalId,
                 StartAt = current.Slot.StartAt.AddDays(1),
-                EndAt = current.Slot.EndAt.AddDays(1)
+                EndAt = current.Slot.EndAt.AddDays(1),
+                IsAvailable = true
             };
+
             db.AvailabilitySlots.Add(slot);
             await db.SaveChangesAsync();
-            var (replacement, error) = await service.RescheduleAppointmentAsync(data.RosaUserId, data.RosaMorningId, slot.Id);
-            Assert.Null(error);
-            Assert.NotNull(replacement);
-            var (retry, _) = await service.RescheduleAppointmentAsync(data.RosaUserId, data.RosaMorningId, slot.Id);
-            Assert.Null(retry);
-        }
-        else
-        {
-            var (success, error) = await service.CancelAppointmentAsync(data.RosaUserId, data.RosaMorningId);
-            Assert.Null(error);
-            Assert.True(success);
-            var (retry, _) = await service.CancelAppointmentAsync(data.RosaUserId, data.RosaMorningId);
-            Assert.False(retry);
+
+            targetSlotId = slot.Id;
         }
 
+        // Registrar la primera solicitud.
+        var result = reschedule
+            ? await service.RescheduleAppointmentAsync(
+                data.RosaUserId,
+                data.RosaMorningId,
+                targetSlotId!.Value
+            )
+            : await service.CancelAppointmentAsync(
+                data.RosaUserId,
+                data.RosaMorningId
+            );
+
+        Assert.Null(result.Error);
+        Assert.NotNull(result.Request);
+
+        Assert.Equal(type, result.Request.Type);
+        Assert.Equal("PendienteAprobacion", result.Request.Status);
+        Assert.Equal(data.RosaMorningId, result.Request.AppointmentId);
+        Assert.Equal(targetSlotId, result.Request.TargetSlotId);
+
+        // No se permite registrar otra solicitud pendiente para la misma cita.
+        var retry = reschedule
+            ? await service.RescheduleAppointmentAsync(
+                data.RosaUserId,
+                data.RosaMorningId,
+                targetSlotId!.Value
+            )
+            : await service.CancelAppointmentAsync(
+                data.RosaUserId,
+                data.RosaMorningId
+            );
+
+        Assert.Null(retry.Request);
+
+        Assert.Equal(
+            "La cita ya tiene una solicitud pendiente de aprobación.",
+            retry.Error
+        );
+
         db.ChangeTracker.Clear();
-        var notification = Assert.Single(await db.NotificationOutbox.ToListAsync());
-        var appointment = await db.Appointments.SingleAsync(x => x.Id == data.RosaMorningId);
-        Assert.Equal(type, notification.Type);
-        Assert.Equal("Pendiente", notification.Status);
-        Assert.Equal(appointment.PatientId, notification.RecipientUserId);
-        Assert.Equal(data.RosaMorningId, notification.RelatedAppointmentId);
-        Assert.Equal("paciente@demo.local", notification.RecipientEmail);
-        Assert.Null(notification.SentAt);
-        Assert.Null(notification.LastError);
-        Assert.False(string.IsNullOrWhiteSpace(notification.Subject));
-        Assert.False(string.IsNullOrWhiteSpace(notification.Body));
+
+        // La solicitud debe estar persistida.
+        var savedRequest = Assert.Single(
+            await db.AppointmentChangeRequests.ToListAsync()
+        );
+
+        Assert.Equal(
+            type,
+            savedRequest.Type.ToString()
+        );
+
+        Assert.Equal(
+            AppointmentChangeRequestStatus.PendienteAprobacion,
+            savedRequest.Status
+        );
+
+        Assert.Equal(data.RosaMorningId, savedRequest.AppointmentId);
+        Assert.Equal(targetSlotId, savedRequest.TargetSlotId);
+
+        // No debe generarse auditoría ni notificación antes de la aprobación.
+        Assert.Empty(await db.NotificationOutbox.ToListAsync());
+        Assert.Empty(await db.AppointmentAuditLogs.ToListAsync());
+
+        // La cita original permanece intacta.
+        var unchangedAppointment = await db.Appointments
+            .SingleAsync(x => x.Id == data.RosaMorningId);
+
+        Assert.Equal(
+            AppointmentStatus.Confirmada,
+            unchangedAppointment.Status
+        );
+
+        Assert.Equal(originalSlotId, unchangedAppointment.SlotId);
+
+        // El horario solicitado tampoco se reserva.
+        if (targetSlotId.HasValue)
+        {
+            Assert.True(
+                (await db.AvailabilitySlots.SingleAsync(
+                    x => x.Id == targetSlotId.Value
+                )).IsAvailable
+            );
+        }
+    }
+
+    [Fact]
+    public async Task RescheduleRequest_RejectsSlotDisabledByAdministrator()
+    {
+        await using var db = CreateDb();
+        var data = Seed(db, DateOnly.FromDateTime(DateTime.UtcNow.AddDays(3)));
+        var original = await db.Appointments.Include(x => x.Slot)
+            .SingleAsync(x => x.Id == data.RosaMorningId);
+        var target = new AvailabilitySlot
+        {
+            ProfessionalId = original.Slot.ProfessionalId,
+            StartAt = original.Slot.StartAt.AddDays(1),
+            EndAt = original.Slot.EndAt.AddDays(1),
+            IsAvailable = true,
+            IsEnabled = false
+        };
+        db.AvailabilitySlots.Add(target);
+        await db.SaveChangesAsync();
+
+        var (request, error) = await new ProfessionalAgendaService(db)
+            .RescheduleAppointmentAsync(data.RosaUserId, original.Id, target.Id);
+
+        Assert.Null(request);
+        Assert.Equal("El nuevo horario seleccionado no está disponible o no te pertenece.", error);
+        Assert.Empty(await db.AppointmentChangeRequests.ToListAsync());
+        Assert.Equal(AppointmentStatus.Confirmada, original.Status);
+    }
+
+    [Fact]
+    public async Task AdminApproval_RejectsTargetDisabledAfterRequestWasCreated()
+    {
+        await using var db = CreateDb();
+        var data = Seed(db, DateOnly.FromDateTime(DateTime.UtcNow.AddDays(3)));
+        var original = await db.Appointments.Include(x => x.Slot)
+            .SingleAsync(x => x.Id == data.RosaMorningId);
+        var target = new AvailabilitySlot
+        {
+            ProfessionalId = original.Slot.ProfessionalId,
+            StartAt = original.Slot.StartAt.AddDays(1),
+            EndAt = original.Slot.EndAt.AddDays(1),
+            IsAvailable = true
+        };
+        var admin = new User
+        {
+            Email = "administrador@demo.local",
+            FullName = "Administrador",
+            Role = "Administrador"
+        };
+        db.AddRange(target, admin);
+        await db.SaveChangesAsync();
+
+        var (request, error) = await new ProfessionalAgendaService(db)
+            .RescheduleAppointmentAsync(data.RosaUserId, original.Id, target.Id);
+        Assert.Null(error);
+        Assert.NotNull(request);
+
+        target.IsEnabled = false;
+        await db.SaveChangesAsync();
+
+        var (success, approvalError) = await new AdminAppointmentChangeService(db)
+            .ApproveAsync(admin.Id, request.Id, null);
+
+        Assert.False(success);
+        Assert.Equal("El horario solicitado ya no está disponible.", approvalError);
+        Assert.Equal(AppointmentStatus.Confirmada, original.Status);
+        Assert.Equal(AppointmentChangeRequestStatus.PendienteAprobacion,
+            (await db.AppointmentChangeRequests.SingleAsync(x => x.Id == request.Id)).Status);
+        Assert.Empty(await db.NotificationOutbox.ToListAsync());
+    }
+
+    [Fact]
+    public async Task AdminCancellation_DoesNotReassignDisabledSlotToWaitlist()
+    {
+        await using var db = CreateDb();
+        var data = Seed(db, DateOnly.FromDateTime(DateTime.UtcNow.AddDays(3)));
+        var original = await db.Appointments.Include(x => x.Slot)
+            .SingleAsync(x => x.Id == data.RosaMorningId);
+        var admin = new User
+        {
+            Email = "administrador@demo.local",
+            FullName = "Administrador",
+            Role = "Administrador"
+        };
+        var waiting = new User
+        {
+            Email = "espera@demo.local",
+            FullName = "Paciente en espera"
+        };
+        var entry = new WaitlistEntry
+        {
+            Patient = waiting,
+            Slot = original.Slot,
+            SpecialtyId = (await db.Professionals.SingleAsync(x => x.Id == original.Slot.ProfessionalId)).SpecialtyId
+        };
+        db.AddRange(admin, waiting, entry);
+        await db.SaveChangesAsync();
+
+        var (request, error) = await new ProfessionalAgendaService(db)
+            .CancelAppointmentAsync(data.RosaUserId, original.Id);
+        Assert.Null(error);
+        Assert.NotNull(request);
+
+        original.Slot.IsEnabled = false;
+        await db.SaveChangesAsync();
+
+        var (success, approvalError) = await new AdminAppointmentChangeService(db)
+            .ApproveAsync(admin.Id, request.Id, null);
+
+        Assert.True(success);
+        Assert.Null(approvalError);
+        Assert.Equal(AppointmentStatus.Cancelada, original.Status);
+        Assert.Equal(WaitlistStatus.Activa, entry.Status);
+        Assert.Null(entry.AssignedAppointmentId);
+        Assert.DoesNotContain(await db.Appointments.ToListAsync(), x => x.PatientId == waiting.Id);
     }
 
     private static AppDbContext CreateDb()

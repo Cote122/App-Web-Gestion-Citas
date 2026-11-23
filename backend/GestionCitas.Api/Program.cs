@@ -36,6 +36,7 @@ builder.Services.AddScoped<EmailOutboxService>();
 builder.Services.AddHostedService<AppointmentCommunicationWorker>();
 builder.Services.AddHostedService<AvailabilitySlotGenerationWorker>();
 builder.Services.AddHostedService<EmailOutboxWorker>();
+builder.Services.AddScoped<AdminAppointmentChangeService>();
 
 // HU-37: validación de DNI con servicio externo (token en DniApi:Token) y límite de consultas por IP.
 builder.Services.AddMemoryCache();

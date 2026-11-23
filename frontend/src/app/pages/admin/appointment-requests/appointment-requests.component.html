@@ -1,0 +1,276 @@
+<section class="card requests-page">
+
+  <div class="requests-header">
+    <div class="header-text">
+      <h2>Solicitudes de cambios de citas</h2>
+      <p class="muted">
+        Revisa las solicitudes de cancelación y reprogramación realizadas
+        por los profesionales.
+      </p>
+    </div>
+
+    <button
+      class="btn btn-secondary refresh-btn"
+      type="button"
+      (click)="load()"
+      [disabled]="loading || saving">
+      {{ loading ? 'Actualizando...' : 'Actualizar' }}
+    </button>
+  </div>
+
+  <div class="alert alert-success" role="status" *ngIf="success">
+    {{ success }}
+  </div>
+
+  <div class="alert alert-error" role="alert" *ngIf="error && !selected">
+    {{ error }}
+  </div>
+
+  <div class="loading-state" role="status" *ngIf="loading && !rows.length">
+    <span class="spinner" aria-hidden="true"></span>
+    <span>Consultando solicitudes pendientes...</span>
+  </div>
+
+  <div class="empty-state" *ngIf="!loading && !rows.length">
+    <h3>No hay solicitudes pendientes</h3>
+    <p class="muted">
+      Cuando un profesional solicite cancelar o reprogramar una cita,
+      aparecerá aquí para su revisión.
+    </p>
+  </div>
+
+  <div class="request-filters" *ngIf="rows.length">
+    <label>Buscar cita, paciente o profesional<input type="search" [(ngModel)]="searchText" (ngModelChange)="filterChanged()" placeholder="Nombre o código"></label>
+    <label>Desde<input type="date" [(ngModel)]="fromDate" (ngModelChange)="filterChanged()"></label>
+    <label>Hasta<input type="date" [(ngModel)]="toDate" (ngModelChange)="filterChanged()"></label>
+  </div>
+  <p class="alert alert-error" role="alert" *ngIf="dateError">{{ dateError }}</p>
+  <p class="muted" *ngIf="rows.length && !filteredRows.length && !dateError">No hay solicitudes que coincidan con el filtro.</p>
+
+  <div class="table-container" *ngIf="rows.length && !dateError">
+    <table class="responsive-table">
+      <thead>
+        <tr>
+          <th scope="col">Cita</th>
+          <th scope="col">Paciente</th>
+          <th scope="col">Profesional</th>
+          <th scope="col">Solicitud</th>
+          <th scope="col">Horario original</th>
+          <th scope="col">Nuevo horario</th>
+          <th scope="col">Registro</th>
+          <th scope="col" class="text-right">Acciones</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        <tr *ngFor="let row of visibleRows">
+          <td data-label="Cita">
+            <strong class="code-badge">{{ row.appointmentCode }}</strong>
+          </td>
+
+          <td data-label="Paciente">
+            <span class="primary-text">{{ row.patientName }}</span>
+          </td>
+
+          <td data-label="Profesional">
+            <div class="stack-cell">
+              <strong>{{ row.professionalName }}</strong>
+              <span class="secondary-text">{{ row.specialtyName }}</span>
+            </div>
+          </td>
+
+          <td data-label="Solicitud">
+            <span
+              class="type-badge"
+              [class.reschedule]="row.type === 'Reprogramacion'">
+              {{ typeLabel(row.type) }}
+            </span>
+          </td>
+
+          <td data-label="Horario original">
+            {{ row.originalSlotStartAt | date:'dd/MM/yyyy HH:mm' }}
+          </td>
+
+          <td data-label="Nuevo horario">
+            <ng-container *ngIf="row.targetSlotStartAt; else noTarget">
+              <strong>{{ row.targetSlotStartAt | date:'dd/MM/yyyy HH:mm' }}</strong>
+            </ng-container>
+            <ng-template #noTarget>
+              <span class="muted">No aplica</span>
+            </ng-template>
+          </td>
+
+          <td data-label="Registro">
+            <span class="muted-date">{{ row.createdAt | date:'dd/MM/yyyy HH:mm' }}</span>
+          </td>
+
+          <td data-label="Acciones" class="actions-cell">
+            <button
+              class="btn btn-outline-primary btn-sm"
+              type="button"
+              (click)="openReview(row)"
+              [disabled]="saving">
+              Revisar
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <app-list-pager *ngIf="!dateError" [page]="page" [total]="filteredRows.length" [pageSize]="pageSize" (pageChange)="page = $event"></app-list-pager>
+
+  <div class="table-footer" *ngIf="rows.length">
+    <p class="muted request-count">
+      Mostrando <strong>{{ filteredRows.length }}</strong>
+      {{ filteredRows.length === 1 ? 'solicitud pendiente' : 'solicitudes pendientes' }}.
+    </p>
+  </div>
+
+</section>
+
+<!-- Ventana de revisión -->
+<div
+  class="request-backdrop"
+  *ngIf="selected as row"
+  (click)="closeReview()">
+
+  <section
+    class="request-modal"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="review-title"
+    (click)="$event.stopPropagation()">
+
+    <div class="modal-header">
+      <div>
+        <span class="modal-eyebrow">Cita {{ row.appointmentCode }}</span>
+        <h2 id="review-title">Revisar solicitud</h2>
+      </div>
+
+      <button
+        class="close-button"
+        type="button"
+        aria-label="Cerrar"
+        (click)="closeReview()"
+        [disabled]="saving">
+        &times;
+      </button>
+    </div>
+
+    <div class="modal-content">
+      <div class="request-summary">
+        <div class="summary-item">
+          <span class="detail-label">Paciente</span>
+          <strong>{{ row.patientName }}</strong>
+        </div>
+
+        <div class="summary-item">
+          <span class="detail-label">Profesional</span>
+          <strong>{{ row.professionalName }}</strong>
+        </div>
+
+        <div class="summary-item">
+          <span class="detail-label">Especialidad</span>
+          <strong>{{ row.specialtyName }}</strong>
+        </div>
+
+        <div class="summary-item">
+          <span class="detail-label">Tipo de solicitud</span>
+          <div>
+            <span
+              class="type-badge"
+              [class.reschedule]="row.type === 'Reprogramacion'">
+              {{ typeLabel(row.type) }}
+            </span>
+          </div>
+        </div>
+
+        <div class="summary-item full-span">
+          <span class="detail-label">Fecha de solicitud</span>
+          <strong>{{ row.createdAt | date:'dd/MM/yyyy HH:mm' }}</strong>
+        </div>
+      </div>
+
+      <div class="schedule-comparison">
+        <div class="schedule-box">
+          <span class="detail-label">Horario original</span>
+          <strong>{{ row.originalSlotStartAt | date:'dd/MM/yyyy HH:mm' }}</strong>
+        </div>
+
+        <div class="schedule-box highlight" *ngIf="row.targetSlotStartAt">
+          <span class="detail-label">Nuevo horario solicitado</span>
+          <strong>{{ row.targetSlotStartAt | date:'dd/MM/yyyy HH:mm' }}</strong>
+        </div>
+      </div>
+
+      <div class="detail-block">
+        <span class="detail-label">Motivo del profesional</span>
+        <p class="reason-text" *ngIf="row.reason">
+          {{ row.reason }}
+        </p>
+        <p class="muted italic" *ngIf="!row.reason">
+          El profesional no registró un motivo.
+        </p>
+      </div>
+
+      <label class="admin-comment">
+        <span>Comentario administrativo <span class="optional-tag">(Opcional)</span></span>
+        <textarea
+          name="adminComment"
+          [(ngModel)]="adminComment"
+          maxlength="500"
+          rows="3"
+          placeholder="Escribe una observación sobre esta decisión..."
+          [disabled]="saving">
+        </textarea>
+      </label>
+
+      <div class="warnings-stack">
+        <div class="review-warning info" *ngIf="row.type === 'Cancelacion'">
+          Al <strong>aprobar</strong>, la cita será cancelada y se liberará el horario correspondiente.
+        </div>
+
+        <div class="review-warning info" *ngIf="row.type === 'Reprogramacion'">
+          Al <strong>aprobar</strong>, la cita se moverá automáticamente al nuevo horario solicitado.
+        </div>
+
+        <div class="review-warning rejection">
+          Al <strong>rechazar</strong>, la solicitud se descartará y la cita original permanecerá intacta.
+        </div>
+      </div>
+
+      <div class="alert alert-error modal-error" role="alert" *ngIf="error">
+        {{ error }}
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button
+        class="btn btn-secondary"
+        type="button"
+        (click)="closeReview()"
+        [disabled]="saving">
+        Cerrar
+      </button>
+
+      <div class="decision-buttons">
+        <button
+          class="btn btn-danger"
+          type="button"
+          (click)="reject()"
+          [disabled]="saving">
+          {{ saving ? 'Procesando...' : 'Rechazar' }}
+        </button>
+
+        <button
+          class="btn btn-primary"
+          type="button"
+          (click)="approve()"
+          [disabled]="saving">
+          {{ saving ? 'Procesando...' : 'Aprobar' }}
+        </button>
+      </div>
+    </div>
+
+  </section>
+</div>
