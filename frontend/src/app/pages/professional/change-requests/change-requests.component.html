@@ -85,6 +85,11 @@
       </button>
 
     </nav>
+    <div class="request-dates">
+      <label>Desde<input type="date" [value]="fromDate" (change)="filterDates('fromDate', $any($event.target).value)"></label>
+      <label>Hasta<input type="date" [value]="toDate" (change)="filterDates('toDate', $any($event.target).value)"></label>
+    </div>
+    <p class="error-state" role="alert" *ngIf="dateError">{{ dateError }}</p>
 
 
     <!-- Carga -->
@@ -115,7 +120,7 @@
 
     <div
       class="empty-state"
-      *ngIf="!loading && !error && !filteredRequests.length">
+      *ngIf="!loading && !error && !filteredRequests.length && !dateError">
 
       <div class="empty-icon">📋</div>
 
@@ -140,7 +145,7 @@
 
       <article
         class="request-card"
-        *ngFor="let request of filteredRequests; trackBy: trackById">
+        *ngFor="let request of visibleRequests; trackBy: trackById">
 
         <header class="request-card-header">
 
@@ -243,6 +248,8 @@
       </article>
 
     </div>
+
+    <app-list-pager *ngIf="!dateError" [page]="page" [total]="filteredRequests.length" [pageSize]="pageSize" (pageChange)="page = $event"></app-list-pager>
 
   </section>
 

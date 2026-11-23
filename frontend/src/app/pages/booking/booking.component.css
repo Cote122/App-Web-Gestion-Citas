@@ -1,4 +1,6 @@
 .booking { display: grid; gap: 14px; }
+.choice-filter { display:grid; gap:6px; max-width:420px; margin:0 0 16px; font-size:14px; font-weight:600; }
+.choice-filter input { width:100%; min-width:0; padding:10px; border:1px solid #cad7e4; border-radius:8px; font:inherit; background:white; color:var(--text); }
 .booking-head { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: center; }
 .booking-head small { color: var(--success); font-weight: 900; letter-spacing: .08em; }
 .booking-head h2 { color: var(--primary-dark); margin: 5px 0; }
@@ -191,4 +193,7 @@ h3 { margin-top: 0; color: var(--primary-dark); }
 
 @media (max-width: 650px) {
   .choices, .choices.two, .day-slots { grid-template-columns: 1fr; }
+  .calendar { grid-template-columns: repeat(7, minmax(0, 1fr)); }
+  .calendar-nav { grid-template-columns: 38px minmax(0, 1fr) 38px; }
+  .calendar-day { min-width: 0; }
 }

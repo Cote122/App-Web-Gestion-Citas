@@ -7,9 +7,10 @@ import { ApiService } from '../../../core/api.service';
 import { AdminPrescription, CorrectPrescription, PrescriptionCorrection, PrescriptionItem } from '../../../models/models';
 import { AlertModalComponent } from '../../../shared/alert-modal/alert-modal.component';
 import { PrescriptionReviewComponent } from '../../../shared/prescription-review/prescription-review.component';
+import { ListPagerComponent } from '../../../shared/list-pager/list-pager.component';
 
 @Component({ selector: 'app-admin-prescriptions', standalone: true,
-  imports: [CommonModule, FormsModule, AlertModalComponent, PrescriptionReviewComponent],
+  imports: [CommonModule, FormsModule, AlertModalComponent, PrescriptionReviewComponent, ListPagerComponent],
   templateUrl: './admin-prescriptions.component.html',
   styleUrls: ['../../prescriptions/prescriptions.component.css', './admin-prescriptions.component.css'] })
 export class AdminPrescriptionsComponent {
@@ -17,6 +18,22 @@ export class AdminPrescriptionsComponent {
   private readonly destroyRef = inject(DestroyRef);
   patientDni = '';
   rows: AdminPrescription[] = [];
+  fromDate = '';
+  toDate = '';
+  appliedFrom = '';
+  appliedTo = '';
+  dateError = '';
+  page = 1;
+  readonly pageSize = 8;
+  get filteredRows(): AdminPrescription[] {
+    return this.rows.filter(x => {
+      const parts = new Intl.DateTimeFormat('en-US', { timeZone: 'America/Lima', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(new Date(x.issuedAt));
+      const get = (type: string) => parts.find(p => p.type === type)?.value ?? '';
+      const day = `${get('year')}-${get('month')}-${get('day')}`;
+      return (!this.appliedFrom || day >= this.appliedFrom) && (!this.appliedTo || day <= this.appliedTo);
+    });
+  }
+  get visibleRows(): AdminPrescription[] { return this.filteredRows.slice((this.page - 1) * this.pageSize, this.page * this.pageSize); }
   selected?: AdminPrescription;
   history: PrescriptionCorrection[] = [];
   items: PrescriptionItem[] = [];
@@ -30,6 +47,11 @@ export class AdminPrescriptionsComponent {
   pending?: { id: string; patient: string; professional: string; request: CorrectPrescription };
   search(): void {
     if (this.loading || this.saving || this.pending) return;
+    if (!!this.fromDate !== !!this.toDate || (this.fromDate && this.fromDate > this.toDate)) {
+      this.dateError = 'Selecciona ambas fechas en orden válido.'; return;
+    }
+    this.dateError = '';
+    this.appliedFrom = this.fromDate; this.appliedTo = this.toDate; this.page = 1;
     if (!/^[0-9]{8}$/.test(this.patientDni)) { this.alertMessage = 'Ingresa el DNI del paciente de 8 dígitos.'; return; }
     this.loading = true; this.searched = true; this.rows = []; this.selected = undefined; this.success = '';
     this.api.adminPrescriptions(this.patientDni).pipe(takeUntilDestroyed(this.destroyRef), finalize(() => this.loading = false))

@@ -173,6 +173,32 @@
   gap: 16px;
 }
 
+.request-dates {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 16px 0;
+}
+
+.request-dates label {
+  display: grid;
+  gap: 6px;
+  flex: 1 1 170px;
+  max-width: 350px;
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.request-dates input {
+  min-width: 0;
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #cad7e4;
+  border-radius: 8px;
+  background: white;
+  color: #1e293b;
+}
+
 .request-card {
   padding: 20px;
   border: 1px solid #e2e8f0;

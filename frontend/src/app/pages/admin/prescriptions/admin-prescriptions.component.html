@@ -1,12 +1,16 @@
 <section class="card"><h2>Corrección de recetas</h2><p class="muted">Localiza al paciente por DNI para revisar una receta y corregir su contenido.</p>
   <form class="search" #searchForm="ngForm" (ngSubmit)="search()"><label>DNI del paciente<input name="patientDni" [(ngModel)]="patientDni" required pattern="[0-9]{8}" minlength="8" maxlength="8" inputmode="numeric"></label>
+    <label>Desde<input type="date" name="fromDate" [(ngModel)]="fromDate"></label>
+    <label>Hasta<input type="date" name="toDate" [(ngModel)]="toDate"></label>
     <button class="btn btn-primary" type="submit" [disabled]="loading || saving || searchForm.invalid">Buscar</button></form>
+  <p class="error" role="alert" *ngIf="dateError">{{ dateError }}</p>
   <p role="status" *ngIf="loading">Consultando...</p><p class="success" role="status" *ngIf="success">{{ success }}</p>
   <p class="muted" *ngIf="searched && !loading && !rows.length">No se encontraron recetas para este paciente.</p>
-  <div class="table-scroll" *ngIf="rows.length"><table><thead><tr><th scope="col">Paciente</th><th scope="col">Emisión</th><th scope="col">Profesional</th><th scope="col">Estado</th><th scope="col">Detalle</th></tr></thead>
-    <tbody><tr *ngFor="let row of rows"><td>{{ row.patient }}</td><td>{{ row.issuedAt | date:'dd/MM/yyyy HH:mm' }}</td><td>{{ row.professional }}</td><td>{{ row.isActive ? 'Activa' : 'Anulada' }}</td>
-      <td><button class="btn btn-secondary" type="button" (click)="open(row.id)" [disabled]="loading || saving">Revisar receta</button></td></tr></tbody></table></div>
-  <p class="muted" *ngIf="rows.length === 50">Se muestran las 50 recetas más recientes de este paciente.</p>
+  <div class="table-scroll" *ngIf="filteredRows.length"><table><thead><tr><th scope="col">Paciente</th><th scope="col">Emisión</th><th scope="col">Profesional</th><th scope="col">Estado</th><th scope="col">Detalle</th></tr></thead>
+    <tbody><tr *ngFor="let row of visibleRows"><td data-label="Paciente">{{ row.patient }}</td><td data-label="Emisión">{{ row.issuedAt | date:'dd/MM/yyyy HH:mm' }}</td><td data-label="Profesional">{{ row.professional }}</td><td data-label="Estado">{{ row.isActive ? 'Activa' : 'Anulada' }}</td>
+      <td data-label="Detalle"><button class="btn btn-secondary" type="button" (click)="open(row.id)" [disabled]="loading || saving">Revisar receta</button></td></tr></tbody></table></div>
+  <p class="muted" *ngIf="searched && rows.length && !filteredRows.length">No hay recetas dentro del rango seleccionado.</p>
+  <app-list-pager [page]="page" [total]="filteredRows.length" [pageSize]="pageSize" (pageChange)="page = $event"></app-list-pager>
 </section>
 <section class="card" *ngIf="selected as row"><h3>{{ row.patient }} · DNI {{ row.patientDni }}</h3><p class="muted">Emisor: {{ row.professional }} · Emisión original: {{ row.issuedAt | date:'dd/MM/yyyy HH:mm' }}</p>
   <p *ngIf="!row.isActive" class="muted">La receta está anulada y conserva su contenido histórico.</p>

@@ -19,6 +19,7 @@ import { AdminPrescriptionsComponent } from './pages/admin/prescriptions/admin-p
 import { ProfileComponent } from './pages/profile/profile.component';
 import { AdminAppointmentRequestsComponent } from './pages/admin/appointment-requests/appointment-requests.component';
 import { ProfessionalChangeRequestsComponent } from './pages/professional/change-requests/change-requests.component';
+import { MedicalAttentionComponent } from './pages/agenda/medical-attention.component';
 
 export const routes: Routes = [
   { path: 'login', component: LoginComponent, canActivate: [guestGuard] },
@@ -41,6 +42,7 @@ export const routes: Routes = [
       { path: 'admin/specialties', component: AdminSpecialtiesComponent, canActivate: [adminGuard] },
       { path: 'admin/professionals', component: AdminProfessionalsComponent, canActivate: [adminGuard] },
       { path: 'agenda', component: AgendaComponent, canActivate: [professionalGuard] },
+      { path: 'agenda/atencion/:appointmentId', component: MedicalAttentionComponent, canActivate: [professionalGuard] },
       { path: 'professional/absences', component: ProfessionalAbsencesComponent, canActivate: [professionalGuard] },
       { path: '', pathMatch: 'full', redirectTo: 'home' },
       { path: 'admin/appointment-requests', component: AdminAppointmentRequestsComponent, canActivate: [adminGuard] },

@@ -32,4 +32,14 @@ tr.inactive .name, tr.inactive td { color: #6f7f8f; }
 @media (max-width: 650px) {
   .card { padding: 18px; }
   .head { align-items: flex-start; flex-direction: column; }
+  .table-wrap { border: 0; overflow-x: visible; }
+  .table-wrap table, .table-wrap tbody, .table-wrap tr, .table-wrap td { display: block; width: 100%; min-width: 0; }
+  .table-wrap colgroup, .table-wrap thead { display: none; }
+  .table-wrap tr { border: 1px solid var(--line); border-radius: 12px; margin-bottom: 12px; overflow: hidden; }
+  .table-wrap td { padding: 9px 12px; border: 0; text-align: left; white-space: normal; overflow-wrap: anywhere; }
+  .table-wrap td::before { content: attr(data-label); display: block; font-size: 11px; font-weight: 800; color: var(--soft-text); margin-bottom: 3px; }
+  .table-wrap .actions .btn { margin: 0 6px 6px 0; }
+  .table-wrap select { max-width: 100%; }
 }
+.list-filter { display: grid; gap: 6px; max-width: 420px; margin: 16px 0; font-size: 14px; font-weight: 600; }
+.list-filter input { width: 100%; min-width: 0; padding: 10px; border: 1px solid #cad7e4; border-radius: 8px; font: inherit; background: white; color: var(--text); }

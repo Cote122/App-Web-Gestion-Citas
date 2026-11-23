@@ -39,7 +39,15 @@
     </p>
   </div>
 
-  <div class="table-container" *ngIf="rows.length">
+  <div class="request-filters" *ngIf="rows.length">
+    <label>Buscar cita, paciente o profesional<input type="search" [(ngModel)]="searchText" (ngModelChange)="filterChanged()" placeholder="Nombre o código"></label>
+    <label>Desde<input type="date" [(ngModel)]="fromDate" (ngModelChange)="filterChanged()"></label>
+    <label>Hasta<input type="date" [(ngModel)]="toDate" (ngModelChange)="filterChanged()"></label>
+  </div>
+  <p class="alert alert-error" role="alert" *ngIf="dateError">{{ dateError }}</p>
+  <p class="muted" *ngIf="rows.length && !filteredRows.length && !dateError">No hay solicitudes que coincidan con el filtro.</p>
+
+  <div class="table-container" *ngIf="rows.length && !dateError">
     <table class="responsive-table">
       <thead>
         <tr>
@@ -55,7 +63,7 @@
       </thead>
 
       <tbody>
-        <tr *ngFor="let row of rows">
+        <tr *ngFor="let row of visibleRows">
           <td data-label="Cita">
             <strong class="code-badge">{{ row.appointmentCode }}</strong>
           </td>
@@ -109,11 +117,12 @@
       </tbody>
     </table>
   </div>
+  <app-list-pager *ngIf="!dateError" [page]="page" [total]="filteredRows.length" [pageSize]="pageSize" (pageChange)="page = $event"></app-list-pager>
 
   <div class="table-footer" *ngIf="rows.length">
     <p class="muted request-count">
-      Mostrando <strong>{{ rows.length }}</strong>
-      {{ rows.length === 1 ? 'solicitud pendiente' : 'solicitudes pendientes' }}.
+      Mostrando <strong>{{ filteredRows.length }}</strong>
+      {{ filteredRows.length === 1 ? 'solicitud pendiente' : 'solicitudes pendientes' }}.
     </p>
   </div>
 
