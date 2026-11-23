@@ -7,6 +7,9 @@
   <p class="error feedback" *ngIf="error">{{ error }}</p>
   <p class="success feedback" *ngIf="message">{{ message }}</p>
   <p class="muted" *ngIf="loading">Cargando profesionales...</p>
+  <label class="list-filter" *ngIf="!loading">Buscar profesional, especialidad o consultorio
+    <input type="search" [value]="searchText" (input)="filter($any($event.target).value)" placeholder="Buscar en profesionales">
+  </label>
 
   <div class="table-wrap" *ngIf="!loading">
     <table>
@@ -17,13 +20,13 @@
         <tr><th>Profesional</th><th>Cuenta</th><th>Consultorio</th><th>Especialidad</th><th class="center">Estado</th><th class="actions">Acciones</th></tr>
       </thead>
       <tbody>
-        <tr *ngFor="let item of items" [class.inactive]="!item.isActive">
-          <td><span class="name">{{ item.fullName }}</span></td>
-          <td><span class="sub" *ngIf="item.userEmail">{{ item.userEmail }}</span><span class="sub warn" *ngIf="!item.userEmail">Sin cuenta</span></td>
-          <td>{{ item.office || '—' }}</td>
-          <td>{{ item.specialtyName }}<span class="sub warn" *ngIf="!item.specialtyIsActive">Especialidad inactiva</span></td>
-          <td class="center"><span class="badge" [ngClass]="item.isActive ? 'badge-green' : 'badge-gray'">{{ item.isActive ? 'Activo' : 'Inactivo' }}</span></td>
-          <td class="actions">
+        <tr *ngFor="let item of visibleItems" [class.inactive]="!item.isActive">
+          <td data-label="Profesional"><span class="name">{{ item.fullName }}</span></td>
+          <td data-label="Cuenta"><span class="sub" *ngIf="item.userEmail">{{ item.userEmail }}</span><span class="sub warn" *ngIf="!item.userEmail">Sin cuenta</span></td>
+          <td data-label="Consultorio">{{ item.office || '—' }}</td>
+          <td data-label="Especialidad">{{ item.specialtyName }}<span class="sub warn" *ngIf="!item.specialtyIsActive">Especialidad inactiva</span></td>
+          <td class="center" data-label="Estado"><span class="badge" [ngClass]="item.isActive ? 'badge-green' : 'badge-gray'">{{ item.isActive ? 'Activo' : 'Inactivo' }}</span></td>
+          <td class="actions" data-label="Acciones">
             <a class="btn btn-secondary" routerLink="/app/admin/schedules" [queryParams]="{ professionalId: item.id }">Horarios</a>
             <button class="btn btn-secondary" (click)="edit(item)">Editar</button>
             <button class="btn" [ngClass]="item.isActive ? 'btn-danger' : 'btn-secondary'" (click)="toggle(item)">{{ item.isActive ? 'Desactivar' : 'Activar' }}</button>
@@ -31,8 +34,9 @@
         </tr>
       </tbody>
     </table>
-    <div class="empty" *ngIf="!items.length">Aún no hay profesionales registrados.</div>
+    <div class="empty" *ngIf="!filteredItems.length">{{ items.length ? 'No hay profesionales que coincidan con la búsqueda.' : 'Aún no hay profesionales registrados.' }}</div>
   </div>
+  <app-list-pager [page]="page" [total]="filteredItems.length" [pageSize]="pageSize" (pageChange)="page = $event"></app-list-pager>
 </section>
 
 <app-confirm-modal *ngIf="deactivating as item"

@@ -23,7 +23,7 @@
       </div>
 
       <div class="list" *ngIf="upcomingAppointments.length; else noUpcoming">
-        <article *ngFor="let item of upcomingAppointments" class="appointment">
+        <article *ngFor="let item of visibleUpcoming" class="appointment">
           <div class="main">
             <b>{{ item.specialty }}</b>
             <span>{{ item.professional }} · {{ item.office }}</span>
@@ -89,6 +89,12 @@
         </article>
       </div>
 
+      <div class="pager" *ngIf="upcomingPages > 1" aria-label="Páginas de próximas citas">
+        <button class="btn btn-secondary" type="button" (click)="upcomingPage = upcomingPage - 1" [disabled]="upcomingPage === 1">Anterior</button>
+        <span>Página {{ upcomingPage }} de {{ upcomingPages }}</span>
+        <button class="btn btn-secondary" type="button" (click)="upcomingPage = upcomingPage + 1" [disabled]="upcomingPage === upcomingPages">Siguiente</button>
+      </div>
+
       <ng-template #noUpcoming>
         <div class="empty">
           No tienes citas próximas. Puedes registrar una nueva cita cuando lo necesites.
@@ -106,7 +112,7 @@
       </div>
 
       <div class="list" *ngIf="waitlist.length; else noWaitlist">
-        <article *ngFor="let item of waitlist" class="appointment waitlist-item">
+        <article *ngFor="let item of visibleWaitlist" class="appointment waitlist-item">
           <div class="main">
             <b>{{ item.specialty }}</b>
             <span>{{ item.professional }} · {{ item.office }}</span>
@@ -136,6 +142,12 @@
         </article>
       </div>
 
+      <div class="pager" *ngIf="waitlistPages > 1" aria-label="Páginas de lista de espera">
+        <button class="btn btn-secondary" type="button" (click)="waitlistPage = waitlistPage - 1" [disabled]="waitlistPage === 1">Anterior</button>
+        <span>Página {{ waitlistPage }} de {{ waitlistPages }}</span>
+        <button class="btn btn-secondary" type="button" (click)="waitlistPage = waitlistPage + 1" [disabled]="waitlistPage === waitlistPages">Siguiente</button>
+      </div>
+
       <ng-template #noWaitlist>
         <div class="empty">
           No tienes horarios activos en lista de espera.
@@ -149,11 +161,48 @@
           <h3>Historial</h3>
           <p>Citas pasadas, canceladas o que fueron reprogramadas.</p>
         </div>
-        <span class="counter secondary">{{ appointmentHistory.length }}</span>
+        <span class="counter secondary">{{ filteredHistory.length }}</span>
       </div>
 
-      <div class="list" *ngIf="appointmentHistory.length; else noHistory">
-        <article *ngFor="let item of appointmentHistory" class="appointment history">
+      <div class="history-filters">
+        <label>Desde <input type="date" [value]="fromDate" (change)="fromDate = $any($event.target).value"></label>
+        <label>Hasta <input type="date" [value]="toDate" (change)="toDate = $any($event.target).value"></label>
+        <button class="btn btn-primary" type="button" (click)="applyDates()">Aplicar rango</button>
+        <button class="btn btn-secondary" type="button" (click)="clearDates()" *ngIf="appliedFrom || fromDate || toDate">Limpiar</button>
+      </div>
+      <p class="error" role="alert" *ngIf="dateError">{{ dateError }}</p>
+
+      <div class="history-calendar" aria-label="Calendario del historial">
+        <div class="month-heading">
+          <button class="btn btn-secondary" type="button" (click)="moveMonth(-1)" aria-label="Mes anterior">‹</button>
+          <strong>{{ monthLabel | titlecase }}</strong>
+          <button class="btn btn-secondary" type="button" (click)="moveMonth(1)" aria-label="Mes siguiente">›</button>
+        </div>
+        <div class="history-grid">
+          <span class="weekday" *ngFor="let day of weekdays">{{ day }}</span>
+          <ng-container *ngFor="let day of calendarDays">
+            <span class="blank" *ngIf="!day" aria-hidden="true"></span>
+            <button *ngIf="day" class="calendar-cell" type="button"
+                    [class.has-appointments]="day.count > 0" [class.selected]="expandedDay === day.date"
+                    [disabled]="!day.count" (click)="selectDay(day.date)"
+                    [attr.aria-label]="day.date + ': ' + day.count + ' citas'">
+              <b>{{ day.date.slice(8) }}</b>
+              <small *ngIf="day.count">{{ day.count }} {{ day.count === 1 ? 'cita' : 'citas' }}</small>
+            </button>
+          </ng-container>
+        </div>
+      </div>
+
+      <div class="history-dates" *ngIf="historyDays.length; else noHistory">
+        <section class="date-group" *ngFor="let day of visibleHistoryDays">
+          <button type="button" class="date-toggle" [attr.aria-expanded]="expandedDay === day"
+                  (click)="selectDay(day)">
+            <b>{{ day.slice(8, 10) }}/{{ day.slice(5, 7) }}/{{ day.slice(0, 4) }}</b>
+            <span>{{ appointmentsOn(day).length }} {{ appointmentsOn(day).length === 1 ? 'cita' : 'citas' }}</span>
+            <span aria-hidden="true">{{ expandedDay === day ? '−' : '+' }}</span>
+          </button>
+          <div class="list" *ngIf="expandedDay === day">
+          <article *ngFor="let item of appointmentsOn(day)" class="appointment history">
           <div class="main">
             <b>{{ item.specialty }}</b>
             <span>{{ item.professional }} · {{ item.office }}</span>
@@ -162,12 +211,12 @@
 
           <div>
             <small>Fecha</small>
-            <b>{{ item.startAt | date:'dd/MM/yyyy' }}</b>
+            <b>{{ item.startAt | date:'dd/MM/yyyy': '-0500' }}</b>
           </div>
 
           <div>
             <small>Hora</small>
-            <b>{{ item.startAt | date:'HH:mm' }}</b>
+            <b>{{ item.startAt | date:'HH:mm': '-0500' }}</b>
           </div>
 
           <div>
@@ -179,10 +228,18 @@
             <button class="btn btn-secondary" type="button" (click)="documentsAppointment = item">Documentos</button>
           </div>
         </article>
+          </div>
+        </section>
+      </div>
+
+      <div class="pager" *ngIf="historyPages > 1">
+        <button class="btn btn-secondary" type="button" (click)="historyPage = historyPage - 1" [disabled]="historyPage === 1">Anterior</button>
+        <span>Página {{ historyPage }} de {{ historyPages }} · {{ historyDays.length }} fechas</span>
+        <button class="btn btn-secondary" type="button" (click)="historyPage = historyPage + 1" [disabled]="historyPage === historyPages">Siguiente</button>
       </div>
 
       <ng-template #noHistory>
-        <div class="empty">Aún no tienes citas en el historial.</div>
+        <div class="empty">{{ appointmentHistory.length ? 'No hay citas dentro del rango seleccionado.' : 'Aún no tienes citas en el historial.' }}</div>
       </ng-template>
     </section>
   </ng-container>

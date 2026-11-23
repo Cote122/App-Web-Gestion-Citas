@@ -6,3 +6,11 @@ header { border-bottom:1px solid var(--line); } header h2 { margin:0; font-size:
 .table-scroll { overflow-x:auto; } table { width:100%; border-collapse:collapse; text-align:left; } th,td { min-width:110px; padding:12px 8px; border-bottom:1px solid var(--line); overflow-wrap:anywhere; }
 .content { white-space:pre-wrap; overflow-wrap:anywhere; line-height:1.6; } .warning { padding:16px; border:1px solid #e6bd61; border-radius:10px; background:#fff7df; color:#6b4800; font-weight:600; line-height:1.6; }
 footer { border-top:1px solid var(--line); justify-content:flex-end; } @media(max-width:600px) { footer button { width:100%; } header,.body,footer { padding-left:16px; padding-right:16px; } }
+@media(max-width:600px) {
+  .table-scroll { overflow-x:visible; }
+  .table-scroll table, .table-scroll tbody, .table-scroll tr, .table-scroll td { display:block; width:100%; }
+  .table-scroll thead { display:none; }
+  .table-scroll tr { border:1px solid var(--line); border-radius:10px; padding:8px; margin-bottom:10px; }
+  .table-scroll td { min-width:0; border:0; padding:7px; }
+  .table-scroll td::before { content:attr(data-label); display:block; font-size:12px; font-weight:800; color:var(--muted); margin-bottom:4px; }
+}

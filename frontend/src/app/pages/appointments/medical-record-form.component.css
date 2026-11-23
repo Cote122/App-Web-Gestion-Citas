@@ -1,97 +1,114 @@
-/* Contenedor tipo modal flotante */
-.modal-container {
-  width: min(600px, 95vw);
-  max-height: calc(100vh - 40px);
-  overflow-y: auto;
-  background: #ffffff;
-  border-radius: 18px;
-  box-shadow: 0 20px 60px rgba(7, 25, 43, 0.3);
-  padding: 28px;
+:host {
+  display: block;
+  width: 100%;
+}
+
+.record-form {
+  width: 100%;
   box-sizing: border-box;
-  font-family: inherit;
 }
 
-/* Encabezado o título opcional si lo agregas dentro */
-.modal-container h2 {
-  margin-top: 0;
-  margin-bottom: 20px;
-  font-size: 20px;
-  color: var(--primary-dark, #0f172a);
+.form-heading {
+  padding-bottom: 1rem;
+  margin-bottom: 1.25rem;
+  border-bottom: 1px solid #dbe4ef;
 }
 
-/* Campos del formulario */
+.form-heading h2 {
+  margin: 0 0 0.35rem;
+  color: #0f2948;
+  font-size: 1.35rem;
+}
+
+.form-heading p {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.9rem;
+}
+
 .form-field {
-  margin-bottom: 16px;
+  margin-bottom: 1.1rem;
 }
 
 .form-field label {
   display: block;
-  font-weight: 600;
-  margin-bottom: 6px;
+  margin-bottom: 0.45rem;
   color: #334155;
-  font-size: 14px;
+  font-size: 0.88rem;
+  font-weight: 600;
 }
 
 .form-field input,
 .form-field textarea {
+  display: block;
   width: 100%;
-  padding: 10px 12px;
+  box-sizing: border-box;
+  padding: 0.8rem 0.9rem;
   border: 1px solid #cbd5e1;
   border-radius: 8px;
-  font-size: 14px;
-  box-sizing: border-box;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  background: #f8fafc;
+  color: #1e293b;
   font-family: inherit;
-  background-color: #f8fafc;
+  font-size: 0.9rem;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.form-field textarea {
+  resize: vertical;
+  min-height: 88px;
 }
 
 .form-field input:focus,
 .form-field textarea:focus {
   outline: none;
-  background-color: #ffffff;
-  border-color: #0ea5e9;
-  box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.15);
+  border-color: #2681d9;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(38, 129, 217, 0.12);
 }
 
-/* Mensajes de error */
+.form-field.invalid input,
+.form-field.invalid textarea {
+  border-color: #ef4444;
+  background: #fef2f2;
+}
+
 .error-banner {
+  margin-bottom: 1rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
   background: #fee2e2;
   color: #991b1b;
-  padding: 10px 14px;
-  border-radius: 8px;
-  margin-bottom: 16px;
-  font-size: 14px;
-  border: 1px solid #fecaca;
+  font-size: 0.88rem;
 }
 
-/* Botones de acción alineados a la derecha */
-.modal-actions {
+.form-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 12px;
-  margin-top: 24px;
-  border-top: 1px solid #e2e8f0;
-  padding-top: 16px;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid #dbe4ef;
 }
 
 .btn {
-  padding: 10px 18px;
+  padding: 0.75rem 1.1rem;
   border: none;
   border-radius: 8px;
+  font-family: inherit;
+  font-size: 0.88rem;
   font-weight: 600;
   cursor: pointer;
-  transition: opacity 0.2s;
-  font-family: inherit;
-  font-size: 14px;
-}
-
-.btn:hover {
-  opacity: 0.9;
+  transition: background 0.2s, opacity 0.2s;
 }
 
 .btn-primary {
-  background: #0ea5e9;
-  color: #fff;
+  background: #087fce;
+  color: #ffffff;
+}
+
+.btn-primary:hover {
+  background: #066db3;
 }
 
 .btn-secondary {
@@ -99,15 +116,27 @@
   color: #334155;
 }
 
+.btn-secondary:hover {
+  background: #cbd5e1;
+}
+
 .btn:disabled {
-  opacity: 0.6;
+  opacity: 0.55;
   cursor: not-allowed;
 }
 
-.form-field.invalid input,
-.form-field.invalid textarea,
-input.ng-invalid.ng-touched,
-textarea.ng-invalid.ng-touched {
-  border-color: #ef4444;
-  background-color: #fef2f2;
+.form-field input:disabled,
+.form-field textarea:disabled {
+  background-color: #f1f5f9;
+  color: #475569;
+  border-color: #dbe3ed;
+  opacity: 1;
+  cursor: default;
+  resize: none;
+}
+
+.loading-message {
+  padding: 1.5rem;
+  text-align: center;
+  color: #64748b;
 }
